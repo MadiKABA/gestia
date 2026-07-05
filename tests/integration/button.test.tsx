@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/presentation/shared/components/ui/button";
 
 describe("Button (presentation)", () => {
   it("déclenche onClick quand on clique dessus", async () => {

@@ -16,7 +16,8 @@ Playwright.
 ## Prérequis
 
 - Node.js ≥ 20 (développé et testé avec Node 24)
-- npm ≥ 10
+- pnpm ≥ 10 (`corepack enable` suffit à l'installer — la version exacte est
+  épinglée dans `package.json` via `packageManager`)
 - **PostgreSQL installé nativement en local** (pas de Docker en dev, voir plus
   bas)
 
@@ -74,36 +75,36 @@ en pleine requête.
 ### 4. Installer les dépendances et préparer la base
 
 ```bash
-npm install          # installe aussi Playwright/Prisma ; postinstall régénère le client Prisma
-npm run db:migrate    # applique les migrations contre gestia_dev
-npm run db:seed       # crée un tenant de démo (patron : téléphone +221770000001, PIN 1234)
+pnpm install         # installe aussi Playwright/Prisma ; postinstall régénère le client Prisma
+pnpm db:migrate      # applique les migrations contre gestia_dev
+pnpm db:seed         # crée un tenant de démo (patron : téléphone +221770000001, PIN 1234)
 ```
 
 ### 5. Lancer l'app
 
 ```bash
-npm run dev
+pnpm dev
 ```
 
 → [http://localhost:3000](http://localhost:3000)
 
-## Scripts npm
+## Scripts
 
-| Script                                          | Description                                                              |
-| ----------------------------------------------- | ------------------------------------------------------------------------ |
-| `npm run dev`                                   | Serveur de dev (Turbopack)                                               |
-| `npm run build`                                 | Build de production                                                      |
-| `npm run start`                                 | Démarre le build de production                                           |
-| `npm run lint`                                  | ESLint                                                                   |
-| `npm run format` / `format:check`               | Prettier (écrit / vérifie)                                               |
-| `npm run typecheck`                             | `tsc --noEmit`                                                           |
-| `npm run test` / `test:watch` / `test:coverage` | Vitest (unit + intégration)                                              |
-| `npm run test:e2e`                              | Playwright                                                               |
-| `npm run db:migrate`                            | `prisma migrate dev` contre le Postgres local                            |
-| `npm run db:generate`                           | Régénère le client Prisma (`src/generated/prisma`)                       |
-| `npm run db:studio`                             | Prisma Studio                                                            |
-| `npm run db:seed`                               | Rejoue `prisma/seed.ts`                                                  |
-| `npm run db:deploy`                             | `prisma migrate deploy` (utilisé en CI/prod, n'invente pas de migration) |
+| Script                                       | Description                                                              |
+| -------------------------------------------- | ------------------------------------------------------------------------ |
+| `pnpm dev`                                   | Serveur de dev (Turbopack)                                               |
+| `pnpm build`                                 | Build de production                                                      |
+| `pnpm start`                                 | Démarre le build de production                                           |
+| `pnpm lint`                                  | ESLint                                                                   |
+| `pnpm format` / `format:check`               | Prettier (écrit / vérifie)                                               |
+| `pnpm typecheck`                             | `tsc --noEmit`                                                           |
+| `pnpm test` / `test:watch` / `test:coverage` | Vitest (unit + intégration)                                              |
+| `pnpm test:e2e`                              | Playwright                                                               |
+| `pnpm db:migrate`                            | `prisma migrate dev` contre le Postgres local                            |
+| `pnpm db:generate`                           | Régénère le client Prisma (`src/generated/prisma`)                       |
+| `pnpm db:studio`                             | Prisma Studio                                                            |
+| `pnpm db:seed`                               | Rejoue `prisma/seed.ts`                                                  |
+| `pnpm db:deploy`                             | `prisma migrate deploy` (utilisé en CI/prod, n'invente pas de migration) |
 
 ## Variables d'environnement
 
@@ -122,8 +123,8 @@ Résumé :
 ## Tests
 
 ```bash
-npm run test         # unitaire (domain) + intégration (infrastructure, nécessite Postgres)
-npm run test:e2e      # Playwright — build + démarre l'app automatiquement
+pnpm test            # unitaire (domain) + intégration (infrastructure, nécessite Postgres)
+pnpm test:e2e         # Playwright — build + démarre l'app automatiquement
 ```
 
 Les tests d'intégration (`tests/integration/`) exécutent de vraies requêtes
@@ -135,15 +136,17 @@ Prisma contre `DATABASE_URL` : Postgres local doit être accessible.
 Sur le VPS Ubuntu cible :
 
 ```bash
-cp .env.example .env.production   # compléter avec les vraies valeurs de prod
+cp .env.example .env.production          # compléter avec les vraies valeurs de prod
+docker compose -f docker-compose.prod.yml run --rm migrate
 docker compose -f docker-compose.prod.yml up -d --build
 ```
 
-`docker-compose.prod.yml` démarre deux services : `app` (image construite
-depuis le `Dockerfile` multi-stage) et `postgres` (volume persistant). Les
-migrations sont appliquées via `db:deploy` au démarrage du conteneur `app`
-(jamais `db:migrate`, qui peut générer une migration — en prod on ne fait
-qu'appliquer celles déjà commitées).
+`docker-compose.prod.yml` définit trois services : `postgres` (volume
+persistant), `migrate` (job ponctuel qui applique les migrations déjà
+commitées via `prisma migrate deploy` — jamais `migrate dev`, qui pourrait en
+générer une nouvelle) et `app` (image construite depuis le `Dockerfile`
+multi-stage). Relancer `migrate` à chaque déploiement qui ajoute une
+migration, avant de redémarrer `app`.
 
 ## CI
 

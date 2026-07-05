@@ -144,7 +144,7 @@ paramètres tenant).
 Le générateur est `prisma-client` (pas `prisma-client-js`) : plus de moteur
 Rust, connexion fournie par un driver adapter (`@prisma/adapter-pg` + `pg`).
 Le client est généré dans `src/generated/prisma` (gitignored, régénéré par
-`npm run db:generate`, appelé automatiquement en `postinstall`). Le
+`pnpm db:generate`, appelé automatiquement en `postinstall`). Le
 `datasource db` du schéma n'a pas d'`url` inline — elle vient de
 `prisma.config.ts` (`process.env.DATABASE_URL`, chargé via `dotenv/config`).
 

@@ -17,7 +17,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: "npm run build && npm run start",
+    command: "pnpm build && pnpm start",
     // /manifest.json plutôt que "/" : le proxy redirige "/" vers /login (pas
     // encore de page, cf. cahier des charges — auth UI hors scope de ce
     // scaffolding), ce que le check de disponibilité de Playwright suit et

@@ -1,13 +1,13 @@
 # syntax=docker/dockerfile:1
 # Image de PRODUCTION uniquement — le développement local n'utilise jamais
 # Docker (Postgres natif, voir README). Build multi-stage : dépendances,
-# build Next.js standalone, runtime minimal.
+# build Next.js, dépendances de prod seules, runtime minimal.
 
 ARG NODE_VERSION=24-slim
 
 # ---------------------------------------------------------------------------
-# 1) deps — installe les dépendances npm (postinstall régénère le client Prisma,
-#    a besoin de prisma/schema.prisma + prisma.config.ts déjà présents)
+# 1) deps — installe TOUTES les dépendances pnpm (postinstall régénère le
+#    client Prisma, a besoin de prisma/schema.prisma + prisma.config.ts)
 # ---------------------------------------------------------------------------
 FROM node:${NODE_VERSION} AS deps
 WORKDIR /app
@@ -17,16 +17,19 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends python3 make g++ \
   && rm -rf /var/lib/apt/lists/*
 
-COPY package.json package-lock.json ./
+RUN corepack enable
+
+COPY package.json pnpm-lock.yaml ./
 COPY prisma ./prisma
 COPY prisma.config.ts ./
-RUN npm ci
+RUN pnpm install --frozen-lockfile
 
 # ---------------------------------------------------------------------------
-# 2) builder — build Next.js (sortie standalone)
+# 2) builder — build Next.js
 # ---------------------------------------------------------------------------
 FROM node:${NODE_VERSION} AS builder
 WORKDIR /app
+RUN corepack enable
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/src/generated ./src/generated
@@ -47,10 +50,24 @@ ENV NODE_ENV=production \
     CLOUDINARY_API_SECRET="placeholder" \
     NEXT_PUBLIC_APP_URL="http://localhost:3000"
 
-RUN npm run build
+RUN pnpm build
 
 # ---------------------------------------------------------------------------
-# 3) runner — image d'exécution minimale, utilisateur non-root
+# 3) prod-deps — dépendances de production uniquement (sans devDependencies)
+# ---------------------------------------------------------------------------
+FROM node:${NODE_VERSION} AS prod-deps
+WORKDIR /app
+RUN corepack enable
+
+COPY package.json pnpm-lock.yaml ./
+# --ignore-scripts : le CLI Prisma (devDependency) n'est pas installé ici, le
+# postinstall `prisma generate` échouerait. Le client déjà généré est copié
+# depuis le stage deps juste après.
+RUN pnpm install --prod --frozen-lockfile --ignore-scripts
+COPY --from=deps /app/src/generated ./src/generated
+
+# ---------------------------------------------------------------------------
+# 4) runner — image d'exécution minimale, utilisateur non-root
 # ---------------------------------------------------------------------------
 FROM node:${NODE_VERSION} AS runner
 WORKDIR /app
@@ -62,12 +79,16 @@ ENV NODE_ENV=production \
 RUN groupadd --system --gid 1001 nodejs \
   && useradd --system --uid 1001 --gid nodejs nextjs
 
+COPY --from=prod-deps /app/node_modules ./node_modules
 COPY --from=builder /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/next.config.ts ./
+COPY --from=builder /app/package.json ./
 COPY --from=builder /app/prisma ./prisma
+
+RUN chown -R nextjs:nodejs .next
 
 USER nextjs
 EXPOSE 3000
 
-CMD ["node", "server.js"]
+CMD ["node_modules/.bin/next", "start"]

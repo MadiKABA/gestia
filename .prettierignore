@@ -5,3 +5,4 @@ playwright-report
 test-results
 public
 package-lock.json
+pnpm-lock.yaml

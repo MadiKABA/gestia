@@ -2,6 +2,11 @@
   "name": "gestia",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@10.29.3",
+  "engines": {
+    "node": ">=20",
+    "pnpm": ">=10"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -84,5 +89,16 @@
     "typescript": "^5",
     "typescript-eslint": "^8.62.1",
     "vitest": "^4.1.9"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@prisma/engines",
+      "@swc/core",
+      "argon2",
+      "esbuild",
+      "prisma",
+      "sharp",
+      "unrs-resolver"
+    ]
   }
 }

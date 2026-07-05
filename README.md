@@ -1,36 +1,158 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Gestia
 
-## Getting Started
+Gestia remplace le cahier papier de dettes, créances et caisse des
+commerçants : qui me doit de l'argent, à qui je dois, combien j'ai en caisse.
+SaaS multi-tenant, authentification téléphone + PIN, PWA offline complet.
+Contexte produit complet : [CLAUDE.md](./CLAUDE.md). Architecture détaillée :
+[ARCHITECTURE.md](./ARCHITECTURE.md).
 
-First, run the development server:
+## Stack
+
+Next.js 16 (App Router, Turbopack, TypeScript strict) · React 19 · Tailwind
+v4 + shadcn/ui · Prisma 7 + PostgreSQL · better-auth (session) + Argon2 (PIN)
+· Africa's Talking (SMS/OTP) · Cloudinary (logo) · Serwist (PWA) · Vitest +
+Playwright.
+
+## Prérequis
+
+- Node.js ≥ 20 (développé et testé avec Node 24)
+- npm ≥ 10
+- **PostgreSQL installé nativement en local** (pas de Docker en dev, voir plus
+  bas)
+
+## Installation locale (dev — sans Docker)
+
+### 1. PostgreSQL natif
+
+PostgreSQL doit tourner directement sur ta machine, pas dans un conteneur.
+
+**macOS (Homebrew)**
+
+```bash
+brew install postgresql@16
+brew services start postgresql@16
+```
+
+**Linux (Debian/Ubuntu)**
+
+```bash
+sudo apt update
+sudo apt install postgresql postgresql-contrib
+sudo systemctl enable --now postgresql
+```
+
+**Windows**
+
+Installer via [le programme officiel PostgreSQL](https://www.postgresql.org/download/windows/)
+(inclut pgAdmin). Le service démarre automatiquement après installation.
+
+### 2. Créer la base de développement
+
+```bash
+# macOS / Linux
+sudo -u postgres psql -c "ALTER USER postgres PASSWORD 'postgres';"
+sudo -u postgres createdb gestia_dev
+
+# Windows (invite de commandes, après avoir ajouté psql au PATH)
+psql -U postgres -c "CREATE DATABASE gestia_dev;"
+```
+
+### 3. Variables d'environnement
+
+```bash
+cp .env.example .env
+```
+
+Compléter `.env` (voir le tableau des variables plus bas). `DATABASE_URL` doit
+déjà pointer vers `postgresql://postgres:postgres@localhost:5432/gestia_dev`
+si tu as suivi l'étape précédente à l'identique.
+
+La validation (`src/lib/env.ts`, Zod) échoue **au démarrage** si une variable
+est manquante ou mal formée — message d'erreur explicite plutôt qu'un crash
+en pleine requête.
+
+### 4. Installer les dépendances et préparer la base
+
+```bash
+npm install          # installe aussi Playwright/Prisma ; postinstall régénère le client Prisma
+npm run db:migrate    # applique les migrations contre gestia_dev
+npm run db:seed       # crée un tenant de démo (patron : téléphone +221770000001, PIN 1234)
+```
+
+### 5. Lancer l'app
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+→ [http://localhost:3000](http://localhost:3000)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Scripts npm
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Script                                          | Description                                                              |
+| ----------------------------------------------- | ------------------------------------------------------------------------ |
+| `npm run dev`                                   | Serveur de dev (Turbopack)                                               |
+| `npm run build`                                 | Build de production                                                      |
+| `npm run start`                                 | Démarre le build de production                                           |
+| `npm run lint`                                  | ESLint                                                                   |
+| `npm run format` / `format:check`               | Prettier (écrit / vérifie)                                               |
+| `npm run typecheck`                             | `tsc --noEmit`                                                           |
+| `npm run test` / `test:watch` / `test:coverage` | Vitest (unit + intégration)                                              |
+| `npm run test:e2e`                              | Playwright                                                               |
+| `npm run db:migrate`                            | `prisma migrate dev` contre le Postgres local                            |
+| `npm run db:generate`                           | Régénère le client Prisma (`src/generated/prisma`)                       |
+| `npm run db:studio`                             | Prisma Studio                                                            |
+| `npm run db:seed`                               | Rejoue `prisma/seed.ts`                                                  |
+| `npm run db:deploy`                             | `prisma migrate deploy` (utilisé en CI/prod, n'invente pas de migration) |
 
-## Learn More
+## Variables d'environnement
 
-To learn more about Next.js, take a look at the following resources:
+Voir [.env.example](./.env.example) pour la liste complète et commentée.
+Résumé :
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| Variable                                                                        | Rôle                                                                     |
+| ------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `DATABASE_URL`                                                                  | Connexion Postgres (natif en dev, service `postgres` du compose en prod) |
+| `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`                                         | Session (cookie signé, CSRF)                                             |
+| `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY`                                            | Chiffrement des closures de Server Actions — stable entre déploiements   |
+| `AFRICASTALKING_USERNAME`, `AFRICASTALKING_API_KEY`, `AFRICASTALKING_SENDER_ID` | SMS/OTP                                                                  |
+| `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`          | Upload logo boutique                                                     |
+| `NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_APP_NAME`                                   | Exposées au client                                                       |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Tests
 
-## Deploy on Vercel
+```bash
+npm run test         # unitaire (domain) + intégration (infrastructure, nécessite Postgres)
+npm run test:e2e      # Playwright — build + démarre l'app automatiquement
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Les tests d'intégration (`tests/integration/`) exécutent de vraies requêtes
+Prisma contre `DATABASE_URL` : Postgres local doit être accessible.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Déploiement en production (Docker)
+
+**Docker est réservé au déploiement — jamais utilisé en développement local.**
+Sur le VPS Ubuntu cible :
+
+```bash
+cp .env.example .env.production   # compléter avec les vraies valeurs de prod
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+`docker-compose.prod.yml` démarre deux services : `app` (image construite
+depuis le `Dockerfile` multi-stage) et `postgres` (volume persistant). Les
+migrations sont appliquées via `db:deploy` au démarrage du conteneur `app`
+(jamais `db:migrate`, qui peut générer une migration — en prod on ne fait
+qu'appliquer celles déjà commitées).
+
+## CI
+
+`.github/workflows/ci.yml` : lint, format check, typecheck, tests et build
+contre un service PostgreSQL fourni par GitHub Actions (aucun Docker
+nécessaire côté CI non plus), puis un job e2e séparé (Playwright).
+
+## Conventions
+
+Conventional Commits (types en anglais, description en français), voir
+`commitlint.config.mjs` pour les scopes autorisés. Détails complets dans
+[CLAUDE.md](./CLAUDE.md#conventions-de-code).

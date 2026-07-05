@@ -20,6 +20,12 @@ enum UserRole {
   VENDEUR
 }
 
+enum TenantStatus {
+  TRIAL
+  ACTIVE
+  SUSPENDED
+}
+
 enum PartyType {
   CLIENT
   SUPPLIER
@@ -60,6 +66,27 @@ enum OtpPurpose {
 }
 
 // ---------------------------------------------------------------------------
+// Admin — comptes du backoffice SaaS (hors périmètre tenant, auth email+mdp)
+// ---------------------------------------------------------------------------
+
+model Admin {
+  id String @id @default(cuid())
+
+  email        String @unique
+  passwordHash String
+
+  firstName String?
+  lastName  String?
+
+  active Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("admins")
+}
+
+// ---------------------------------------------------------------------------
 // Tenant — une boutique/entreprise cliente de Gestia
 // ---------------------------------------------------------------------------
 
@@ -68,6 +95,9 @@ model Tenant {
   name    String
   phone   String?
   address String?
+
+  status      TenantStatus @default(TRIAL)
+  trialEndsAt DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

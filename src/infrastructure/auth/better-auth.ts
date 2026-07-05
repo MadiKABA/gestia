@@ -1,5 +1,6 @@
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
+import { nextCookies } from "better-auth/next-js";
 import { prisma } from "@/infrastructure/prisma/client";
 import { pinAuthPlugin } from "@/infrastructure/auth/pin-auth.plugin";
 import { env } from "@/lib/env";
@@ -36,5 +37,9 @@ export const auth = betterAuth({
     expiresIn: 60 * 60 * 8,
     updateAge: 60 * 30,
   },
-  plugins: [pinAuthPlugin()],
+  // nextCookies() doit rester le dernier plugin : c'est lui qui reporte les
+  // en-têtes Set-Cookie émis par les endpoints (dont /sign-in/pin) vers la
+  // réponse Next.js quand ils sont appelés via auth.api depuis une Server
+  // Action — sans lui, le cookie de session est silencieusement perdu.
+  plugins: [pinAuthPlugin(), nextCookies()],
 });

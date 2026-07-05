@@ -13,6 +13,10 @@ export class PrismaAuthRepository implements AuthRepository {
     return prisma.user.findUnique({ where: { phone } });
   }
 
+  async findUserById(id: string): Promise<AuthUser | null> {
+    return prisma.user.findUnique({ where: { id } });
+  }
+
   async createTenantWithPatron(input: {
     tenantName: string;
     patronName: string;
@@ -60,6 +64,24 @@ export class PrismaAuthRepository implements AuthRepository {
       where: { id: userId },
       data: { pinHash, failedAttempts: 0, lockedUntil: null },
     });
+  }
+
+  async recordFailedLogin(
+    userId: string,
+    state: { failedAttempts: number; lockedUntil: Date | null },
+  ): Promise<void> {
+    await prisma.user.update({ where: { id: userId }, data: state });
+  }
+
+  async clearLockout(userId: string): Promise<void> {
+    await prisma.user.update({
+      where: { id: userId },
+      data: { failedAttempts: 0, lockedUntil: null },
+    });
+  }
+
+  async setActive(userId: string, active: boolean): Promise<void> {
+    await prisma.user.update({ where: { id: userId }, data: { active } });
   }
 
   async createOtp(input: {

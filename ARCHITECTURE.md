@@ -121,6 +121,14 @@ Exception documentée : `src/infrastructure/auth/auth.repository.ts`
 s'exécute avant qu'un tenantId courant n'existe (recherche par téléphone,
 globalement unique, ou création du tenant lui-même).
 
+Deuxième exception documentée, propre à la connexion : `pin-auth.plugin.ts`
+n'est pas un simple adaptateur — l'endpoint `/sign-in/pin` doit rester un
+plugin better-auth (seul lui peut appeler `ctx.context.internalAdapter` pour
+émettre une session signée). Il délègue toute la décision métier (vérification
+Argon2, verrouillage, AuditLog `auth.login_success`/`auth.login_failed`) au
+use case `application/auth/login.use-case.ts`, et se limite ensuite à la
+création de session + pose du cookie via `setSessionCookie`.
+
 ## Comment ajouter une nouvelle feature (ex: `transaction`)
 
 1. `domain/transaction/` — entité(s) + règles pures (ex: calcul du statut

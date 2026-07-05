@@ -23,6 +23,7 @@ export type AuthUser = {
 /** Implémenté par src/infrastructure/auth/auth.repository.ts. */
 export interface AuthRepository {
   findUserByPhone(phone: string): Promise<AuthUser | null>;
+  findUserById(id: string): Promise<AuthUser | null>;
   createTenantWithPatron(input: {
     tenantName: string;
     patronName: string;
@@ -36,6 +37,12 @@ export interface AuthRepository {
     placeholderPinHash: string;
   }): Promise<AuthUser>;
   updatePinHash(userId: string, pinHash: string): Promise<void>;
+  recordFailedLogin(
+    userId: string,
+    state: { failedAttempts: number; lockedUntil: Date | null },
+  ): Promise<void>;
+  clearLockout(userId: string): Promise<void>;
+  setActive(userId: string, active: boolean): Promise<void>;
 
   createOtp(input: {
     phone: string;

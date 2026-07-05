@@ -1,0 +1,17 @@
+node_modules
+.next
+.git
+.env
+.env.*
+!.env.example
+coverage
+playwright-report
+test-results
+blob-report
+src/generated
+.husky
+.vscode
+*.log
+Dockerfile
+docker
+docker-compose*.yml

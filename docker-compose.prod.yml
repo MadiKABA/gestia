@@ -1,0 +1,55 @@
+# Déploiement PRODUCTION uniquement (VPS Ubuntu) — jamais utilisé en dev local
+# (PostgreSQL natif en dev, voir README). Usage :
+#
+#   cp .env.example .env.production   # compléter avec les vraies valeurs
+#   docker compose -f docker-compose.prod.yml run --rm migrate
+#   docker compose -f docker-compose.prod.yml up -d --build
+
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-gestia}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-gestia}
+    volumes:
+      - gestia_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-gestia}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Job ponctuel : applique les migrations déjà commitées (jamais `migrate dev`
+  # en prod, qui pourrait en générer une nouvelle). À lancer avant `up`, et à
+  # chaque déploiement qui ajoute une migration.
+  migrate:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: builder
+    env_file: .env.production
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-gestia}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-gestia}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ["npx", "prisma", "migrate", "deploy"]
+
+  app:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    restart: unless-stopped
+    env_file: .env.production
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-gestia}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-gestia}
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  gestia_postgres_data:

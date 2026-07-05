@@ -8,8 +8,12 @@ import { getSessionCookie } from "better-auth/cookies";
  * ici). L'autorisation réelle (tenantId/role) est vérifiée dans chaque Server
  * Action/page via requireTenantContext() (infrastructure/auth/session.ts).
  */
+const AUTH_ROUTE_PREFIXES = ["/login", "/register", "/reset-pin", "/premiere-connexion"];
+
 export function proxy(request: NextRequest) {
-  const isAuthRoute = request.nextUrl.pathname.startsWith("/login");
+  const isAuthRoute = AUTH_ROUTE_PREFIXES.some((prefix) =>
+    request.nextUrl.pathname.startsWith(prefix),
+  );
   const hasSession = Boolean(getSessionCookie(request));
 
   if (!hasSession && !isAuthRoute) {

@@ -18,6 +18,13 @@ const eslintConfig = defineConfig([
     },
   },
   {
+    // Scripts CLI (seed...) : les logs de progression sont légitimes.
+    files: ["prisma/**"],
+    rules: {
+      "no-console": "off",
+    },
+  },
+  {
     // Les repositories sont le seul endroit autorisé à importer Prisma directement.
     files: ["src/domain/**", "src/application/**", "src/presentation/**"],
     rules: {

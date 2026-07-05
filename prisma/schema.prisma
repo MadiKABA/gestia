@@ -1,0 +1,254 @@
+// Schéma Prisma — Gestia V1 (cahier des charges §6)
+// Prisma 7 : générateur "prisma-client" (client TS généré, plus de moteur Rust),
+// connexion fournie via l'adapter driver dans src/infrastructure/prisma/client.ts.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum UserRole {
+  PATRON
+  VENDEUR
+}
+
+enum PartyType {
+  CLIENT
+  SUPPLIER
+  BOTH
+}
+
+enum TransactionType {
+  CREANCE
+  DETTE
+}
+
+enum TransactionStatus {
+  EN_COURS
+  PARTIELLE
+  REGLEE
+}
+
+enum PaymentMethod {
+  CASH
+  WAVE
+  ORANGE_MONEY
+  AUTRE
+}
+
+enum CashMovementType {
+  ENTREE
+  SORTIE
+}
+
+// ---------------------------------------------------------------------------
+// Tenant — une boutique/entreprise cliente de Gestia
+// ---------------------------------------------------------------------------
+
+model Tenant {
+  id      String  @id @default(cuid())
+  name    String
+  phone   String?
+  address String?
+
+  createdAt DateTime @default(now())
+
+  users         User[]
+  parties       Party[]
+  transactions  Transaction[]
+  payments      Payment[]
+  cashMovements CashMovement[]
+  settings      TenantSettings?
+  auditLogs     AuditLog[]
+
+  @@map("tenants")
+}
+
+// ---------------------------------------------------------------------------
+// User — comptes qui se connectent (patron, vendeurs). Auth téléphone + PIN.
+// ---------------------------------------------------------------------------
+
+model User {
+  id       String @id @default(cuid())
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  name    String
+  phone   String  @unique
+  pinHash String
+  email   String?
+
+  role           UserRole
+  failedAttempts Int       @default(0)
+  lockedUntil    DateTime?
+  active         Boolean   @default(true)
+
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
+  @@map("users")
+}
+
+// ---------------------------------------------------------------------------
+// Party — clients et fournisseurs d'un tenant
+// ---------------------------------------------------------------------------
+
+model Party {
+  id       String @id @default(cuid())
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  name  String
+  phone String?
+  type  PartyType
+
+  isCompany   Boolean @default(false)
+  companyName String?
+  contactName String?
+
+  note      String?
+  createdAt DateTime @default(now())
+
+  transactions Transaction[]
+
+  @@index([tenantId])
+  @@index([tenantId, name])
+  @@map("parties")
+}
+
+// ---------------------------------------------------------------------------
+// Transaction — créances (CREANCE) et dettes (DETTE)
+// ---------------------------------------------------------------------------
+
+model Transaction {
+  id       String @id @default(cuid())
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  reference String // CR-2026-00125 / DT-2026-00045
+  partyId   String
+  party     Party  @relation(fields: [partyId], references: [id], onDelete: Restrict)
+
+  type        TransactionType
+  description String
+  quantity    Float?
+  amount      Decimal         @db.Decimal(14, 2)
+  paidAmount  Decimal         @default(0) @db.Decimal(14, 2)
+
+  dueDate DateTime?
+  status  TransactionStatus @default(EN_COURS)
+
+  createdAt DateTime @default(now())
+  createdBy String
+
+  payments Payment[]
+
+  @@unique([tenantId, reference])
+  @@index([tenantId])
+  @@index([tenantId, partyId])
+  @@index([tenantId, status])
+  @@index([tenantId, dueDate])
+  @@map("transactions")
+}
+
+// ---------------------------------------------------------------------------
+// Payment — règlements (partiels/totaux) d'une transaction
+// ---------------------------------------------------------------------------
+
+model Payment {
+  id            String      @id @default(cuid())
+  tenantId      String
+  tenant        Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  transactionId String
+  transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  amount Decimal       @db.Decimal(14, 2)
+  method PaymentMethod
+  note   String?
+
+  createdAt DateTime @default(now())
+  createdBy String
+
+  cashMovement CashMovement?
+
+  @@index([tenantId])
+  @@index([tenantId, transactionId])
+  @@map("payments")
+}
+
+// ---------------------------------------------------------------------------
+// CashMovement — mouvements de caisse (manuels ou générés par un paiement cash)
+// ---------------------------------------------------------------------------
+
+model CashMovement {
+  id       String @id @default(cuid())
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  type   CashMovementType
+  amount Decimal          @db.Decimal(14, 2)
+  reason String
+
+  linkedPaymentId String?  @unique
+  linkedPayment   Payment? @relation(fields: [linkedPaymentId], references: [id], onDelete: SetNull)
+
+  date      DateTime @default(now())
+  createdBy String
+
+  @@index([tenantId])
+  @@index([tenantId, date])
+  @@map("cash_movements")
+}
+
+// ---------------------------------------------------------------------------
+// TenantSettings — paramètres + theming du commerce (1-1 avec Tenant)
+// ---------------------------------------------------------------------------
+
+model TenantSettings {
+  tenantId String @id
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  currency         String  @default("FCFA")
+  reminderDays     Int     @default(7)
+  whatsappTemplate String?
+
+  // Theming : brandColor doit être un des presets validés (contrôlé côté application, pas en DB)
+  brandColor  String? @default("#0F2A4A")
+  logoUrl     String?
+  displayName String?
+
+  createdAt DateTime @default(now())
+
+  @@map("tenant_settings")
+}
+
+// ---------------------------------------------------------------------------
+// AuditLog — traçabilité systématique de toute mutation métier
+// ---------------------------------------------------------------------------
+
+model AuditLog {
+  id       String @id @default(cuid())
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  userId   String
+
+  action   String
+  entity   String
+  entityId String
+  oldData  Json?
+  newData  Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([tenantId, entity, entityId])
+  @@map("audit_logs")
+}

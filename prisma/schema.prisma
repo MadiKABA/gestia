@@ -93,8 +93,60 @@ model User {
 
   createdAt DateTime @default(now())
 
+  // Champs requis par l'adapter better-auth (session/cookies) — la vérification
+  // du PIN reste entièrement custom (Argon2 sur pinHash), better-auth ne gère
+  // ici que l'émission/la validation de session (voir infrastructure/auth).
+  emailVerified Boolean  @default(false)
+  image         String?
+  updatedAt     DateTime @updatedAt
+
+  sessions Session[]
+
   @@index([tenantId])
   @@map("users")
+}
+
+// ---------------------------------------------------------------------------
+// Session — émise par better-auth après vérification custom du PIN
+// ---------------------------------------------------------------------------
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+// ---------------------------------------------------------------------------
+// OtpCode — codes OTP SMS (Africa's Talking) pour inscription et reset PIN
+// ---------------------------------------------------------------------------
+
+model OtpCode {
+  id         String     @id @default(cuid())
+  phone      String
+  codeHash   String
+  purpose    OtpPurpose
+  expiresAt  DateTime
+  consumedAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([phone, purpose])
+  @@map("otp_codes")
+}
+
+enum OtpPurpose {
+  REGISTRATION
+  PIN_RESET
 }
 
 // ---------------------------------------------------------------------------

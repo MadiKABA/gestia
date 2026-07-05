@@ -29,10 +29,8 @@ export class PrismaPartyRepository extends TenantScopedRepository implements Par
         tenantId: this.tenantId,
         name: input.name,
         phone: input.phone ?? null,
+        whatsappNumber: input.whatsappNumber ?? null,
         type: input.type,
-        isCompany: input.isCompany ?? false,
-        companyName: input.companyName ?? null,
-        contactName: input.contactName ?? null,
         note: input.note ?? null,
       },
     });
@@ -44,10 +42,8 @@ export class PrismaPartyRepository extends TenantScopedRepository implements Par
       data: {
         name: input.name,
         phone: input.phone ?? null,
+        whatsappNumber: input.whatsappNumber ?? null,
         type: input.type,
-        isCompany: input.isCompany ?? false,
-        companyName: input.companyName ?? null,
-        contactName: input.contactName ?? null,
         note: input.note ?? null,
       },
     });

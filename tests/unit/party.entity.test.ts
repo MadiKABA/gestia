@@ -21,25 +21,13 @@ describe("validatePartyInput", () => {
     );
   });
 
-  it("rejette une entreprise sans raison sociale", () => {
+  it("accepte un tiers avec un numéro WhatsApp", () => {
     expect(() =>
       validatePartyInput({
         name: "Fatou Diop",
         phone: "+221771234567",
+        whatsappNumber: "+221771234567",
         type: "CLIENT",
-        isCompany: true,
-      }),
-    ).toThrow(ValidationError);
-  });
-
-  it("accepte une entreprise avec raison sociale", () => {
-    expect(() =>
-      validatePartyInput({
-        name: "Fatou Diop",
-        phone: "+221771234567",
-        type: "CLIENT",
-        isCompany: true,
-        companyName: "Diop & Fils",
       }),
     ).not.toThrow();
   });

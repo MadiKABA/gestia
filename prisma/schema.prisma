@@ -44,9 +44,19 @@ enum PaymentMethod {
   AUTRE
 }
 
+enum PaymentDirection {
+  IN
+  OUT
+}
+
 enum CashMovementType {
   ENTREE
   SORTIE
+}
+
+enum OtpPurpose {
+  REGISTRATION
+  PIN_RESET
 }
 
 // ---------------------------------------------------------------------------
@@ -60,6 +70,7 @@ model Tenant {
   address String?
 
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   users         User[]
   parties       Party[]
@@ -68,6 +79,7 @@ model Tenant {
   cashMovements CashMovement[]
   settings      TenantSettings?
   auditLogs     AuditLog[]
+  sequences     Sequence[]
 
   @@map("tenants")
 }
@@ -101,6 +113,10 @@ model User {
   updatedAt     DateTime @updatedAt
 
   sessions Session[]
+
+  createdTransactions  Transaction[]  @relation("TransactionCreator")
+  createdPayments      Payment[]      @relation("PaymentCreator")
+  createdCashMovements CashMovement[] @relation("CashMovementCreator")
 
   @@index([tenantId])
   @@map("users")
@@ -144,9 +160,27 @@ model OtpCode {
   @@map("otp_codes")
 }
 
-enum OtpPurpose {
-  REGISTRATION
-  PIN_RESET
+// ---------------------------------------------------------------------------
+// Sequence — compteurs annuels par tenant pour les références auto CR-/DT-
+// ---------------------------------------------------------------------------
+
+model Sequence {
+  id String @id @default(cuid())
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  year Int
+
+  creditCounter Int @default(0)
+  debtCounter   Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, year])
+  @@index([tenantId])
+  @@map("sequences")
 }
 
 // ---------------------------------------------------------------------------
@@ -158,16 +192,16 @@ model Party {
   tenantId String
   tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
-  name  String
-  phone String?
-  type  PartyType
+  name           String
+  phone          String?
+  whatsappNumber String?
+  type           PartyType
 
-  isCompany   Boolean @default(false)
-  companyName String?
-  contactName String?
+  note String?
 
-  note      String?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
   transactions Transaction[]
 
@@ -192,14 +226,19 @@ model Transaction {
   type        TransactionType
   description String
   quantity    Float?
-  amount      Decimal         @db.Decimal(14, 2)
-  paidAmount  Decimal         @default(0) @db.Decimal(14, 2)
+
+  amount     Decimal @db.Decimal(14, 2)
+  paidAmount Decimal @default(0) @db.Decimal(14, 2)
 
   dueDate DateTime?
   status  TransactionStatus @default(EN_COURS)
 
-  createdAt DateTime @default(now())
-  createdBy String
+  createdById String
+  createdBy   User   @relation("TransactionCreator", fields: [createdById], references: [id])
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
   payments Payment[]
 
@@ -208,6 +247,7 @@ model Transaction {
   @@index([tenantId, partyId])
   @@index([tenantId, status])
   @@index([tenantId, dueDate])
+  @@index([tenantId, createdAt])
   @@map("transactions")
 }
 
@@ -222,17 +262,25 @@ model Payment {
   transactionId String
   transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
 
-  amount Decimal       @db.Decimal(14, 2)
-  method PaymentMethod
-  note   String?
+  amount Decimal @db.Decimal(14, 2)
 
-  createdAt DateTime @default(now())
-  createdBy String
+  method    PaymentMethod
+  direction PaymentDirection
+
+  note String?
+
+  createdById String
+  createdBy   User   @relation("PaymentCreator", fields: [createdById], references: [id])
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
   cashMovement CashMovement?
 
   @@index([tenantId])
   @@index([tenantId, transactionId])
+  @@index([tenantId, createdAt])
   @@map("payments")
 }
 
@@ -247,16 +295,24 @@ model CashMovement {
 
   type   CashMovementType
   amount Decimal          @db.Decimal(14, 2)
+
   reason String
 
   linkedPaymentId String?  @unique
   linkedPayment   Payment? @relation(fields: [linkedPaymentId], references: [id], onDelete: SetNull)
 
-  date      DateTime @default(now())
-  createdBy String
+  createdById String
+  createdBy   User   @relation("CashMovementCreator", fields: [createdById], references: [id])
+
+  date DateTime @default(now())
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
   @@index([tenantId])
   @@index([tenantId, date])
+  @@index([tenantId, createdAt])
   @@map("cash_movements")
 }
 
@@ -278,6 +334,7 @@ model TenantSettings {
   displayName String?
 
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("tenant_settings")
 }
@@ -302,5 +359,6 @@ model AuditLog {
 
   @@index([tenantId])
   @@index([tenantId, entity, entityId])
+  @@index([tenantId, createdAt])
   @@map("audit_logs")
 }

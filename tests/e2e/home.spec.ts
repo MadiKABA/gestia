@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-test("la page d'accueil affiche le nom Gestia", async ({ page }) => {
+test("un visiteur non authentifié est redirigé vers /login", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "Gestia" })).toBeVisible();
+  await expect(page).toHaveURL(/\/login$/);
 });

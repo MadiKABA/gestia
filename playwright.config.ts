@@ -18,7 +18,11 @@ export default defineConfig({
   ],
   webServer: {
     command: "npm run build && npm run start",
-    url: "http://localhost:3000",
+    // /manifest.json plutôt que "/" : le proxy redirige "/" vers /login (pas
+    // encore de page, cf. cahier des charges — auth UI hors scope de ce
+    // scaffolding), ce que le check de disponibilité de Playwright suit et
+    // interprète comme "pas prêt" indéfiniment.
+    url: "http://localhost:3000/manifest.json",
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
   },

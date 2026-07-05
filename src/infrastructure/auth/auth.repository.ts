@@ -84,6 +84,13 @@ export class PrismaAuthRepository implements AuthRepository {
     await prisma.user.update({ where: { id: userId }, data: { active } });
   }
 
+  async listVendeursByTenant(tenantId: string): Promise<AuthUser[]> {
+    return prisma.user.findMany({
+      where: { tenantId, role: "VENDEUR" },
+      orderBy: { createdAt: "desc" },
+    });
+  }
+
   async createOtp(input: {
     phone: string;
     codeHash: string;

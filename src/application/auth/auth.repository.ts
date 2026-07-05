@@ -43,6 +43,7 @@ export interface AuthRepository {
   ): Promise<void>;
   clearLockout(userId: string): Promise<void>;
   setActive(userId: string, active: boolean): Promise<void>;
+  listVendeursByTenant(tenantId: string): Promise<AuthUser[]>;
 
   createOtp(input: {
     phone: string;

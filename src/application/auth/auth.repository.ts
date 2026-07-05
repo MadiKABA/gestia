@@ -12,6 +12,7 @@ export type OtpCode = {
 export type AuthUser = {
   id: string;
   tenantId: string;
+  name: string;
   phone: string;
   pinHash: string;
   role: "PATRON" | "VENDEUR";

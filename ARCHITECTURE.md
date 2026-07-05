@@ -20,8 +20,8 @@ gestia/
 │
 ├── src/
 │   ├── app/                              # Next.js App Router — routing fin uniquement
-│   │   ├── (auth)/                       # login, register (à construire)
-│   │   ├── (dashboard)/                  # tableau de bord, parties, transactions... (à construire)
+│   │   ├── (auth)/                       # login, register(/complete), reset-pin(/confirm), premiere-connexion
+│   │   ├── (dashboard)/                  # vendeurs ; tableau de bord, parties, transactions... (à construire)
 │   │   ├── api/auth/[...all]/route.ts    # handler better-auth
 │   │   ├── serwist/[path]/route.ts       # service worker compilé (PWA)
 │   │   ├── sw.ts                         # source du service worker
@@ -50,7 +50,10 @@ gestia/
 │   │
 │   ├── presentation/          # composants + Server Actions — n'appellent QUE application/
 │   │   ├── shared/              components/ui (shadcn), hooks
-│   │   └── party/actions.ts     Server Actions : dérivent leur TenantContext de la session
+│   │   ├── party/actions.ts     Server Actions : dérivent leur TenantContext de la session
+│   │   └── auth/                 actions.ts, schemas.ts (Zod), require-role.ts (requirePatron),
+│   │                             components/ (formulaires client : RequestOtpForm, LoginForm,
+│   │                             OtpPinForm, CompleteRegistrationForm, VendeursPanel, AuthLayout)
 │   │
 │   ├── lib/                   env.ts (validation Zod fail-fast), utils.ts (cn)
 │   └── config/                 (charte graphique par défaut, presets — à peupler avec tenant-settings)

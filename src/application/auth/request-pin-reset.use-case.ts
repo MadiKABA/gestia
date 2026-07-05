@@ -1,5 +1,10 @@
 import { validatePhoneFormat } from "@/domain/auth/phone";
-import { OTP_EXPIRY_MS, OTP_LENGTH } from "@/domain/auth/otp";
+import {
+  OTP_EXPIRY_MS,
+  OTP_LENGTH,
+  OTP_REQUEST_WINDOW_MS,
+  assertOtpRequestAllowed,
+} from "@/domain/auth/otp";
 import { generateOtpCode } from "@/application/auth/generate-otp-code";
 import { ValidationError } from "@/domain/shared/errors";
 import type { AuthRepository } from "@/application/auth/auth.repository";
@@ -16,6 +21,13 @@ export async function requestPinReset(
   if (!user) {
     throw new ValidationError("Aucun compte associé à ce numéro");
   }
+
+  const recentRequests = await deps.repository.findRecentOtpRequestTimestamps(
+    input.phone,
+    "PIN_RESET",
+    new Date(Date.now() - OTP_REQUEST_WINDOW_MS),
+  );
+  assertOtpRequestAllowed(recentRequests);
 
   const code = generateOtpCode(OTP_LENGTH);
   await deps.repository.createOtp({

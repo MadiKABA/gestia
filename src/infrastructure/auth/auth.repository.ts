@@ -81,4 +81,16 @@ export class PrismaAuthRepository implements AuthRepository {
   async consumeOtp(id: string): Promise<void> {
     await prisma.otpCode.update({ where: { id }, data: { consumedAt: new Date() } });
   }
+
+  async findRecentOtpRequestTimestamps(
+    phone: string,
+    purpose: OtpPurpose,
+    since: Date,
+  ): Promise<Date[]> {
+    const rows = await prisma.otpCode.findMany({
+      where: { phone, purpose, createdAt: { gte: since } },
+      select: { createdAt: true },
+    });
+    return rows.map((row) => row.createdAt);
+  }
 }

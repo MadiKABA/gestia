@@ -45,4 +45,5 @@ export interface AuthRepository {
   }): Promise<void>;
   findActiveOtp(phone: string, purpose: OtpPurpose): Promise<OtpCode | null>;
   consumeOtp(id: string): Promise<void>;
+  findRecentOtpRequestTimestamps(phone: string, purpose: OtpPurpose, since: Date): Promise<Date[]>;
 }

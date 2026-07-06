@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { APIError } from "better-auth/api";
 import { auth } from "@/infrastructure/auth/better-auth";
 import { requireTenantContext } from "@/infrastructure/auth/session";
@@ -103,4 +104,9 @@ export async function deactivateVendeurAction(input: DeactivateVendeurInput) {
 export async function listVendeursAction() {
   const context = await requireTenantContext();
   return listVendeurs(context, { repository });
+}
+
+export async function signOutAction() {
+  await auth.api.signOut({ headers: await headers() });
+  redirect("/login");
 }

@@ -18,6 +18,7 @@ const envSchema = z.object({
   NEXT_SERVER_ACTIONS_ENCRYPTION_KEY: z.string().min(32),
 
   // SMS / OTP (Africa's Talking)
+  AFRICASTALKING_ENV: z.enum(["sandbox", "production"]).default("sandbox"),
   AFRICASTALKING_USERNAME: z.string().min(1),
   AFRICASTALKING_API_KEY: z.string().min(1),
   AFRICASTALKING_SENDER_ID: z.string().optional(),

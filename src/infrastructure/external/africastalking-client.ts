@@ -1,6 +1,9 @@
 import { env } from "@/lib/env";
 
-const API_URL = "https://api.africastalking.com/version1/messaging";
+const API_URL =
+  env.AFRICASTALKING_ENV === "production"
+    ? "https://api.africastalking.com/version1/messaging"
+    : "https://api.sandbox.africastalking.com/version1/messaging";
 
 /**
  * Client HTTP minimal (fetch natif) contre l'API REST d'Africa's Talking.

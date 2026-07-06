@@ -47,4 +47,18 @@ describe("PrismaPartyRepository", () => {
     await prisma.party.delete({ where: { id: otherParty.id } });
     await prisma.tenant.delete({ where: { id: otherTenantId } });
   });
+
+  it("exclut un tiers soft-deleted des recherches et de findById", async () => {
+    const created = await repository.create({
+      name: "Tiers à supprimer",
+      phone: "+221771234599",
+      type: "CLIENT",
+    });
+
+    await repository.delete(created.id);
+
+    expect(await repository.findById(created.id)).toBeNull();
+    const results = await repository.findMany({ search: "Tiers à supprimer" });
+    expect(results.map((p) => p.id)).not.toContain(created.id);
+  });
 });

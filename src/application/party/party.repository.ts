@@ -1,8 +1,13 @@
-import type { Party, PartyInput } from "@/domain/party/party.entity";
+import type { Party, PartyInput, PartyType } from "@/domain/party/party.entity";
 
 export type PartySearchQuery = {
   search?: string;
+  type?: PartyType;
 };
+
+/** Tiers enrichi du solde temps réel (cahier des charges §7) — voir
+ * `PartyRepository.findMany` pour l'état actuel de ce calcul. */
+export type PartyWithBalance = Party & { balance: number };
 
 /**
  * Contrat implémenté par src/infrastructure/party/party.repository.ts.
@@ -11,7 +16,9 @@ export type PartySearchQuery = {
  */
 export interface PartyRepository {
   findById(id: string): Promise<Party | null>;
-  findMany(query: PartySearchQuery): Promise<Party[]>;
+  findMany(query: PartySearchQuery): Promise<PartyWithBalance[]>;
   create(input: PartyInput): Promise<Party>;
   update(id: string, input: PartyInput): Promise<Party>;
+  /** Soft delete (`deletedAt`) — jamais de suppression définitive. */
+  delete(id: string): Promise<Party>;
 }

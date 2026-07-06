@@ -63,6 +63,15 @@ export function getSidebarNavItems(role: NavRole): SidebarNavItem[] {
   return SIDEBAR_NAV_ITEMS.filter((item) => item.roles.includes(role));
 }
 
+/** Titre de la page courante affiché dans le header, dérivé du pathname —
+ * pas de breadcrumb, un seul titre clair. */
+export function getPageTitle(pathname: string): string {
+  const match = SIDEBAR_NAV_ITEMS.find(
+    (item) => pathname === item.href || pathname.startsWith(`${item.href}/`),
+  );
+  return match?.label ?? "Gestia";
+}
+
 /**
  * Bottom tab bar mobile : structurellement différente par rôle (pas un
  * simple filtre du tableau sidebar) car elle inclut des entrées spéciales

@@ -41,7 +41,7 @@ export function AppShell({
       />
 
       <SidebarDrawer role={role} open={drawerOpen} onOpenChange={setDrawerOpen} />
-      <QuickActionSheet open={quickActionOpen} onOpenChange={setQuickActionOpen} />
+      <QuickActionSheet role={role} open={quickActionOpen} onOpenChange={setQuickActionOpen} />
     </div>
   );
 }

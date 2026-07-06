@@ -1,4 +1,5 @@
 import {
+  ArrowRightLeft,
   ClipboardList,
   HandCoins,
   Home,
@@ -114,10 +115,40 @@ export type QuickActionItem = {
   label: string;
   href: string;
   icon: LucideIcon;
+  roles: NavRole[];
 };
 
 export const QUICK_ACTION_ITEMS: QuickActionItem[] = [
-  { key: "nouvelle-creance", label: "Nouvelle créance", href: "/creances/nouvelle", icon: Receipt },
-  { key: "nouvelle-dette", label: "Nouvelle dette", href: "/dettes/nouvelle", icon: HandCoins },
-  { key: "nouveau-paiement", label: "Nouveau paiement", href: "/paiements/nouveau", icon: Wallet },
+  {
+    key: "nouvelle-creance",
+    label: "Nouvelle créance",
+    href: "/creances/nouvelle",
+    icon: Receipt,
+    roles: ["PATRON", "VENDEUR"],
+  },
+  {
+    key: "nouvelle-dette",
+    label: "Nouvelle dette",
+    href: "/dettes/nouvelle",
+    icon: HandCoins,
+    roles: ["PATRON", "VENDEUR"],
+  },
+  {
+    key: "nouveau-paiement",
+    label: "Nouveau paiement",
+    href: "/paiements/nouveau",
+    icon: Wallet,
+    roles: ["PATRON", "VENDEUR"],
+  },
+  {
+    key: "mouvement-caisse",
+    label: "Mouvement de caisse",
+    href: "/caisse/mouvement",
+    icon: ArrowRightLeft,
+    roles: ["PATRON"],
+  },
 ];
+
+export function getQuickActionItems(role: NavRole): QuickActionItem[] {
+  return QUICK_ACTION_ITEMS.filter((item) => item.roles.includes(role));
+}

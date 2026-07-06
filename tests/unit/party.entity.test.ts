@@ -15,7 +15,7 @@ describe("validatePartyInput", () => {
     ).toThrow(ValidationError);
   });
 
-  it("rejette un tiers sans téléphone", () => {
+  it("rejette un tiers sans aucun moyen de contact", () => {
     expect(() => validatePartyInput({ name: "Fatou Diop", type: "CLIENT" })).toThrow(
       ValidationError,
     );
@@ -28,6 +28,27 @@ describe("validatePartyInput", () => {
         phone: "+221771234567",
         whatsappNumber: "+221771234567",
         type: "CLIENT",
+      }),
+    ).not.toThrow();
+  });
+
+  it("accepte un tiers avec uniquement un numéro WhatsApp (pas de téléphone)", () => {
+    expect(() =>
+      validatePartyInput({
+        name: "Fatou Diop",
+        whatsappNumber: "+221771234567",
+        type: "CLIENT",
+      }),
+    ).not.toThrow();
+  });
+
+  it("accepte un tiers entreprise sans companyName (recommandé, non bloquant)", () => {
+    expect(() =>
+      validatePartyInput({
+        name: "Fatou Diop",
+        phone: "+221771234567",
+        type: "CLIENT",
+        isCompany: true,
       }),
     ).not.toThrow();
   });

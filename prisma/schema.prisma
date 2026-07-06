@@ -65,6 +65,13 @@ enum OtpPurpose {
   PIN_RESET
 }
 
+/** Canal de délivrance de l'OTP — aussi le canal utilisé pour se connecter
+ * (§4 : téléphone prioritaire, email un second identifiant possible). */
+enum OtpChannel {
+  PHONE
+  EMAIL
+}
+
 // ---------------------------------------------------------------------------
 // Admin — comptes du backoffice SaaS (hors périmètre tenant, auth email+mdp)
 // ---------------------------------------------------------------------------
@@ -126,7 +133,10 @@ model User {
   name    String
   phone   String  @unique
   pinHash String
-  email   String?
+  /** Identifiant de connexion secondaire optionnel (§4) — le téléphone reste
+   * l'identifiant prioritaire, mis en avant dans l'UI. Unique quand renseigné
+   * (Postgres autorise plusieurs NULL sous une contrainte @unique). */
+  email   String? @unique
 
   role           UserRole
   failedAttempts Int       @default(0)
@@ -178,7 +188,9 @@ model Session {
 
 model OtpCode {
   id         String     @id @default(cuid())
-  phone      String
+  /** Téléphone (+221...) ou email selon `channel`. */
+  identifier String
+  channel    OtpChannel
   codeHash   String
   purpose    OtpPurpose
   expiresAt  DateTime
@@ -186,7 +198,7 @@ model OtpCode {
 
   createdAt DateTime @default(now())
 
-  @@index([phone, purpose])
+  @@index([identifier, channel, purpose])
   @@map("otp_codes")
 }
 
@@ -226,6 +238,12 @@ model Party {
   phone          String?
   whatsappNumber String?
   type           PartyType
+
+  /** Case "entreprise" optionnelle (cahier des charges §7) : companyName est
+   * recommandé mais non bloquant quand isCompany est coché. */
+  isCompany   Boolean @default(false)
+  companyName String?
+  contactName String?
 
   note String?
 

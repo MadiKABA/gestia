@@ -19,6 +19,7 @@ const config = {
         "payment",
         "cash",
         "tenant-settings",
+        "layout",
         "auth",
         "audit-log",
         "offline-sync",

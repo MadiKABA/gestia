@@ -6,6 +6,7 @@ import { BottomTabBar } from "@/presentation/layout/components/bottom-tab-bar";
 import { SidebarDrawer } from "@/presentation/layout/components/sidebar-drawer";
 import { SidebarFixed } from "@/presentation/layout/components/sidebar-fixed";
 import { QuickActionSheet } from "@/presentation/layout/components/quick-action-sheet";
+import { StoragePersistenceWarning } from "@/presentation/shared/components/storage-persistence-warning";
 import type { NavRole } from "@/presentation/layout/nav-config";
 import type { TenantBranding } from "@/application/tenant/tenant-branding.repository";
 
@@ -34,7 +35,10 @@ export function AppShell({
       <SidebarFixed role={role} />
       <AppHeader branding={branding} tenantId={tenantId} onMenuClick={() => setDrawerOpen(true)} />
 
-      <main className="min-h-dvh pt-14 pb-16 lg:pb-0 lg:pl-64">{children}</main>
+      <main className="min-h-dvh pt-14 pb-16 lg:pb-0 lg:pl-64">
+        <StoragePersistenceWarning />
+        {children}
+      </main>
 
       <BottomTabBar
         role={role}

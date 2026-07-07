@@ -60,6 +60,13 @@ export const pwaLabels = {
   dismissAria: "Plus tard",
 };
 
+export const storageLabels = {
+  warningTitle: "Stockage limité sur cet appareil",
+  warningDescription:
+    "Synchronisez dès que possible pour ne pas risquer de perdre des actions en attente.",
+  dismissAria: "Fermer l'avertissement",
+};
+
 export const syncLabels = {
   offline: "Hors ligne",
   offlinePending: (count: number) =>

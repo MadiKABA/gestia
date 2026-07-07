@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { validatePartyInput } from "@/domain/party/party.entity";
+import { validatePartyInput, type PartyInput } from "@/domain/party/party.entity";
 import { ValidationError } from "@/domain/shared/errors";
 import { partyLabels } from "@/presentation/shared/labels";
 
@@ -33,6 +33,21 @@ export const partyInputSchema = z
   });
 
 export type PartyFormInput = z.infer<typeof partyInputSchema>;
+
+/** Les champs texte optionnels du formulaire arrivent en chaîne vide plutôt
+ * qu'`undefined` (contrôle React) — normalisés en `null` pour le domain. */
+export function toPartyInput(input: PartyFormInput): PartyInput {
+  return {
+    name: input.name,
+    phone: input.phone || null,
+    whatsappNumber: input.whatsappNumber || null,
+    type: input.type,
+    isCompany: input.isCompany,
+    companyName: input.companyName || null,
+    contactName: input.contactName || null,
+    note: input.note || null,
+  };
+}
 
 export const partySearchSchema = z.object({
   search: z.string().trim().optional(),

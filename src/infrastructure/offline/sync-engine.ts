@@ -62,15 +62,21 @@ export async function syncQueue(deps: {
       createdById: record.createdById,
     };
 
-    if (record.action !== "create") {
+    if (record.action === "update") {
       // Relu juste avant l'envoi, jamais figé à l'enfilement — voir le
-      // commentaire sur QueuedMutation.clientKnownUpdatedAt.
+      // commentaire sur QueuedMutation.clientKnownUpdatedAt. L'entrée de
+      // cache existe encore pour un update (contrairement à un delete, dont
+      // le cache est retiré dès l'enfilement).
       const cached = await getCachedEntity(
         record.tenantId,
         record.entity,
         record.clientGeneratedId,
       );
       mutation.clientKnownUpdatedAt = cached?.updatedAt;
+    } else if (record.action === "delete") {
+      // Le cache local a déjà été retiré à l'enfilement (affichage
+      // instantané) — la seule valeur disponible est celle figée alors.
+      mutation.clientKnownUpdatedAt = record.clientKnownUpdatedAt;
     }
 
     try {

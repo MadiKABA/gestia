@@ -12,6 +12,13 @@ export type MutationQueueRecord = {
   action: "create" | "update" | "delete";
   payload: unknown;
   clientGeneratedId: string;
+  /**
+   * Figé à l'enfilement uniquement pour `delete` (dont le cache local est
+   * retiré immédiatement, avant que le moteur de sync ait pu le relire) —
+   * `update` continue de le relire depuis le cache au moment de l'envoi
+   * (voir sync-engine.ts) puisque son entrée de cache existe toujours.
+   */
+  clientKnownUpdatedAt?: string;
   createdAt: string;
   createdById: string;
   synced: boolean;

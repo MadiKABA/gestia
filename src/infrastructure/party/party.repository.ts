@@ -33,9 +33,10 @@ export class PrismaPartyRepository extends TenantScopedRepository implements Par
     return parties.map((party) => ({ ...party, balance: 0 }));
   }
 
-  async create(input: PartyInput): Promise<Party> {
+  async create(id: string, input: PartyInput): Promise<Party> {
     return this.prisma.party.create({
       data: {
+        id,
         tenantId: this.tenantId,
         name: input.name,
         phone: input.phone ?? null,

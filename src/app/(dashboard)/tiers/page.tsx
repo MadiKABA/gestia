@@ -5,8 +5,9 @@ import { searchPartiesAction } from "@/presentation/party/actions";
 import { PartiesList } from "@/presentation/party/components/parties-list";
 
 export default async function TiersPage() {
+  let context;
   try {
-    await requireTenantContext();
+    context = await requireTenantContext();
   } catch (error) {
     if (error instanceof ForbiddenError) {
       redirect("/login");
@@ -15,5 +16,7 @@ export default async function TiersPage() {
   }
 
   const parties = await searchPartiesAction();
-  return <PartiesList initialParties={parties} />;
+  return (
+    <PartiesList initialParties={parties} tenantId={context.tenantId} userId={context.userId} />
+  );
 }

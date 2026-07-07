@@ -17,7 +17,13 @@ export type PartyWithBalance = Party & { balance: number };
 export interface PartyRepository {
   findById(id: string): Promise<Party | null>;
   findMany(query: PartySearchQuery): Promise<PartyWithBalance[]>;
-  create(input: PartyInput): Promise<Party>;
+  /**
+   * `id` est fourni par l'appelant (généré côté client hors ligne — cahier
+   * des charges §9 — et devenant l'id définitif de l'entité) plutôt que par
+   * `@default(cuid())` : jamais deux ids différents pour la même entité
+   * entre l'écriture locale et sa synchronisation.
+   */
+  create(id: string, input: PartyInput): Promise<Party>;
   update(id: string, input: PartyInput): Promise<Party>;
   /** Soft delete (`deletedAt`) — jamais de suppression définitive. */
   delete(id: string): Promise<Party>;

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/presentation/shared/components/ui/button";
@@ -16,8 +17,9 @@ import {
   SelectValue,
 } from "@/presentation/shared/components/ui/select";
 import { PhoneInput } from "@/presentation/shared/components/phone-input";
-import { partyInputSchema, type PartyFormInput } from "@/presentation/party/schemas";
+import { partyInputSchema, toPartyInput, type PartyFormInput } from "@/presentation/party/schemas";
 import { commonLabels, partyLabels } from "@/presentation/shared/labels";
+import { createPartyOfflineRepository } from "@/presentation/party/offline-repository";
 
 const TYPE_OPTIONS = [
   { value: "CLIENT", label: partyLabels.typeClient },
@@ -41,16 +43,26 @@ const DEFAULT_VALUES: PartyFormInput = {
 };
 
 export function PartyForm({
+  mode,
+  partyId,
+  tenantId,
+  userId,
   defaultValues,
-  onSubmit,
   submitLabel,
 }: {
+  mode: "create" | "edit";
+  /** Requis en mode "edit". */
+  partyId?: string;
+  tenantId: string;
+  userId: string;
   defaultValues?: Partial<PartyFormInput>;
-  /** Redirige lui-même vers la page détail (`redirect()` côté serveur, voir
-   * createPartyAction/updatePartyAction) — ne résout donc jamais côté client. */
-  onSubmit: (input: PartyFormInput) => Promise<void>;
   submitLabel: string;
 }) {
+  const router = useRouter();
+  const repository = useMemo(
+    () => createPartyOfflineRepository(tenantId, userId),
+    [tenantId, userId],
+  );
   const [pending, startTransition] = useTransition();
   const [submitError, setSubmitError] = useState<string | null>(null);
   const {
@@ -70,7 +82,17 @@ export function PartyForm({
     setSubmitError(null);
     startTransition(async () => {
       try {
-        await onSubmit(values);
+        const input = toPartyInput(values);
+        if (mode === "create") {
+          await repository.create(input);
+        } else {
+          await repository.update(partyId!, input);
+        }
+        // Retour à la liste plutôt qu'à la page détail : celle-ci est déjà
+        // chargée/en cache, contrairement à /tiers/[id] qui nécessite un
+        // aller-retour serveur (page App Router) — indisponible juste après
+        // une création hors ligne.
+        router.push("/tiers");
       } catch (err) {
         setSubmitError(err instanceof Error ? err.message : commonLabels.genericError);
       }

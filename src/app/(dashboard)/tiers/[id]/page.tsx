@@ -7,9 +7,9 @@ import { PartyDetail } from "@/presentation/party/components/party-detail";
 export default async function TierDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
-  let role: "PATRON" | "VENDEUR";
+  let context;
   try {
-    ({ role } = await requireTenantContext());
+    context = await requireTenantContext();
   } catch (error) {
     if (error instanceof ForbiddenError) {
       redirect("/login");
@@ -28,6 +28,11 @@ export default async function TierDetailPage({ params }: { params: Promise<{ id:
   }
 
   return (
-    <PartyDetail party={detail.party} balance={detail.balance} canDelete={role === "PATRON"} />
+    <PartyDetail
+      party={{ ...detail.party, balance: detail.balance }}
+      tenantId={context.tenantId}
+      userId={context.userId}
+      canDelete={context.role === "PATRON"}
+    />
   );
 }

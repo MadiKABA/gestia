@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { createId } from "@paralleldrive/cuid2";
 import { prisma } from "@/infrastructure/prisma/client";
 import { PrismaPartyRepository } from "@/infrastructure/party/party.repository";
 import { PrismaAuditLogger } from "@/infrastructure/audit-log/audit-log.repository";
@@ -40,11 +41,11 @@ describe("use cases party", () => {
   });
 
   it("createParty écrit une entrée AuditLog", async () => {
-    const party = await createParty(
-      patronContext,
-      { repository, auditLogger },
-      { name: "Fatou Diop", phone: "+221771234567", type: "CLIENT" },
-    );
+    const party = await createParty(patronContext, { repository, auditLogger }, createId(), {
+      name: "Fatou Diop",
+      phone: "+221771234567",
+      type: "CLIENT",
+    });
 
     const log = await prisma.auditLog.findFirst({
       where: { tenantId, entity: "Party", entityId: party.id, action: "party.created" },
@@ -53,11 +54,11 @@ describe("use cases party", () => {
   });
 
   it("deleteParty refuse un VENDEUR", async () => {
-    const party = await createParty(
-      patronContext,
-      { repository, auditLogger },
-      { name: "Moussa Sarr", phone: "+221771234568", type: "SUPPLIER" },
-    );
+    const party = await createParty(patronContext, { repository, auditLogger }, createId(), {
+      name: "Moussa Sarr",
+      phone: "+221771234568",
+      type: "SUPPLIER",
+    });
 
     await expect(
       deleteParty(vendeurContext, { repository, auditLogger }, party.id),
@@ -65,11 +66,11 @@ describe("use cases party", () => {
   });
 
   it("deleteParty (PATRON) fait un soft delete et écrit une entrée AuditLog", async () => {
-    const party = await createParty(
-      patronContext,
-      { repository, auditLogger },
-      { name: "Ibrahima Fall", phone: "+221771234569", type: "CLIENT" },
-    );
+    const party = await createParty(patronContext, { repository, auditLogger }, createId(), {
+      name: "Ibrahima Fall",
+      phone: "+221771234569",
+      type: "CLIENT",
+    });
 
     await deleteParty(patronContext, { repository, auditLogger }, party.id);
 
@@ -85,11 +86,11 @@ describe("use cases party", () => {
   });
 
   it("deleteParty rejette un tiers déjà supprimé", async () => {
-    const party = await createParty(
-      patronContext,
-      { repository, auditLogger },
-      { name: "Khady Sow", phone: "+221771234570", type: "CLIENT" },
-    );
+    const party = await createParty(patronContext, { repository, auditLogger }, createId(), {
+      name: "Khady Sow",
+      phone: "+221771234570",
+      type: "CLIENT",
+    });
     await deleteParty(patronContext, { repository, auditLogger }, party.id);
 
     await expect(deleteParty(patronContext, { repository, auditLogger }, party.id)).rejects.toThrow(

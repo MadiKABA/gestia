@@ -18,10 +18,12 @@ import type { TenantBranding } from "@/application/tenant/tenant-branding.reposi
 export function AppShell({
   role,
   branding,
+  tenantId,
   children,
 }: {
   role: NavRole;
   branding: TenantBranding;
+  tenantId: string;
   children: ReactNode;
 }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -30,7 +32,7 @@ export function AppShell({
   return (
     <div className="bg-background min-h-dvh">
       <SidebarFixed role={role} />
-      <AppHeader branding={branding} onMenuClick={() => setDrawerOpen(true)} />
+      <AppHeader branding={branding} tenantId={tenantId} onMenuClick={() => setDrawerOpen(true)} />
 
       <main className="min-h-dvh pt-14 pb-16 lg:pb-0 lg:pl-64">{children}</main>
 

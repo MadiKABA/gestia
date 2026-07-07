@@ -1,15 +1,18 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/presentation/shared/components/ui/button";
 import { ConfirmDialog } from "@/presentation/shared/components/confirm-dialog";
-import { deletePartyAction } from "@/presentation/party/actions";
+import {
+  createPartyOfflineRepository,
+  seedPartyCache,
+} from "@/presentation/party/offline-repository";
 import { commonLabels, partyLabels } from "@/presentation/shared/labels";
-import type { Party } from "@/domain/party/party.entity";
+import type { PartyWithBalance } from "@/application/party/party.repository";
 
-const TYPE_LABELS: Record<Party["type"], string> = {
+const TYPE_LABELS: Record<PartyWithBalance["type"], string> = {
   CLIENT: partyLabels.typeClient,
   SUPPLIER: partyLabels.typeSupplier,
   BOTH: partyLabels.typeBoth,
@@ -17,11 +20,13 @@ const TYPE_LABELS: Record<Party["type"], string> = {
 
 export function PartyDetail({
   party,
-  balance,
+  tenantId,
+  userId,
   canDelete,
 }: {
-  party: Party;
-  balance: number;
+  party: PartyWithBalance;
+  tenantId: string;
+  userId: string;
   canDelete: boolean;
 }) {
   const router = useRouter();
@@ -29,13 +34,19 @@ export function PartyDetail({
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleting, startDelete] = useTransition();
 
+  // Amorce le cache local avec les données serveur fraîches (SSR) — pour
+  // qu'une prochaine visite hors ligne de ce tiers les retrouve déjà là.
+  useEffect(() => {
+    void seedPartyCache(tenantId, [party]);
+  }, [tenantId, party]);
+
   function onDelete() {
     setError(null);
     startDelete(async () => {
       try {
-        await deletePartyAction(party.id);
+        const repository = createPartyOfflineRepository(tenantId, userId);
+        await repository.delete(party.id);
         router.push("/tiers");
-        router.refresh();
       } catch (err) {
         setConfirmOpen(false);
         setError(err instanceof Error ? err.message : commonLabels.genericError);
@@ -51,7 +62,7 @@ export function PartyDetail({
           <p className="text-muted-foreground text-sm">{TYPE_LABELS[party.type]}</p>
         </div>
         <span className="text-foreground text-sm font-medium tabular-nums">
-          {balance.toLocaleString("fr-FR")} FCFA
+          {party.balance.toLocaleString("fr-FR")} FCFA
         </span>
       </div>
 

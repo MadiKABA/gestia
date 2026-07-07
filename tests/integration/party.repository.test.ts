@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { createId } from "@paralleldrive/cuid2";
 import { prisma } from "@/infrastructure/prisma/client";
 import { PrismaPartyRepository } from "@/infrastructure/party/party.repository";
 
@@ -22,7 +23,7 @@ describe("PrismaPartyRepository", () => {
   });
 
   it("crée un tiers puis le retrouve par recherche", async () => {
-    const created = await repository.create({
+    const created = await repository.create(createId(), {
       name: "Fatou Diop",
       phone: "+221771234567",
       type: "CLIENT",
@@ -49,7 +50,7 @@ describe("PrismaPartyRepository", () => {
   });
 
   it("exclut un tiers soft-deleted des recherches et de findById", async () => {
-    const created = await repository.create({
+    const created = await repository.create(createId(), {
       name: "Tiers à supprimer",
       phone: "+221771234599",
       type: "CLIENT",

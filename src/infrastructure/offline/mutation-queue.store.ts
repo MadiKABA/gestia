@@ -2,7 +2,14 @@ import { getDb, type MutationQueueRecord } from "@/infrastructure/offline/db";
 
 export type NewMutationQueueEntry = Pick<
   MutationQueueRecord,
-  "id" | "tenantId" | "entity" | "action" | "payload" | "clientGeneratedId" | "createdById"
+  | "id"
+  | "tenantId"
+  | "entity"
+  | "action"
+  | "payload"
+  | "clientGeneratedId"
+  | "createdById"
+  | "clientKnownUpdatedAt"
 >;
 
 /**

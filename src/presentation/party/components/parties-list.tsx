@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { Button } from "@/presentation/shared/components/ui/button";
 import { Input } from "@/presentation/shared/components/ui/input";
@@ -11,7 +11,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/presentation/shared/components/ui/select";
-import { searchPartiesAction } from "@/presentation/party/actions";
+import {
+  createPartyOfflineRepository,
+  seedPartyCache,
+} from "@/presentation/party/offline-repository";
 import type { PartyType } from "@/domain/party/party.entity";
 import type { PartyWithBalance } from "@/application/party/party.repository";
 import { partyLabels } from "@/presentation/shared/labels";
@@ -27,13 +30,26 @@ const TYPE_FILTER_LABEL_BY_VALUE: Record<string, string> = Object.fromEntries(
   TYPE_FILTERS.map((option) => [option.value, option.label]),
 );
 
-/** Recherche/tri par solde décroissant délégués au serveur (searchPartiesAction) —
- * ce composant ne fait que refléter debounce + état des filtres. */
-export function PartiesList({ initialParties }: { initialParties: PartyWithBalance[] }) {
+/** Lit le cache local en priorité (affichage instantané, fonctionne hors
+ * ligne) — voir PartyOfflineRepository. `initialParties` (rendu serveur)
+ * ne sert qu'à amorcer le premier affichage et le cache local. */
+export function PartiesList({
+  initialParties,
+  tenantId,
+  userId,
+}: {
+  initialParties: PartyWithBalance[];
+  tenantId: string;
+  userId: string;
+}) {
   const [parties, setParties] = useState(initialParties);
   const [search, setSearch] = useState("");
   const [type, setType] = useState<"ALL" | PartyType>("ALL");
   const [, startTransition] = useTransition();
+  const repository = useMemo(
+    () => createPartyOfflineRepository(tenantId, userId),
+    [tenantId, userId],
+  );
 
   // Le routeur App Router peut réutiliser cette instance de composant en
   // revenant sur /tiers (redirect post-mutation) sans la remonter : sans cet
@@ -47,10 +63,16 @@ export function PartiesList({ initialParties }: { initialParties: PartyWithBalan
     setParties(initialParties);
   }
 
+  // Amorce le cache local avec les données serveur fraîches (SSR) — pour
+  // qu'une prochaine visite hors ligne les retrouve déjà là.
+  useEffect(() => {
+    void seedPartyCache(tenantId, initialParties);
+  }, [tenantId, initialParties]);
+
   useEffect(() => {
     const timeout = setTimeout(() => {
       startTransition(async () => {
-        const results = await searchPartiesAction({
+        const results = await repository.list({
           search: search || undefined,
           type: type === "ALL" ? undefined : type,
         });
@@ -58,7 +80,7 @@ export function PartiesList({ initialParties }: { initialParties: PartyWithBalan
       });
     }, 250);
     return () => clearTimeout(timeout);
-  }, [search, type]);
+  }, [search, type, repository]);
 
   return (
     <div className="mx-auto max-w-md space-y-4 p-4">

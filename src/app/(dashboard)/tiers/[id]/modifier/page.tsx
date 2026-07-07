@@ -1,16 +1,16 @@
 import { notFound, redirect } from "next/navigation";
 import { requireTenantContext } from "@/infrastructure/auth/session";
 import { ForbiddenError, NotFoundError } from "@/domain/shared/errors";
-import { getPartyByIdAction, updatePartyAction } from "@/presentation/party/actions";
+import { getPartyByIdAction } from "@/presentation/party/actions";
 import { PartyForm } from "@/presentation/party/components/party-form";
-import type { PartyFormInput } from "@/presentation/party/schemas";
 import { partyLabels } from "@/presentation/shared/labels";
 
 export default async function ModifierTierPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
+  let context;
   try {
-    await requireTenantContext();
+    context = await requireTenantContext();
   } catch (error) {
     if (error instanceof ForbiddenError) {
       redirect("/login");
@@ -28,15 +28,14 @@ export default async function ModifierTierPage({ params }: { params: Promise<{ i
     throw error;
   }
 
-  async function onSubmit(input: PartyFormInput) {
-    "use server";
-    return updatePartyAction(id, input);
-  }
-
   return (
     <div className="mx-auto max-w-md p-4">
       <h1 className="text-foreground mb-4 text-lg font-semibold">{partyLabels.editPageTitle}</h1>
       <PartyForm
+        mode="edit"
+        partyId={id}
+        tenantId={context.tenantId}
+        userId={context.userId}
         defaultValues={{
           name: party.name,
           phone: party.phone ?? "",
@@ -47,7 +46,6 @@ export default async function ModifierTierPage({ params }: { params: Promise<{ i
           contactName: party.contactName ?? "",
           note: party.note ?? "",
         }}
-        onSubmit={onSubmit}
         submitLabel={partyLabels.editSubmitLabel}
       />
     </div>

@@ -7,11 +7,12 @@ import type { AuditLogger } from "@/application/shared/audit-logger";
 export async function createParty(
   context: TenantContext,
   deps: { repository: PartyRepository; auditLogger: AuditLogger },
+  id: string,
   input: PartyInput,
 ) {
   validatePartyInput(input);
 
-  const party = await deps.repository.create(input);
+  const party = await deps.repository.create(id, input);
 
   await deps.auditLogger.log(context, {
     action: "party.created",

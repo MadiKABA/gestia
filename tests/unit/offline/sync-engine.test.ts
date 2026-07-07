@@ -138,4 +138,34 @@ describe("syncQueue", () => {
     const cached = await getCachedEntity(tenantId, "party", clientGeneratedId);
     expect(cached?.updatedAt).toBe("2026-01-02T00:00:00.000Z");
   });
+
+  it("utilise clientKnownUpdatedAt figé à l'enfilement pour une suppression (le cache n'existe déjà plus)", async () => {
+    const tenantId = tenant();
+    const clientGeneratedId = generateClientId();
+    // Le cache est déjà vide au moment d'enfiler la mutation — comportement
+    // réel de PartyOfflineRepository.delete(), qui retire le cache avant
+    // d'enfiler, en figeant clientKnownUpdatedAt sur l'entrée elle-même.
+    await enqueueMutation({
+      id: generateClientId(),
+      tenantId,
+      entity: "party",
+      action: "delete",
+      payload: {},
+      clientGeneratedId,
+      createdById: "user-1",
+      clientKnownUpdatedAt: "2026-01-01T00:00:00.000Z",
+    });
+
+    let receivedUpdatedAt: string | undefined;
+    const result = await syncQueue({
+      tenantId,
+      syncTransport: async (mutation) => {
+        receivedUpdatedAt = mutation.clientKnownUpdatedAt;
+        return { updatedAt: "2026-01-02T00:00:00.000Z", conflict: false };
+      },
+    });
+
+    expect(receivedUpdatedAt).toBe("2026-01-01T00:00:00.000Z");
+    expect(result.failed).toBe(false);
+  });
 });

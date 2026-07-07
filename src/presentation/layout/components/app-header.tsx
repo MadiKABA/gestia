@@ -4,16 +4,20 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Bell, Menu } from "lucide-react";
 import { Button } from "@/presentation/shared/components/ui/button";
+import { NetworkStatusIndicator } from "@/presentation/shared/components/network-status-indicator";
 import { getPageTitle } from "@/presentation/layout/nav-config";
 import type { TenantBranding } from "@/application/tenant/tenant-branding.repository";
 
 /** Header fixe : titre de la page courante, logo boutique (dashboard
- * uniquement), burger mobile (ouvre le drawer), emplacement notifications. */
+ * uniquement), burger mobile (ouvre le drawer), emplacement notifications,
+ * indicateur réseau/sync (masqué en ligne sans mutation en attente). */
 export function AppHeader({
   branding,
+  tenantId,
   onMenuClick,
 }: {
   branding: TenantBranding;
+  tenantId: string;
   onMenuClick: () => void;
 }) {
   const pathname = usePathname();
@@ -21,7 +25,7 @@ export function AppHeader({
   const showTenantLogo = pathname === "/dashboard" && branding.logoUrl;
 
   return (
-    <header className="border-border bg-background fixed inset-x-0 top-0 z-40 flex h-14 items-center justify-between border-b px-4 lg:left-64">
+    <header className="border-border bg-background fixed inset-x-0 top-0 z-40 flex h-14 items-center justify-between gap-2 border-b px-4 lg:left-64">
       <div className="flex min-w-0 items-center gap-3">
         {showTenantLogo ? (
           <Image
@@ -33,6 +37,7 @@ export function AppHeader({
           />
         ) : null}
         <h1 className="text-foreground truncate text-base font-semibold">{title}</h1>
+        <NetworkStatusIndicator tenantId={tenantId} className="shrink-0" />
       </div>
 
       <div className="flex items-center gap-1">

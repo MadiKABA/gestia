@@ -1,6 +1,6 @@
 /// <reference lib="webworker" />
 import { defaultCache } from "@serwist/turbopack/worker";
-import { Serwist } from "serwist";
+import { NetworkFirst, Serwist } from "serwist";
 import type { PrecacheEntry, SerwistGlobalConfig } from "serwist";
 
 declare global {
@@ -26,13 +26,31 @@ declare const self: ServiceWorkerGlobalScope;
  * dans `__SW_MANIFEST` (tout fichier de public/ y est) — ne pas le rajouter
  * manuellement, ça créerait une entrée dupliquée avec une révision en
  * conflit et ferait échouer l'évaluation du service worker.
+ *
+ * `defaultCache` matche les documents via des en-têtes de *requête*
+ * (`Content-Type`, `RSC`) qu'une vraie navigation plein-page ne porte
+ * jamais (`Content-Type` n'existe que sur les réponses/requêtes avec
+ * corps) — vérifié en pratique : aucune de ses entrées ne matche une
+ * navigation `mode: "navigate"`, donc `respondWith()` n'est jamais
+ * appelé et le fallback ne se déclenche jamais. On enregistre donc une
+ * route dédiée sur `request.mode === "navigate"` avant `defaultCache`
+ * (premier match gagne) pour ne jamais rater une navigation réelle ; les
+ * transitions client-side de Next.js (fetch RSC) ne passent pas par
+ * `mode: "navigate"` et continuent d'utiliser les entrées RSC de
+ * `defaultCache` normalement.
  */
 const serwist = new Serwist({
   precacheEntries: self.__SW_MANIFEST,
   skipWaiting: true,
   clientsClaim: true,
   navigationPreload: true,
-  runtimeCaching: defaultCache,
+  runtimeCaching: [
+    {
+      matcher: ({ request }) => request.mode === "navigate",
+      handler: new NetworkFirst({ cacheName: "pages" }),
+    },
+    ...defaultCache,
+  ],
   fallbacks: {
     entries: [
       {

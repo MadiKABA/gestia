@@ -130,6 +130,37 @@ pnpm test:e2e         # Playwright — build + démarre l'app automatiquement
 Les tests d'intégration (`tests/integration/`) exécutent de vraies requêtes
 Prisma contre `DATABASE_URL` : Postgres local doit être accessible.
 
+## Tester la PWA en local
+
+Le service worker (Serwist) est **désactivé en dev** (`pnpm dev`) — comportement
+volontaire, évite les soucis de cache pendant le développement. Pour tester
+l'installabilité, le précache et le mode hors-ligne, il faut un build de
+production :
+
+```bash
+pnpm build
+pnpm start
+```
+
+→ [http://localhost:3000](http://localhost:3000) (`localhost` est traité comme
+un contexte sécurisé par les navigateurs, HTTPS n'est nécessaire qu'en dehors
+de `localhost`, ex. test sur un téléphone via l'IP du réseau local).
+
+- **Android/Chrome/Edge** : l'invite d'installation apparaît automatiquement à
+  l'ouverture (bandeau en haut d'écran) dès que `beforeinstallprompt` est
+  disponible. Chrome DevTools → onglet **Application** → **Manifest** /
+  **Service Workers** pour inspecter l'installabilité et le cache.
+- **iOS Safari** : `beforeinstallprompt` n'existe pas sur iOS — le bandeau
+  affiche à la place les instructions manuelles ("Appuyez sur Partager, puis
+  « Sur l'écran d'accueil »"). Teste sur un vrai appareil ou le simulateur
+  iOS (Safari ne s'exécute pas dans Chrome DevTools device mode).
+- **Mode hors-ligne** : DevTools → Network → Offline, puis navigue vers une
+  page non précachée → doit afficher `public/offline.html`, jamais une erreur
+  navigateur brute.
+- Le bandeau d'installation ne réapparaît pas après un clic sur "Plus tard"
+  dans la même session (`sessionStorage`) mais revient à la prochaine visite
+  si l'app n'est toujours pas installée.
+
 ## Déploiement en production (Docker)
 
 **Docker est réservé au déploiement — jamais utilisé en développement local.**

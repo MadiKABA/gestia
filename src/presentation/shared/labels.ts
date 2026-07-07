@@ -49,3 +49,13 @@ export const partyLabels = {
 export const authLabels = {
   vendeurNotFoundMessage: "Ce vendeur n'existe plus.",
 };
+
+export const pwaLabels = {
+  installTitle: "Installer Gestia",
+  installDescription: "Accédez à Gestia plus rapidement, même hors connexion.",
+  installButton: "Installer",
+  later: "Plus tard",
+  iosTitle: "Installer Gestia",
+  iosInstructions: "Appuyez sur Partager, puis « Sur l'écran d'accueil ».",
+  dismissAria: "Plus tard",
+};

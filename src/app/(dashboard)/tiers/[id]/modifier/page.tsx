@@ -4,6 +4,7 @@ import { ForbiddenError, NotFoundError } from "@/domain/shared/errors";
 import { getPartyByIdAction, updatePartyAction } from "@/presentation/party/actions";
 import { PartyForm } from "@/presentation/party/components/party-form";
 import type { PartyFormInput } from "@/presentation/party/schemas";
+import { partyLabels } from "@/presentation/shared/labels";
 
 export default async function ModifierTierPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -34,7 +35,7 @@ export default async function ModifierTierPage({ params }: { params: Promise<{ i
 
   return (
     <div className="mx-auto max-w-md p-4">
-      <h1 className="text-foreground mb-4 text-lg font-semibold">Modifier le tiers</h1>
+      <h1 className="text-foreground mb-4 text-lg font-semibold">{partyLabels.editPageTitle}</h1>
       <PartyForm
         defaultValues={{
           name: party.name,
@@ -47,7 +48,7 @@ export default async function ModifierTierPage({ params }: { params: Promise<{ i
           note: party.note ?? "",
         }}
         onSubmit={onSubmit}
-        submitLabel="Enregistrer les modifications"
+        submitLabel={partyLabels.editSubmitLabel}
       />
     </div>
   );

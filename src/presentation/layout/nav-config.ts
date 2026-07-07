@@ -13,6 +13,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import type { TenantContext } from "@/domain/shared/tenant-context";
+import { partyLabels } from "@/presentation/shared/labels";
 
 export type NavRole = TenantContext["role"];
 
@@ -31,7 +32,13 @@ export type SidebarNavItem = {
 
 export const SIDEBAR_NAV_ITEMS: SidebarNavItem[] = [
   { key: "dashboard", label: "Accueil", href: "/dashboard", icon: Home, roles: ["PATRON"] },
-  { key: "tiers", label: "Tiers", href: "/tiers", icon: Users, roles: ["PATRON", "VENDEUR"] },
+  {
+    key: "tiers",
+    label: partyLabels.listTitle,
+    href: "/tiers",
+    icon: Users,
+    roles: ["PATRON", "VENDEUR"],
+  },
   { key: "creances", label: "Créances", href: "/creances", icon: Receipt, roles: ["PATRON"] },
   { key: "dettes", label: "Dettes", href: "/dettes", icon: HandCoins, roles: ["PATRON"] },
   { key: "caisse", label: "Caisse", href: "/caisse", icon: Wallet, roles: ["PATRON"] },
@@ -87,13 +94,13 @@ export type BottomTabItem =
 export const BOTTOM_TAB_ITEMS: Record<NavRole, BottomTabItem[]> = {
   PATRON: [
     { type: "link", key: "dashboard", label: "Accueil", href: "/dashboard", icon: Home },
-    { type: "link", key: "tiers", label: "Tiers", href: "/tiers", icon: Users },
+    { type: "link", key: "tiers", label: partyLabels.listTitle, href: "/tiers", icon: Users },
     { type: "quick-action", key: "quick-action", label: "Ajouter" },
     { type: "link", key: "caisse", label: "Caisse", href: "/caisse", icon: Wallet },
     { type: "more", key: "more", label: "Plus" },
   ],
   VENDEUR: [
-    { type: "link", key: "tiers", label: "Tiers", href: "/tiers", icon: Users },
+    { type: "link", key: "tiers", label: partyLabels.listTitle, href: "/tiers", icon: Users },
     { type: "quick-action", key: "quick-action", label: "Ajouter" },
     {
       type: "link",

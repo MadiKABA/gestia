@@ -10,11 +10,18 @@ Multi-tenant dès la V1, auth téléphone + PIN (terrain), offline-first complet
 
 Vocabulaire imposé dans toute l'UI et le code métier : "qui me doit" / "à qui
 je dois" / "ma caisse" — jamais de jargon comptable (pas de "débiteur",
-"grand livre", etc.). Devise par défaut : FCFA.
+"grand livre", etc.). Devise par défaut : FCFA. Le modèle `Party` (§6) —
+client, fournisseur ou les deux — est toujours affiché sous le terme
+générique **"client"** dans l'UI, quel que soit son `type` réel
+(CLIENT/SUPPLIER/BOTH) ; jamais "tiers". Les routes techniques `/tiers`
+restent inchangées (détail d'implémentation invisible côté utilisateur).
+Tout le vocabulaire affiché est centralisé dans
+`src/presentation/shared/labels.ts` — un seul endroit à modifier pour
+ajuster un terme dans toute l'app.
 
 ## Rôles
 
-- **PATRON** : accès complet — tableau de bord, tiers, transactions, caisse,
+- **PATRON** : accès complet — tableau de bord, clients, transactions, caisse,
   gestion des vendeurs, historiques, paramètres, theming.
 - **VENDEUR** : créances/dettes, paiements, consultation de ses propres
   opérations. Jamais : trésorerie globale, suppression, gestion utilisateurs,
@@ -79,6 +86,13 @@ l'infrastructure technique : `Session` (better-auth) et `OtpCode` (OTP
 inscription/reset PIN). Ce sont des tables de plomberie, pas des entités
 métier.
 
+**Point en attente (module Transaction)** : la suppression (soft delete)
+d'un `Party` ne vérifie aujourd'hui aucune transaction liée — normal,
+`Transaction` n'existe pas encore. Une fois ce module implémenté, il faudra
+soit bloquer la suppression d'un client ayant des transactions en cours, soit
+avertir fortement l'utilisateur avant de confirmer. Voir le TODO dans
+`src/application/party/delete-party.use-case.ts`.
+
 Règles non négociables sur ce schéma :
 
 - Montants en `Decimal` (jamais `Float`), `quantity` reste `Float?`.
@@ -89,14 +103,16 @@ Règles non négociables sur ce schéma :
 ## Scope V1 (ce qui doit exister)
 
 Gestion multi-tenant (isolation stricte `tenantId`) · gestion utilisateurs
-(patron crée/désactive des vendeurs) · tiers (CRUD, recherche nom+téléphone,
-tri par solde décroissant) · créances et dettes (montant, échéance, référence
-auto, solde temps réel) · paiements (partiel/total, déclenche un CashMovement
-si CASH) · mouvements de caisse manuels · tableau de bord patron (solde
-caisse, à recevoir, à payer, position nette, échéances à J/7j/30j avec code
-couleur rouge/orange/vert) · relance WhatsApp (template configurable, lien
-`wa.me` pré-rempli) · paramètres + theming tenant · AuditLog systématique ·
-PWA offline complet avec queue de synchronisation et résolution de conflit
+(patron crée/désactive des vendeurs) · clients (CRUD, recherche
+nom+téléphone, tri par solde décroissant — modèle `Party` en base, terme
+affiché "client" quel que soit le type CLIENT/SUPPLIER/BOTH, cf. section
+Vocabulaire) · créances et dettes (montant, échéance, référence auto, solde
+temps réel) · paiements (partiel/total, déclenche un CashMovement si CASH) ·
+mouvements de caisse manuels · tableau de bord patron (solde caisse, à
+recevoir, à payer, position nette, échéances à J/7j/30j avec code couleur
+rouge/orange/vert) · relance WhatsApp (template configurable, lien `wa.me`
+pré-rempli) · paramètres + theming tenant · AuditLog systématique · PWA
+offline complet avec queue de synchronisation et résolution de conflit
 "dernier écrit gagne" tracée en AuditLog.
 
 ## Hors périmètre (ne pas implémenter avant la version indiquée)

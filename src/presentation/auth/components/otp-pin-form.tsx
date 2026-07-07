@@ -8,6 +8,7 @@ import { Label } from "@/presentation/shared/components/ui/label";
 import { PhoneInput } from "@/presentation/shared/components/phone-input";
 import { OtpInput } from "@/presentation/shared/components/otp-input";
 import { PinInput } from "@/presentation/shared/components/pin-input";
+import { commonLabels } from "@/presentation/shared/labels";
 
 type Channel = "PHONE" | "EMAIL";
 
@@ -48,7 +49,7 @@ export function OtpPinForm({
         await action({ channel, identifier, otp, newPin: newPinValue });
         router.push(redirectTo);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Une erreur est survenue");
+        setError(err instanceof Error ? err.message : commonLabels.genericError);
       }
     });
   }

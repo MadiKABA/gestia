@@ -9,8 +9,10 @@ import { searchParties } from "@/application/party/search-parties.use-case";
 import { getPartyById } from "@/application/party/get-party-by-id.use-case";
 import { deleteParty } from "@/application/party/delete-party.use-case";
 import type { PartyInput } from "@/domain/party/party.entity";
+import { NotFoundError } from "@/domain/shared/errors";
 import { PrismaPartyRepository } from "@/infrastructure/party/party.repository";
 import { PrismaAuditLogger } from "@/infrastructure/audit-log/audit-log.repository";
+import { partyLabels } from "@/presentation/shared/labels";
 import {
   partyInputSchema,
   partySearchSchema,
@@ -52,12 +54,19 @@ export async function updatePartyAction(id: string, input: PartyFormInput) {
   const context = await requireTenantContext();
   const repository = new PrismaPartyRepository(context.tenantId);
 
-  await updateParty(
-    context,
-    { repository, auditLogger },
-    id,
-    toPartyInput(partyInputSchema.parse(input)),
-  );
+  try {
+    await updateParty(
+      context,
+      { repository, auditLogger },
+      id,
+      toPartyInput(partyInputSchema.parse(input)),
+    );
+  } catch (error) {
+    if (error instanceof NotFoundError) {
+      throw new Error(partyLabels.notFoundMessage);
+    }
+    throw error;
+  }
   revalidatePath("/tiers");
   revalidatePath(`/tiers/${id}`);
   redirect(`/tiers/${id}`);
@@ -67,7 +76,14 @@ export async function deletePartyAction(id: string) {
   const context = await requireTenantContext();
   const repository = new PrismaPartyRepository(context.tenantId);
 
-  await deleteParty(context, { repository, auditLogger }, id);
+  try {
+    await deleteParty(context, { repository, auditLogger }, id);
+  } catch (error) {
+    if (error instanceof NotFoundError) {
+      throw new Error(partyLabels.notFoundMessage);
+    }
+    throw error;
+  }
   revalidatePath("/tiers");
 }
 

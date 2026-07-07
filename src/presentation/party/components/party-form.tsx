@@ -17,12 +17,17 @@ import {
 } from "@/presentation/shared/components/ui/select";
 import { PhoneInput } from "@/presentation/shared/components/phone-input";
 import { partyInputSchema, type PartyFormInput } from "@/presentation/party/schemas";
+import { commonLabels, partyLabels } from "@/presentation/shared/labels";
 
 const TYPE_OPTIONS = [
-  { value: "CLIENT", label: "Client" },
-  { value: "SUPPLIER", label: "Fournisseur" },
-  { value: "BOTH", label: "Client et fournisseur" },
+  { value: "CLIENT", label: partyLabels.typeClient },
+  { value: "SUPPLIER", label: partyLabels.typeSupplier },
+  { value: "BOTH", label: partyLabels.typeBoth },
 ] as const;
+
+const TYPE_LABEL_BY_VALUE: Record<string, string> = Object.fromEntries(
+  TYPE_OPTIONS.map((option) => [option.value, option.label]),
+);
 
 const DEFAULT_VALUES: PartyFormInput = {
   name: "",
@@ -67,7 +72,7 @@ export function PartyForm({
       try {
         await onSubmit(values);
       } catch (err) {
-        setSubmitError(err instanceof Error ? err.message : "Une erreur est survenue");
+        setSubmitError(err instanceof Error ? err.message : commonLabels.genericError);
       }
     });
   }
@@ -138,7 +143,9 @@ export function PartyForm({
           render={({ field }) => (
             <Select value={field.value} onValueChange={(value) => field.onChange(value)}>
               <SelectTrigger id="type" className="w-full">
-                <SelectValue placeholder="Choisir un type" />
+                <SelectValue placeholder="Choisir un type">
+                  {(value: string) => TYPE_LABEL_BY_VALUE[value] ?? value}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {TYPE_OPTIONS.map((option) => (
@@ -154,10 +161,8 @@ export function PartyForm({
 
       <div className="border-border flex items-center justify-between rounded-lg border p-3">
         <div>
-          <Label htmlFor="isCompany">Entreprise</Label>
-          <p className="text-muted-foreground text-sm">
-            Ce tiers est une société, pas un particulier
-          </p>
+          <Label htmlFor="isCompany">{partyLabels.isCompanyLabel}</Label>
+          <p className="text-muted-foreground text-sm">{partyLabels.isCompanyDescription}</p>
         </div>
         <Controller
           control={control}
@@ -175,7 +180,7 @@ export function PartyForm({
       {isCompany ? (
         <>
           <div className="space-y-1.5">
-            <Label htmlFor="companyName">Nom de la société (recommandé)</Label>
+            <Label htmlFor="companyName">{partyLabels.companyNameField}</Label>
             <Controller
               control={control}
               name="companyName"
@@ -185,7 +190,7 @@ export function PartyForm({
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="contactName">Nom du contact</Label>
+            <Label htmlFor="contactName">{partyLabels.contactNameField}</Label>
             <Controller
               control={control}
               name="contactName"

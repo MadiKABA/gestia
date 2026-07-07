@@ -14,13 +14,18 @@ import {
 import { searchPartiesAction } from "@/presentation/party/actions";
 import type { PartyType } from "@/domain/party/party.entity";
 import type { PartyWithBalance } from "@/application/party/party.repository";
+import { partyLabels } from "@/presentation/shared/labels";
 
 const TYPE_FILTERS = [
-  { value: "ALL", label: "Tous" },
-  { value: "CLIENT", label: "Clients" },
-  { value: "SUPPLIER", label: "Fournisseurs" },
-  { value: "BOTH", label: "Client et fournisseur" },
+  { value: "ALL", label: partyLabels.filterAll },
+  { value: "CLIENT", label: partyLabels.filterClient },
+  { value: "SUPPLIER", label: partyLabels.filterSupplier },
+  { value: "BOTH", label: partyLabels.typeBoth },
 ] as const;
+
+const TYPE_FILTER_LABEL_BY_VALUE: Record<string, string> = Object.fromEntries(
+  TYPE_FILTERS.map((option) => [option.value, option.label]),
+);
 
 /** Recherche/tri par solde décroissant délégués au serveur (searchPartiesAction) —
  * ce composant ne fait que refléter debounce + état des filtres. */
@@ -58,9 +63,9 @@ export function PartiesList({ initialParties }: { initialParties: PartyWithBalan
   return (
     <div className="mx-auto max-w-md space-y-4 p-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-foreground text-lg font-semibold">Tiers</h1>
+        <h1 className="text-foreground text-lg font-semibold">{partyLabels.listTitle}</h1>
         <Button render={<Link href="/tiers/nouveau" />} nativeButton={false} size="sm">
-          Nouveau tiers
+          {partyLabels.newButtonLabel}
         </Button>
       </div>
 
@@ -73,7 +78,9 @@ export function PartiesList({ initialParties }: { initialParties: PartyWithBalan
         />
         <Select value={type} onValueChange={(value) => setType(value as "ALL" | PartyType)}>
           <SelectTrigger className="w-36">
-            <SelectValue />
+            <SelectValue>
+              {(value: string) => TYPE_FILTER_LABEL_BY_VALUE[value] ?? value}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             {TYPE_FILTERS.map((option) => (
@@ -105,7 +112,7 @@ export function PartiesList({ initialParties }: { initialParties: PartyWithBalan
           </li>
         ))}
         {parties.length === 0 ? (
-          <p className="text-muted-foreground text-sm">Aucun tiers pour le moment.</p>
+          <p className="text-muted-foreground text-sm">{partyLabels.emptyStateList}</p>
         ) : null}
       </ul>
     </div>

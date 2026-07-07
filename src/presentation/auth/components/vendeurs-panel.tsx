@@ -7,6 +7,7 @@ import { Input } from "@/presentation/shared/components/ui/input";
 import { Label } from "@/presentation/shared/components/ui/label";
 import { PhoneInput } from "@/presentation/shared/components/phone-input";
 import { inviteVendeurAction, deactivateVendeurAction } from "@/presentation/auth/actions";
+import { commonLabels } from "@/presentation/shared/labels";
 
 type Vendeur = {
   id: string;
@@ -34,7 +35,7 @@ export function VendeursPanel({ initialVendeurs }: { initialVendeurs: Vendeur[] 
         setName("");
         setPhone("");
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Une erreur est survenue");
+        setError(err instanceof Error ? err.message : commonLabels.genericError);
       } finally {
         router.refresh();
       }
@@ -52,7 +53,7 @@ export function VendeursPanel({ initialVendeurs }: { initialVendeurs: Vendeur[] 
         );
         router.refresh();
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Une erreur est survenue");
+        setError(err instanceof Error ? err.message : commonLabels.genericError);
       }
     });
   }

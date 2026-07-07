@@ -7,6 +7,7 @@ import { Label } from "@/presentation/shared/components/ui/label";
 import { PhoneInput } from "@/presentation/shared/components/phone-input";
 import { PinInput } from "@/presentation/shared/components/pin-input";
 import { IdentifierToggle } from "@/presentation/auth/components/identifier-toggle";
+import { commonLabels } from "@/presentation/shared/labels";
 
 type Channel = "PHONE" | "EMAIL";
 
@@ -32,7 +33,7 @@ export function LoginForm({
       try {
         await action({ channel, identifier, pin: pinValue });
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Une erreur est survenue");
+        setError(err instanceof Error ? err.message : commonLabels.genericError);
       }
     });
   }

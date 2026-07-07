@@ -6,6 +6,7 @@ import { Input } from "@/presentation/shared/components/ui/input";
 import { Label } from "@/presentation/shared/components/ui/label";
 import { OtpInput } from "@/presentation/shared/components/otp-input";
 import { PinInput } from "@/presentation/shared/components/pin-input";
+import { commonLabels } from "@/presentation/shared/labels";
 
 export function CompleteRegistrationForm({
   initialPhone,
@@ -44,7 +45,7 @@ export function CompleteRegistrationForm({
           email: email.trim() ? email.trim() : undefined,
         });
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Une erreur est survenue");
+        setError(err instanceof Error ? err.message : commonLabels.genericError);
       }
     });
   }

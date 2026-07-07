@@ -21,7 +21,8 @@ import { confirmPinReset } from "@/application/auth/confirm-pin-reset.use-case";
 import { inviteVendeur } from "@/application/auth/invite-vendeur.use-case";
 import { deactivateVendeur } from "@/application/auth/deactivate-vendeur.use-case";
 import { listVendeurs } from "@/application/auth/list-vendeurs.use-case";
-import { ValidationError } from "@/domain/shared/errors";
+import { NotFoundError, ValidationError } from "@/domain/shared/errors";
+import { authLabels } from "@/presentation/shared/labels";
 import {
   confirmPinResetSchema,
   confirmRegistrationSchema,
@@ -151,7 +152,14 @@ export async function deactivateVendeurAction(input: DeactivateVendeurInput) {
   const context = await requirePatron();
   const { vendeurId } = deactivateVendeurSchema.parse(input);
 
-  await deactivateVendeur(context, { repository, auditLogger }, { vendeurId });
+  try {
+    await deactivateVendeur(context, { repository, auditLogger }, { vendeurId });
+  } catch (error) {
+    if (error instanceof NotFoundError) {
+      throw new Error(authLabels.vendeurNotFoundMessage);
+    }
+    throw error;
+  }
   revalidatePath("/vendeurs");
 }
 

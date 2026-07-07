@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0f2a4a" />
+    <title>Gestia — Pas de connexion</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+      }
+      body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f7f8fa;
+        color: #0f2a4a;
+        font-family:
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          Roboto,
+          Helvetica,
+          Arial,
+          sans-serif;
+        padding: 24px;
+        text-align: center;
+      }
+      .card {
+        max-width: 360px;
+      }
+      .wordmark {
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #0f2a4a;
+        margin-bottom: 24px;
+      }
+      .icon {
+        width: 56px;
+        height: 56px;
+        margin: 0 auto 20px;
+        border-radius: 16px;
+        background: #0f2a4a;
+        color: #f7f8fa;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+      }
+      h1 {
+        font-size: 18px;
+        font-weight: 600;
+        margin: 0 0 8px;
+      }
+      p {
+        font-size: 14px;
+        color: #4a5a6a;
+        line-height: 1.5;
+        margin: 0;
+      }
+      button {
+        margin-top: 24px;
+        border: none;
+        border-radius: 10px;
+        background: #0f2a4a;
+        color: #f7f8fa;
+        font-size: 14px;
+        font-weight: 500;
+        padding: 10px 20px;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="wordmark">Gestia</div>
+      <div class="icon" aria-hidden="true">⌁</div>
+      <h1>Pas de connexion</h1>
+      <p>Vos données seront synchronisées dès que possible.</p>
+      <button type="button" onclick="location.reload()">Réessayer</button>
+    </div>
+  </body>
+</html>

@@ -4,13 +4,15 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/presentation/shared/components/ui/button";
+import { ConfirmDialog } from "@/presentation/shared/components/confirm-dialog";
 import { deletePartyAction } from "@/presentation/party/actions";
+import { commonLabels, partyLabels } from "@/presentation/shared/labels";
 import type { Party } from "@/domain/party/party.entity";
 
 const TYPE_LABELS: Record<Party["type"], string> = {
-  CLIENT: "Client",
-  SUPPLIER: "Fournisseur",
-  BOTH: "Client et fournisseur",
+  CLIENT: partyLabels.typeClient,
+  SUPPLIER: partyLabels.typeSupplier,
+  BOTH: partyLabels.typeBoth,
 };
 
 export function PartyDetail({
@@ -24,6 +26,7 @@ export function PartyDetail({
 }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleting, startDelete] = useTransition();
 
   function onDelete() {
@@ -34,7 +37,8 @@ export function PartyDetail({
         router.push("/tiers");
         router.refresh();
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Une erreur est survenue");
+        setConfirmOpen(false);
+        setError(err instanceof Error ? err.message : commonLabels.genericError);
       }
     });
   }
@@ -88,7 +92,7 @@ export function PartyDetail({
 
       <div>
         <h2 className="text-foreground mb-2 text-sm font-semibold">Historique des transactions</h2>
-        <p className="text-muted-foreground text-sm">Aucune transaction pour ce tiers.</p>
+        <p className="text-muted-foreground text-sm">{partyLabels.emptyStateTransactions}</p>
       </div>
 
       {error ? <p className="text-destructive text-sm">{error}</p> : null}
@@ -103,11 +107,25 @@ export function PartyDetail({
           Modifier
         </Button>
         {canDelete ? (
-          <Button variant="destructive" className="flex-1" disabled={deleting} onClick={onDelete}>
-            {deleting ? "Suppression..." : "Supprimer"}
+          <Button
+            variant="destructive"
+            className="flex-1"
+            disabled={deleting}
+            onClick={() => setConfirmOpen(true)}
+          >
+            {commonLabels.delete}
           </Button>
         ) : null}
       </div>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title={partyLabels.deleteConfirmTitle(party.name)}
+        description={partyLabels.deleteConfirmDescription}
+        pending={deleting}
+        onConfirm={onDelete}
+      />
     </div>
   );
 }

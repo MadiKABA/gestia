@@ -3,8 +3,15 @@ import { ForbiddenError, NotFoundError } from "@/domain/shared/errors";
 import type { PartyRepository } from "@/application/party/party.repository";
 import type { AuditLogger } from "@/application/shared/audit-logger";
 
-/** Soft delete réservé au patron (cahier des charges §2 : le vendeur n'a
- * jamais accès à la suppression). */
+/**
+ * Soft delete réservé au patron (cahier des charges §2 : le vendeur n'a
+ * jamais accès à la suppression).
+ *
+ * TODO(module Transaction) : une fois Transaction implémenté, bloquer (ou au
+ * minimum avertir fortement) la suppression d'un client qui a des
+ * transactions en cours (CREANCE/DETTE non soldées) — non applicable pour
+ * l'instant puisque Transaction n'existe pas encore. Voir CLAUDE.md.
+ */
 export async function deleteParty(
   context: TenantContext,
   deps: { repository: PartyRepository; auditLogger: AuditLogger },

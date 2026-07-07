@@ -7,6 +7,7 @@ import { Input } from "@/presentation/shared/components/ui/input";
 import { Label } from "@/presentation/shared/components/ui/label";
 import { PhoneInput } from "@/presentation/shared/components/phone-input";
 import { OtpInput } from "@/presentation/shared/components/otp-input";
+import { PinInput } from "@/presentation/shared/components/pin-input";
 
 type Channel = "PHONE" | "EMAIL";
 
@@ -40,17 +41,21 @@ export function OtpPinForm({
   const [pending, startTransition] = useTransition();
   const newPinRef = useRef<HTMLInputElement>(null);
 
-  function onSubmit(event: React.FormEvent) {
-    event.preventDefault();
+  function submit(newPinValue: string) {
     setError(null);
     startTransition(async () => {
       try {
-        await action({ channel, identifier, otp, newPin });
+        await action({ channel, identifier, otp, newPin: newPinValue });
         router.push(redirectTo);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Une erreur est survenue");
       }
     });
+  }
+
+  function onSubmit(event: React.FormEvent) {
+    event.preventDefault();
+    submit(newPin);
   }
 
   return (
@@ -93,16 +98,12 @@ export function OtpPinForm({
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="newPin">Nouveau code PIN</Label>
-        <Input
+        <PinInput
           id="newPin"
           ref={newPinRef}
-          type="password"
-          inputMode="numeric"
-          maxLength={4}
-          placeholder="••••"
           value={newPin}
           onValueChange={setNewPin}
-          required
+          onComplete={submit}
         />
       </div>
       {error ? <p className="text-destructive text-sm">{error}</p> : null}

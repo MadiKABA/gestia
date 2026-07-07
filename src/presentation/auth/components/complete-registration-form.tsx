@@ -5,6 +5,7 @@ import { Button } from "@/presentation/shared/components/ui/button";
 import { Input } from "@/presentation/shared/components/ui/input";
 import { Label } from "@/presentation/shared/components/ui/label";
 import { OtpInput } from "@/presentation/shared/components/otp-input";
+import { PinInput } from "@/presentation/shared/components/pin-input";
 
 export function CompleteRegistrationForm({
   initialPhone,
@@ -30,15 +31,14 @@ export function CompleteRegistrationForm({
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
-  function onSubmit(event: React.FormEvent) {
-    event.preventDefault();
+  function submit(pinValue: string) {
     setError(null);
     startTransition(async () => {
       try {
         await action({
           phone,
           otp,
-          pin,
+          pin: pinValue,
           tenantName,
           patronName,
           email: email.trim() ? email.trim() : undefined,
@@ -47,6 +47,11 @@ export function CompleteRegistrationForm({
         setError(err instanceof Error ? err.message : "Une erreur est survenue");
       }
     });
+  }
+
+  function onSubmit(event: React.FormEvent) {
+    event.preventDefault();
+    submit(pin);
   }
 
   return (
@@ -99,16 +104,7 @@ export function CompleteRegistrationForm({
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="pin">Choisissez un code PIN</Label>
-        <Input
-          id="pin"
-          type="password"
-          inputMode="numeric"
-          maxLength={4}
-          placeholder="••••"
-          value={pin}
-          onValueChange={setPin}
-          required
-        />
+        <PinInput id="pin" value={pin} onValueChange={setPin} onComplete={submit} />
       </div>
       {error ? <p className="text-destructive text-sm">{error}</p> : null}
       <Button type="submit" className="w-full" disabled={pending}>

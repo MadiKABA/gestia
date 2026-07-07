@@ -5,6 +5,7 @@ import { Button } from "@/presentation/shared/components/ui/button";
 import { Input } from "@/presentation/shared/components/ui/input";
 import { Label } from "@/presentation/shared/components/ui/label";
 import { PhoneInput } from "@/presentation/shared/components/phone-input";
+import { PinInput } from "@/presentation/shared/components/pin-input";
 import { IdentifierToggle } from "@/presentation/auth/components/identifier-toggle";
 
 type Channel = "PHONE" | "EMAIL";
@@ -25,16 +26,20 @@ export function LoginForm({
     setIdentifier("");
   }
 
-  function onSubmit(event: React.FormEvent) {
-    event.preventDefault();
+  function submit(pinValue: string) {
     setError(null);
     startTransition(async () => {
       try {
-        await action({ channel, identifier, pin });
+        await action({ channel, identifier, pin: pinValue });
       } catch (err) {
         setError(err instanceof Error ? err.message : "Une erreur est survenue");
       }
     });
+  }
+
+  function onSubmit(event: React.FormEvent) {
+    event.preventDefault();
+    submit(pin);
   }
 
   return (
@@ -67,16 +72,7 @@ export function LoginForm({
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="pin">Code PIN</Label>
-        <Input
-          id="pin"
-          type="password"
-          inputMode="numeric"
-          maxLength={4}
-          placeholder="••••"
-          value={pin}
-          onValueChange={setPin}
-          required
-        />
+        <PinInput id="pin" value={pin} onValueChange={setPin} onComplete={submit} />
       </div>
       {error ? <p className="text-destructive text-sm">{error}</p> : null}
       <Button type="submit" className="w-full" disabled={pending}>

@@ -2,6 +2,7 @@ import "fake-indexeddb/auto";
 import { describe, expect, it } from "vitest";
 import {
   enqueueMutation,
+  hasPendingMutationFor,
   listPendingMutations,
   markMutationFailed,
   markMutationSynced,
@@ -113,5 +114,56 @@ describe("mutation-queue.store", () => {
 
     const pendingB = await listPendingMutations(tenantB);
     expect(pendingB).toHaveLength(0);
+  });
+
+  describe("hasPendingMutationFor", () => {
+    it("vrai tant qu'une mutation sur cette entité n'est pas synchronisée", async () => {
+      const tenantId = tenant();
+      const clientGeneratedId = generateClientId();
+      await enqueueMutation({
+        id: generateClientId(),
+        tenantId,
+        entity: "party",
+        action: "update",
+        payload: {},
+        clientGeneratedId,
+        createdById: "user-1",
+      });
+
+      expect(await hasPendingMutationFor(tenantId, "party", clientGeneratedId)).toBe(true);
+    });
+
+    it("faux une fois la mutation synchronisée", async () => {
+      const tenantId = tenant();
+      const clientGeneratedId = generateClientId();
+      const record = await enqueueMutation({
+        id: generateClientId(),
+        tenantId,
+        entity: "party",
+        action: "update",
+        payload: {},
+        clientGeneratedId,
+        createdById: "user-1",
+      });
+      await markMutationSynced(record.id, new Date().toISOString());
+
+      expect(await hasPendingMutationFor(tenantId, "party", clientGeneratedId)).toBe(false);
+    });
+
+    it("faux pour une entity différente portant le même id", async () => {
+      const tenantId = tenant();
+      const clientGeneratedId = generateClientId();
+      await enqueueMutation({
+        id: generateClientId(),
+        tenantId,
+        entity: "party",
+        action: "update",
+        payload: {},
+        clientGeneratedId,
+        createdById: "user-1",
+      });
+
+      expect(await hasPendingMutationFor(tenantId, "transaction", clientGeneratedId)).toBe(false);
+    });
   });
 });

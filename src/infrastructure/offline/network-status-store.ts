@@ -1,4 +1,10 @@
-import { syncQueue, type SyncTransport } from "@/infrastructure/offline/sync-engine";
+import {
+  computeBackoffDelayMs,
+  syncQueue,
+  type SyncTransport,
+} from "@/infrastructure/offline/sync-engine";
+import { pullEntity, type PullTransport } from "@/infrastructure/offline/pull-engine";
+import { listPullableEntities } from "@/infrastructure/offline/pull-registry";
 import { listPendingMutations } from "@/infrastructure/offline/mutation-queue.store";
 
 export type SyncState = "idle" | "syncing" | "pending" | "error";
@@ -32,6 +38,7 @@ export class NetworkStatusStore {
   constructor(
     private readonly tenantId: string,
     private readonly syncTransport: SyncTransport,
+    private readonly pullTransport: PullTransport,
   ) {}
 
   getSnapshot = (): NetworkStatusSnapshot => this.snapshot;
@@ -72,6 +79,16 @@ export class NetworkStatusStore {
       this.publish({ online: false });
     });
 
+    // Retour au premier plan (ex: appli PWA relancée depuis l'arrière-plan
+    // sur mobile) : les événements réseau ('online') ne se redéclenchent pas
+    // forcément si la connexion n'a jamais été coupée pendant l'absence,
+    // alors que le tenant a pu recevoir des changements côté serveur entre
+    // temps — sans ce déclencheur, il faudrait attendre le prochain tick du
+    // polling périodique.
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible" && navigator.onLine) void this.runSync();
+    });
+
     setInterval(() => {
       if (navigator.onLine) void this.runSync();
     }, PERIODIC_SYNC_INTERVAL_MS);
@@ -83,6 +100,16 @@ export class NetworkStatusStore {
     return pending.length;
   }
 
+  /**
+   * Push puis pull, dans cet ordre (cahier des charges §9) : les mutations
+   * locales en attente partent d'abord, puis les changements serveur sont
+   * rapatriés — une entité tout juste poussée par CE client se retrouve
+   * ainsi déjà cohérente au moment du pull, sans dépendre de l'ordre
+   * d'arrivée réseau. Un échec du push ne bloque pas le pull : ce sont deux
+   * opérations indépendantes, un pull qui réussit reste utile même si une
+   * mutation locale a échoué (l'utilisateur voit quand même les changements
+   * des autres postes du tenant).
+   */
   private async runSync(): Promise<void> {
     if (this.syncing || !navigator.onLine) return;
     this.syncing = true;
@@ -92,16 +119,29 @@ export class NetworkStatusStore {
     }
     this.publish({ syncState: "syncing" });
     try {
-      const result = await syncQueue({
+      const pushResult = await syncQueue({
         tenantId: this.tenantId,
         syncTransport: this.syncTransport,
       });
       const count = await this.refreshPendingCount();
-      if (result.failed) {
+
+      let pullFailed = false;
+      for (const entity of listPullableEntities()) {
+        try {
+          await pullEntity({ tenantId: this.tenantId, entity, pullTransport: this.pullTransport });
+        } catch {
+          pullFailed = true;
+        }
+      }
+
+      if (pushResult.failed || pullFailed) {
         this.publish({ syncState: "error" });
-        this.retryTimeout = setTimeout(() => {
-          void this.runSync();
-        }, result.nextRetryDelayMs);
+        this.retryTimeout = setTimeout(
+          () => {
+            void this.runSync();
+          },
+          pushResult.nextRetryDelayMs ?? computeBackoffDelayMs(0),
+        );
       } else {
         this.publish({ syncState: count > 0 ? "pending" : "idle" });
       }
@@ -116,10 +156,11 @@ const stores = new Map<string, NetworkStatusStore>();
 export function getNetworkStatusStore(
   tenantId: string,
   syncTransport: SyncTransport,
+  pullTransport: PullTransport,
 ): NetworkStatusStore {
   let store = stores.get(tenantId);
   if (!store) {
-    store = new NetworkStatusStore(tenantId, syncTransport);
+    store = new NetworkStatusStore(tenantId, syncTransport, pullTransport);
     stores.set(tenantId, store);
   }
   return store;

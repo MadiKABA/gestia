@@ -117,12 +117,13 @@ offline complet avec queue de synchronisation et résolution de conflit
 
 ## Hors périmètre (ne pas implémenter avant la version indiquée)
 
-| Version | Fonctionnalité                                                                                                              |
-| ------- | --------------------------------------------------------------------------------------------------------------------------- |
-| V1.5    | Pièces jointes (photo, signature), export PDF, thèmes avancés/color picker libre                                            |
-| V2      | Facturation formelle, gestion de stock (Produit/Catégorie), POS/scan code-barres                                            |
-| V2/V3   | Modèle Company distinct (NINEA, RCCM), auth **par mot de passe** (email + PIN existe dès V1, voir section Authentification) |
-| V3      | RBAC configurable, multi-boutique par tenant, plans d'abonnement SaaS, comptabilité SYSCOHADA, rapports avancés             |
+| Version | Fonctionnalité                                                                                                                                                                          |
+| ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| V1.5    | Pièces jointes (photo, signature), export PDF, thèmes avancés/color picker libre                                                                                                        |
+| V2      | Facturation formelle, gestion de stock (Produit/Catégorie), POS/scan code-barres                                                                                                        |
+| V2      | Sync temps réel par WebSocket/SSE en remplacement du polling léger (30-60s) — complexité disproportionnée pour l'infra VPS actuelle, voir ARCHITECTURE.md "Synchronisation descendante" |
+| V2/V3   | Modèle Company distinct (NINEA, RCCM), auth **par mot de passe** (email + PIN existe dès V1, voir section Authentification)                                                             |
+| V3      | RBAC configurable, multi-boutique par tenant, plans d'abonnement SaaS, comptabilité SYSCOHADA, rapports avancés                                                                         |
 
 ## Exigences non-fonctionnelles clés
 

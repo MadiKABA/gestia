@@ -159,6 +159,45 @@ Le client est généré dans `src/generated/prisma` (gitignored, régénéré pa
 `datasource db` du schéma n'a pas d'`url` inline — elle vient de
 `prisma.config.ts` (`process.env.DATABASE_URL`, chargé via `dotenv/config`).
 
+## Synchronisation descendante (pull)
+
+Symétrique à la synchronisation montante (`infrastructure/offline/sync-engine.ts`,
+queue de mutations locales → serveur) : `infrastructure/offline/pull-engine.ts`
+rapatrie les changements serveur → cache local. Chaque module métier
+implémente un `PullHandler` (`application/offline/pull-handler.ts`) et
+s'enregistre via `registerPullHandler` (`pull-handler-registry.ts`, serveur)
+— le moteur générique ne connaît aucune entity. Côté client,
+`registerPullableEntity` (`infrastructure/offline/pull-registry.ts`) liste
+les entities à rafraîchir à chaque cycle ; c'est cette liste, pas le
+registre serveur, que `network-status-store.ts` parcourt.
+
+**Curseur** : un enregistrement IndexedDB par couple tenant/entity
+(`syncCursors`, `lastSyncedAt`). Le serveur capture un `queryStartedAt`
+avant chaque requête de page plutôt qu'après — une ligne écrite pendant
+l'exécution est simplement re-proposée au pull suivant plutôt que risquer
+d'être manquée. Le curseur n'avance côté client qu'une fois **toutes** les
+pages d'un cycle appliquées avec succès ; un échec en cours de pagination
+laisse le curseur intact, le cycle suivant repart du même point (fusion
+idempotente, sans risque à réappliquer des enregistrements déjà à jour).
+
+**Fusion** : toute entité ayant une mutation locale encore en attente
+(`hasPendingMutationFor`) est sautée par le pull — jamais écraser une
+édition optimiste pas encore poussée par une valeur serveur plus ancienne
+du point de vue de l'utilisateur. Une entité `deletedAt` non nul est
+retirée du cache local plutôt que gardée affichée. Les vrais conflits
+(entité modifiée des deux côtés) sont résolus et tracés en AuditLog
+exclusivement côté push (`sync-mutation.use-case.ts`) : au moment où le
+pull s'exécute, le push du même cycle a déjà réconcilié toute mutation que
+CE client tentait de pousser — le pull n'a donc jamais besoin de sa propre
+détection de conflit, uniquement de rafraîchir en lecture.
+
+**Cycle** : push puis pull, dans cet ordre, à chaque déclenchement
+(`online`, retour au premier plan — `visibilitychange`, polling périodique
+tant que l'app est visible et en ligne, pull manuel). Un échec du push ne
+bloque pas le pull : ce sont deux opérations indépendantes. Pas de
+WebSocket/SSE pour cette version — complexité disproportionnée pour
+l'infra VPS actuelle (mono-instance), voir CLAUDE.md "Hors périmètre" (V2).
+
 ## Next.js 16 — particularité à connaître
 
 Le middleware s'appelle désormais `proxy` (`src/proxy.ts`, plus

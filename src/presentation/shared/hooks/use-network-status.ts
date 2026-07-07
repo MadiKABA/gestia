@@ -2,11 +2,12 @@
 
 import { useSyncExternalStore } from "react";
 import type { SyncTransport } from "@/infrastructure/offline/sync-engine";
+import type { PullTransport } from "@/infrastructure/offline/pull-engine";
 import {
   getNetworkStatusStore,
   type SyncState,
 } from "@/infrastructure/offline/network-status-store";
-import { syncMutationAction } from "@/presentation/offline/actions";
+import { syncMutationAction, pullChangesAction } from "@/presentation/offline/actions";
 
 export type { SyncState };
 
@@ -18,12 +19,14 @@ export type NetworkStatus = {
   triggerSync: () => void;
 };
 
-/** Seul endroit qui enveloppe la Server Action générique en SyncTransport —
- * infrastructure/offline/ ne connaît que l'interface, jamais Next.js. */
+/** Seul endroit qui enveloppe les Server Actions génériques en SyncTransport/
+ * PullTransport — infrastructure/offline/ ne connaît que ces interfaces,
+ * jamais Next.js. */
 const syncTransport: SyncTransport = (mutation) => syncMutationAction(mutation);
+const pullTransport: PullTransport = (input) => pullChangesAction(input);
 
 export function useNetworkStatus(tenantId: string): NetworkStatus {
-  const store = getNetworkStatusStore(tenantId, syncTransport);
+  const store = getNetworkStatusStore(tenantId, syncTransport, pullTransport);
   const snapshot = useSyncExternalStore(
     store.subscribe,
     store.getSnapshot,
@@ -38,5 +41,5 @@ export function useNetworkStatus(tenantId: string): NetworkStatus {
  * avoir enfilé une mutation, sans jamais bloquer l'appelant.
  */
 export function triggerBackgroundSync(tenantId: string): void {
-  getNetworkStatusStore(tenantId, syncTransport).triggerSync();
+  getNetworkStatusStore(tenantId, syncTransport, pullTransport).triggerSync();
 }

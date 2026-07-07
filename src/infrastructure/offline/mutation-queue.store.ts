@@ -65,3 +65,19 @@ export async function getMutation(id: string): Promise<MutationQueueRecord | und
   const db = await getDb();
   return db.get("mutationQueue", id);
 }
+
+/**
+ * Vrai si une entité a une mutation locale pas encore synchronisée — utilisé
+ * par pull-engine.ts pour ne jamais écraser une édition optimiste pas encore
+ * poussée avec une valeur serveur plus ancienne du point de vue de
+ * l'utilisateur (elle sera correctement réconciliée quand cette mutation
+ * finira par pousser, via le mécanisme de conflit déjà en place côté push).
+ */
+export async function hasPendingMutationFor(
+  tenantId: string,
+  entity: string,
+  clientGeneratedId: string,
+): Promise<boolean> {
+  const pending = await listPendingMutations(tenantId);
+  return pending.some((m) => m.entity === entity && m.clientGeneratedId === clientGeneratedId);
+}

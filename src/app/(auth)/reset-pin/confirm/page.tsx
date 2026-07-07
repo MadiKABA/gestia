@@ -5,17 +5,18 @@ import { confirmPinResetAction } from "@/presentation/auth/actions";
 export default async function ConfirmPinResetPage({
   searchParams,
 }: {
-  searchParams: Promise<{ phone?: string }>;
+  searchParams: Promise<{ channel?: string; identifier?: string }>;
 }) {
-  const { phone } = await searchParams;
+  const { channel, identifier } = await searchParams;
 
   return (
     <AuthLayout
       heading="Nouveau code PIN"
-      description="Saisissez le code reçu par SMS et votre nouveau PIN."
+      description="Saisissez le code reçu et votre nouveau PIN."
     >
       <OtpPinForm
-        initialPhone={phone ?? ""}
+        initialIdentifier={identifier ?? ""}
+        channel={channel === "EMAIL" ? "EMAIL" : "PHONE"}
         action={confirmPinResetAction}
         redirectTo="/login"
         submitLabel="Valider"

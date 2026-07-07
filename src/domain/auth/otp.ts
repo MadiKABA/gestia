@@ -2,6 +2,10 @@ import { ValidationError } from "@/domain/shared/errors";
 
 export type OtpPurpose = "REGISTRATION" | "PIN_RESET";
 
+/** Canal d'envoi/identifiant utilisé pour l'OTP — téléphone reste prioritaire,
+ * l'email est un second identifiant possible pour la connexion et le reset PIN. */
+export type OtpChannel = "PHONE" | "EMAIL";
+
 export const OTP_LENGTH = 6;
 export const OTP_EXPIRY_MS = 5 * 60 * 1000;
 

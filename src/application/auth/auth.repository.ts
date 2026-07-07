@@ -1,8 +1,9 @@
-import type { OtpPurpose } from "@/domain/auth/otp";
+import type { OtpChannel, OtpPurpose } from "@/domain/auth/otp";
 
 export type OtpCode = {
   id: string;
-  phone: string;
+  identifier: string;
+  channel: OtpChannel;
   codeHash: string;
   purpose: OtpPurpose;
   expiresAt: Date;
@@ -15,6 +16,7 @@ export type AuthUser = {
   name: string;
   phone: string;
   pinHash: string;
+  email: string | null;
   role: "PATRON" | "VENDEUR";
   active: boolean;
   failedAttempts: number;
@@ -24,12 +26,14 @@ export type AuthUser = {
 /** Implémenté par src/infrastructure/auth/auth.repository.ts. */
 export interface AuthRepository {
   findUserByPhone(phone: string): Promise<AuthUser | null>;
+  findUserByEmail(email: string): Promise<AuthUser | null>;
   findUserById(id: string): Promise<AuthUser | null>;
   createTenantWithPatron(input: {
     tenantName: string;
     patronName: string;
     phone: string;
     pinHash: string;
+    email?: string;
   }): Promise<AuthUser>;
   createVendeur(input: {
     tenantId: string;
@@ -47,12 +51,17 @@ export interface AuthRepository {
   listVendeursByTenant(tenantId: string): Promise<AuthUser[]>;
 
   createOtp(input: {
-    phone: string;
+    identifier: string;
+    channel: OtpChannel;
     codeHash: string;
     purpose: OtpPurpose;
     expiresAt: Date;
   }): Promise<void>;
-  findActiveOtp(phone: string, purpose: OtpPurpose): Promise<OtpCode | null>;
+  findActiveOtp(identifier: string, purpose: OtpPurpose): Promise<OtpCode | null>;
   consumeOtp(id: string): Promise<void>;
-  findRecentOtpRequestTimestamps(phone: string, purpose: OtpPurpose, since: Date): Promise<Date[]>;
+  findRecentOtpRequestTimestamps(
+    identifier: string,
+    purpose: OtpPurpose,
+    since: Date,
+  ): Promise<Date[]>;
 }

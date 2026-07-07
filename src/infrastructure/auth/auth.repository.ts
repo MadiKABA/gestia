@@ -1,16 +1,20 @@
 import type { AuthRepository, AuthUser, OtpCode } from "@/application/auth/auth.repository";
-import type { OtpPurpose } from "@/domain/auth/otp";
+import type { OtpChannel, OtpPurpose } from "@/domain/auth/otp";
 import { prisma } from "@/infrastructure/prisma/client";
 
 /**
  * Pas de TenantScopedRepository ici : l'authentification (login, inscription,
  * reset PIN) s'exécute avant qu'un tenantId courant n'existe — l'utilisateur
- * est retrouvé par téléphone (unique globalement), et l'inscription crée le
- * tenant lui-même.
+ * est retrouvé par téléphone ou email (uniques globalement), et l'inscription
+ * crée le tenant lui-même.
  */
 export class PrismaAuthRepository implements AuthRepository {
   async findUserByPhone(phone: string): Promise<AuthUser | null> {
     return prisma.user.findUnique({ where: { phone } });
+  }
+
+  async findUserByEmail(email: string): Promise<AuthUser | null> {
+    return prisma.user.findUnique({ where: { email } });
   }
 
   async findUserById(id: string): Promise<AuthUser | null> {
@@ -22,6 +26,7 @@ export class PrismaAuthRepository implements AuthRepository {
     patronName: string;
     phone: string;
     pinHash: string;
+    email?: string;
   }): Promise<AuthUser> {
     const tenant = await prisma.tenant.create({
       data: {
@@ -32,6 +37,7 @@ export class PrismaAuthRepository implements AuthRepository {
             name: input.patronName,
             phone: input.phone,
             pinHash: input.pinHash,
+            email: input.email,
             role: "PATRON",
           },
         },
@@ -92,7 +98,8 @@ export class PrismaAuthRepository implements AuthRepository {
   }
 
   async createOtp(input: {
-    phone: string;
+    identifier: string;
+    channel: OtpChannel;
     codeHash: string;
     purpose: OtpPurpose;
     expiresAt: Date;
@@ -100,9 +107,9 @@ export class PrismaAuthRepository implements AuthRepository {
     await prisma.otpCode.create({ data: input });
   }
 
-  async findActiveOtp(phone: string, purpose: OtpPurpose): Promise<OtpCode | null> {
+  async findActiveOtp(identifier: string, purpose: OtpPurpose): Promise<OtpCode | null> {
     return prisma.otpCode.findFirst({
-      where: { phone, purpose, consumedAt: null },
+      where: { identifier, purpose, consumedAt: null },
       orderBy: { createdAt: "desc" },
     });
   }
@@ -112,12 +119,12 @@ export class PrismaAuthRepository implements AuthRepository {
   }
 
   async findRecentOtpRequestTimestamps(
-    phone: string,
+    identifier: string,
     purpose: OtpPurpose,
     since: Date,
   ): Promise<Date[]> {
     const rows = await prisma.otpCode.findMany({
-      where: { phone, purpose, createdAt: { gte: since } },
+      where: { identifier, purpose, createdAt: { gte: since } },
       select: { createdAt: true },
     });
     return rows.map((row) => row.createdAt);

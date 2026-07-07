@@ -5,6 +5,8 @@ import { Argon2Hasher } from "@/infrastructure/auth/argon2-hasher";
 import { PrismaAuditLogger } from "@/infrastructure/audit-log/audit-log.repository";
 import { confirmRegistration } from "@/application/auth/confirm-registration.use-case";
 import { login } from "@/application/auth/login.use-case";
+import { requestPinReset } from "@/application/auth/request-pin-reset.use-case";
+import { confirmPinReset } from "@/application/auth/confirm-pin-reset.use-case";
 import { inviteVendeur } from "@/application/auth/invite-vendeur.use-case";
 import { deactivateVendeur } from "@/application/auth/deactivate-vendeur.use-case";
 import { MAX_FAILED_ATTEMPTS } from "@/domain/auth/pin-policy";
@@ -27,11 +29,12 @@ describe("use cases auth", () => {
     await prisma.$disconnect();
   });
 
-  async function registerTenant(phone: string) {
+  async function registerTenant(phone: string, email?: string) {
     const otpCode = "123456";
     await prisma.otpCode.create({
       data: {
-        phone,
+        identifier: phone,
+        channel: "PHONE",
         purpose: "REGISTRATION",
         codeHash: await hasher.hash(otpCode),
         expiresAt: new Date(Date.now() + 60_000),
@@ -40,7 +43,14 @@ describe("use cases auth", () => {
 
     const patron = await confirmRegistration(
       { repository, hasher, auditLogger },
-      { phone, otp: otpCode, pin: "1234", tenantName: "Boutique Test", patronName: "Awa Ndiaye" },
+      {
+        phone,
+        otp: otpCode,
+        pin: "1234",
+        tenantName: "Boutique Test",
+        patronName: "Awa Ndiaye",
+        email,
+      },
     );
     createdTenantIds.push(patron.tenantId);
     return patron;
@@ -67,7 +77,8 @@ describe("use cases auth", () => {
       const phone = `+22177${Date.now().toString().slice(-6)}1`;
       await prisma.otpCode.create({
         data: {
-          phone,
+          identifier: phone,
+          channel: "PHONE",
           purpose: "REGISTRATION",
           codeHash: await hasher.hash("123456"),
           expiresAt: new Date(Date.now() - 1),
@@ -81,6 +92,36 @@ describe("use cases auth", () => {
         ),
       ).rejects.toThrow(ValidationError);
     });
+
+    it("rejette un email déjà associé à un autre compte", async () => {
+      const email = `awa${Date.now()}@gestia.test`;
+      await registerTenant(`+22177${Date.now().toString().slice(-6)}5`, email);
+
+      const otherPhone = `+22177${Date.now().toString().slice(-6)}6`;
+      await prisma.otpCode.create({
+        data: {
+          identifier: otherPhone,
+          channel: "PHONE",
+          purpose: "REGISTRATION",
+          codeHash: await hasher.hash("123456"),
+          expiresAt: new Date(Date.now() + 60_000),
+        },
+      });
+
+      await expect(
+        confirmRegistration(
+          { repository, hasher, auditLogger },
+          {
+            phone: otherPhone,
+            otp: "123456",
+            pin: "1234",
+            tenantName: "X",
+            patronName: "Y",
+            email,
+          },
+        ),
+      ).rejects.toThrow(ValidationError);
+    });
   });
 
   describe("login", () => {
@@ -88,7 +129,10 @@ describe("use cases auth", () => {
       const phone = `+22178${Date.now().toString().slice(-7)}`;
       const patron = await registerTenant(phone);
 
-      const user = await login({ repository, hasher, auditLogger }, { phone, pin: "1234" });
+      const user = await login(
+        { repository, hasher, auditLogger },
+        { channel: "PHONE", identifier: phone, pin: "1234" },
+      );
 
       expect(user.id).toBe(patron.id);
       const logs = await prisma.auditLog.findMany({
@@ -97,12 +141,28 @@ describe("use cases auth", () => {
       expect(logs).toHaveLength(1);
     });
 
+    it("réussit avec l'email quand un email est renseigné", async () => {
+      const phone = `+22178${Date.now().toString().slice(-6)}9`;
+      const email = `awa${Date.now()}@gestia.test`;
+      const patron = await registerTenant(phone, email);
+
+      const user = await login(
+        { repository, hasher, auditLogger },
+        { channel: "EMAIL", identifier: email, pin: "1234" },
+      );
+
+      expect(user.id).toBe(patron.id);
+    });
+
     it("échoue avec un mauvais PIN et journalise auth.login_failed", async () => {
       const phone = `+22178${Date.now().toString().slice(-6)}1`;
       const patron = await registerTenant(phone);
 
       await expect(
-        login({ repository, hasher, auditLogger }, { phone, pin: "0000" }),
+        login(
+          { repository, hasher, auditLogger },
+          { channel: "PHONE", identifier: phone, pin: "0000" },
+        ),
       ).rejects.toThrow(ValidationError);
 
       const logs = await prisma.auditLog.findMany({
@@ -117,12 +177,18 @@ describe("use cases auth", () => {
 
       for (let i = 0; i < MAX_FAILED_ATTEMPTS; i++) {
         await expect(
-          login({ repository, hasher, auditLogger }, { phone, pin: "0000" }),
+          login(
+            { repository, hasher, auditLogger },
+            { channel: "PHONE", identifier: phone, pin: "0000" },
+          ),
         ).rejects.toThrow(ValidationError);
       }
 
       await expect(
-        login({ repository, hasher, auditLogger }, { phone, pin: "1234" }),
+        login(
+          { repository, hasher, auditLogger },
+          { channel: "PHONE", identifier: phone, pin: "1234" },
+        ),
       ).rejects.toThrow(ForbiddenError);
 
       const user = await prisma.user.findUnique({ where: { id: patron.id } });
@@ -135,14 +201,60 @@ describe("use cases auth", () => {
       const patron = await registerTenant(phone);
 
       await expect(
-        login({ repository, hasher, auditLogger }, { phone, pin: "0000" }),
+        login(
+          { repository, hasher, auditLogger },
+          { channel: "PHONE", identifier: phone, pin: "0000" },
+        ),
       ).rejects.toThrow(ValidationError);
 
-      await login({ repository, hasher, auditLogger }, { phone, pin: "1234" });
+      await login(
+        { repository, hasher, auditLogger },
+        { channel: "PHONE", identifier: phone, pin: "1234" },
+      );
 
       const user = await prisma.user.findUnique({ where: { id: patron.id } });
       expect(user?.failedAttempts).toBe(0);
       expect(user?.lockedUntil).toBeNull();
+    });
+  });
+
+  describe("requestPinReset / confirmPinReset", () => {
+    it("réinitialise le PIN via le canal email", async () => {
+      const phone = `+22178${Date.now().toString().slice(-6)}8`;
+      const email = `awa${Date.now()}@gestia.test`;
+      const patron = await registerTenant(phone, email);
+
+      let sentTo: string | undefined;
+      await requestPinReset(
+        { repository, otpSender: { sendOtp: async (to) => void (sentTo = to) }, hasher },
+        { channel: "EMAIL", identifier: email },
+      );
+      expect(sentTo).toBe(email);
+
+      const otpRecord = await prisma.otpCode.findFirst({
+        where: { identifier: email, channel: "EMAIL", purpose: "PIN_RESET" },
+        orderBy: { createdAt: "desc" },
+      });
+      expect(otpRecord).not.toBeNull();
+
+      // Le code réel envoyé par requestPinReset est haché en base et donc
+      // inaccessible ici : on le remplace par un code connu pour exercer
+      // confirmPinReset de bout en bout.
+      await prisma.otpCode.update({
+        where: { id: otpRecord!.id },
+        data: { codeHash: await hasher.hash("654321") },
+      });
+
+      await confirmPinReset(
+        { repository, hasher, auditLogger },
+        { channel: "EMAIL", identifier: email, otp: "654321", newPin: "4321" },
+      );
+
+      const user = await login(
+        { repository, hasher, auditLogger },
+        { channel: "EMAIL", identifier: email, pin: "4321" },
+      );
+      expect(user.id).toBe(patron.id);
     });
   });
 

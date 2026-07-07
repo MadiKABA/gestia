@@ -10,7 +10,10 @@ import { requirePatron } from "@/presentation/auth/require-role";
 import { PrismaAuthRepository } from "@/infrastructure/auth/auth.repository";
 import { Argon2Hasher } from "@/infrastructure/auth/argon2-hasher";
 import { SmsOtpSender } from "@/infrastructure/auth/sms-otp-sender";
+import { EmailOtpSender } from "@/infrastructure/auth/email-otp-sender";
 import { PrismaAuditLogger } from "@/infrastructure/audit-log/audit-log.repository";
+import type { OtpChannel } from "@/domain/auth/otp";
+import type { OtpSender } from "@/application/auth/otp-sender";
 import { requestRegistrationOtp } from "@/application/auth/request-registration-otp.use-case";
 import { confirmRegistration } from "@/application/auth/confirm-registration.use-case";
 import { requestPinReset } from "@/application/auth/request-pin-reset.use-case";
@@ -38,33 +41,67 @@ import {
 
 const repository = new PrismaAuthRepository();
 const hasher = new Argon2Hasher();
-const otpSender = new SmsOtpSender();
+const smsOtpSender = new SmsOtpSender();
+const emailOtpSender = new EmailOtpSender();
 const auditLogger = new PrismaAuditLogger();
 
-export async function requestRegistrationOtpAction(input: RequestRegistrationOtpInput) {
+/** Le téléphone reste le canal par défaut (inscription, invitation vendeur) ;
+ * l'email n'est utilisé que là où l'utilisateur l'a explicitement choisi. */
+function otpSenderFor(channel: OtpChannel): OtpSender {
+  return channel === "EMAIL" ? emailOtpSender : smsOtpSender;
+}
+
+/** Résultat d'une demande d'OTP : les refus métier (rate limiting, numéro déjà
+ * pris...) sont une issue normale du flux, pas une exception serveur. */
+export type RequestOtpResult = { success: true } | { success: false; error: string };
+
+export async function requestRegistrationOtpAction(
+  input: RequestRegistrationOtpInput,
+): Promise<RequestOtpResult> {
   const { phone } = requestRegistrationOtpSchema.parse(input);
-  await requestRegistrationOtp({ repository, otpSender, hasher }, { phone });
+  try {
+    await requestRegistrationOtp({ repository, otpSender: smsOtpSender, hasher }, { phone });
+    return { success: true };
+  } catch (error) {
+    if (error instanceof ValidationError) {
+      return { success: false, error: error.message };
+    }
+    throw error;
+  }
+}
+
+/** Adapte `requestRegistrationOtpAction` à la forme générique attendue par
+ * `RequestOtpForm` (channel/identifier) — l'inscription reste 100% téléphone,
+ * `channel` n'est ici jamais "EMAIL". Doit être une Server Action à part
+ * entière (pas une closure inline dans un Server Component) : Next.js ne peut
+ * pas sérialiser une fonction non marquée `"use server"` vers un Client
+ * Component. */
+export async function requestRegistrationOtpFromIdentifierAction(input: {
+  channel: "PHONE" | "EMAIL";
+  identifier: string;
+}): Promise<RequestOtpResult> {
+  return requestRegistrationOtpAction({ phone: input.identifier });
 }
 
 export async function confirmRegistrationAction(input: ConfirmRegistrationInput) {
-  const { phone, otp, pin, tenantName, patronName } = confirmRegistrationSchema.parse(input);
+  const { phone, otp, pin, tenantName, patronName, email } = confirmRegistrationSchema.parse(input);
   await confirmRegistration(
     { repository, hasher, auditLogger },
-    { phone, otp, pin, tenantName, patronName },
+    { phone, otp, pin, tenantName, patronName, email },
   );
 
   // Le patron vient de définir son PIN dans ce même formulaire : on le connecte
   // directement plutôt que de lui faire ressaisir son PIN sur l'écran de
   // connexion (cahier des charges §9 : connexion < 5 s).
-  await auth.api.signInPin({ body: { phone, pin } });
-  redirect("/");
+  await auth.api.signInPin({ body: { channel: "PHONE", identifier: phone, pin } });
+  redirect("/dashboard");
 }
 
 export async function loginAction(input: LoginInput) {
-  const { phone, pin } = loginSchema.parse(input);
+  const { channel, identifier, pin } = loginSchema.parse(input);
 
   try {
-    await auth.api.signInPin({ body: { phone, pin } });
+    await auth.api.signInPin({ body: { channel, identifier, pin } });
   } catch (error) {
     if (error instanceof APIError) {
       throw new ValidationError(error.message);
@@ -72,24 +109,41 @@ export async function loginAction(input: LoginInput) {
     throw error;
   }
 
-  redirect("/");
+  redirect("/dashboard");
 }
 
-export async function requestPinResetAction(input: RequestPinResetInput) {
-  const { phone } = requestPinResetSchema.parse(input);
-  await requestPinReset({ repository, otpSender, hasher }, { phone });
+export async function requestPinResetAction(
+  input: RequestPinResetInput,
+): Promise<RequestOtpResult> {
+  const { channel, identifier } = requestPinResetSchema.parse(input);
+  try {
+    await requestPinReset(
+      { repository, otpSender: otpSenderFor(channel), hasher },
+      { channel, identifier },
+    );
+    return { success: true };
+  } catch (error) {
+    if (error instanceof ValidationError) {
+      return { success: false, error: error.message };
+    }
+    throw error;
+  }
 }
 
 export async function confirmPinResetAction(input: ConfirmPinResetInput) {
-  const { phone, otp, newPin } = confirmPinResetSchema.parse(input);
-  await confirmPinReset({ repository, hasher, auditLogger }, { phone, otp, newPin });
+  const { channel, identifier, otp, newPin } = confirmPinResetSchema.parse(input);
+  await confirmPinReset({ repository, hasher, auditLogger }, { channel, identifier, otp, newPin });
 }
 
 export async function inviteVendeurAction(input: InviteVendeurInput) {
   const context = await requirePatron();
   const { name, phone } = inviteVendeurSchema.parse(input);
 
-  await inviteVendeur(context, { repository, otpSender, hasher, auditLogger }, { name, phone });
+  await inviteVendeur(
+    context,
+    { repository, otpSender: smsOtpSender, hasher, auditLogger },
+    { name, phone },
+  );
   revalidatePath("/vendeurs");
 }
 

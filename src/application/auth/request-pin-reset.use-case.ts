@@ -1,9 +1,11 @@
 import { validatePhoneFormat } from "@/domain/auth/phone";
+import { validateEmailFormat } from "@/domain/auth/email";
 import {
   OTP_EXPIRY_MS,
   OTP_LENGTH,
   OTP_REQUEST_WINDOW_MS,
   assertOtpRequestAllowed,
+  type OtpChannel,
 } from "@/domain/auth/otp";
 import { generateOtpCode } from "@/application/auth/generate-otp-code";
 import { ValidationError } from "@/domain/shared/errors";
@@ -13,17 +15,24 @@ import type { Hasher } from "@/application/auth/hasher";
 
 export async function requestPinReset(
   deps: { repository: AuthRepository; otpSender: OtpSender; hasher: Hasher },
-  input: { phone: string },
+  input: { channel: OtpChannel; identifier: string },
 ) {
-  validatePhoneFormat(input.phone);
+  if (input.channel === "EMAIL") {
+    validateEmailFormat(input.identifier);
+  } else {
+    validatePhoneFormat(input.identifier);
+  }
 
-  const user = await deps.repository.findUserByPhone(input.phone);
+  const user =
+    input.channel === "EMAIL"
+      ? await deps.repository.findUserByEmail(input.identifier)
+      : await deps.repository.findUserByPhone(input.identifier);
   if (!user) {
-    throw new ValidationError("Aucun compte associé à ce numéro");
+    throw new ValidationError("Aucun compte associé à cet identifiant");
   }
 
   const recentRequests = await deps.repository.findRecentOtpRequestTimestamps(
-    input.phone,
+    input.identifier,
     "PIN_RESET",
     new Date(Date.now() - OTP_REQUEST_WINDOW_MS),
   );
@@ -31,11 +40,12 @@ export async function requestPinReset(
 
   const code = generateOtpCode(OTP_LENGTH);
   await deps.repository.createOtp({
-    phone: input.phone,
+    identifier: input.identifier,
+    channel: input.channel,
     codeHash: await deps.hasher.hash(code),
     purpose: "PIN_RESET",
     expiresAt: new Date(Date.now() + OTP_EXPIRY_MS),
   });
 
-  await deps.otpSender.sendOtp(input.phone, code);
+  await deps.otpSender.sendOtp(input.identifier, code);
 }

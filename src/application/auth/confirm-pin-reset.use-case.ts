@@ -1,6 +1,7 @@
 import { validatePhoneFormat } from "@/domain/auth/phone";
+import { validateEmailFormat } from "@/domain/auth/email";
+import { isOtpExpired, type OtpChannel } from "@/domain/auth/otp";
 import { validatePinFormat } from "@/domain/auth/pin-policy";
-import { isOtpExpired } from "@/domain/auth/otp";
 import { ValidationError } from "@/domain/shared/errors";
 import type { AuthRepository } from "@/application/auth/auth.repository";
 import type { Hasher } from "@/application/auth/hasher";
@@ -8,21 +9,30 @@ import type { AuditLogger } from "@/application/shared/audit-logger";
 
 /**
  * Réinitialisation de PIN (mot de passe oublié) et définition du premier PIN
- * d'un vendeur invité utilisent le même flux (cahier des charges §4).
+ * d'un vendeur invité utilisent le même flux (cahier des charges §4). Le
+ * vendeur invité passe toujours par le canal téléphone (seul canal utilisé à
+ * l'invitation) ; un patron/vendeur avec un email peut choisir ce canal ici.
  */
 export async function confirmPinReset(
   deps: { repository: AuthRepository; hasher: Hasher; auditLogger: AuditLogger },
-  input: { phone: string; otp: string; newPin: string },
+  input: { channel: OtpChannel; identifier: string; otp: string; newPin: string },
 ) {
-  validatePhoneFormat(input.phone);
+  if (input.channel === "EMAIL") {
+    validateEmailFormat(input.identifier);
+  } else {
+    validatePhoneFormat(input.identifier);
+  }
   validatePinFormat(input.newPin);
 
-  const user = await deps.repository.findUserByPhone(input.phone);
+  const user =
+    input.channel === "EMAIL"
+      ? await deps.repository.findUserByEmail(input.identifier)
+      : await deps.repository.findUserByPhone(input.identifier);
   if (!user) {
-    throw new ValidationError("Aucun compte associé à ce numéro");
+    throw new ValidationError("Aucun compte associé à cet identifiant");
   }
 
-  const otpRecord = await deps.repository.findActiveOtp(input.phone, "PIN_RESET");
+  const otpRecord = await deps.repository.findActiveOtp(input.identifier, "PIN_RESET");
   if (!otpRecord || isOtpExpired(otpRecord) || otpRecord.consumedAt) {
     throw new ValidationError("Code de vérification invalide ou expiré");
   }

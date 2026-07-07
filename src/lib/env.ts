@@ -23,6 +23,10 @@ const envSchema = z.object({
   AFRICASTALKING_API_KEY: z.string().min(1),
   AFRICASTALKING_SENDER_ID: z.string().optional(),
 
+  // Email / OTP (Resend) — second identifiant de connexion optionnel (§4)
+  RESEND_API_KEY: z.string().min(1),
+  RESEND_FROM_EMAIL: z.email(),
+
   // Upload logo boutique (Cloudinary)
   CLOUDINARY_CLOUD_NAME: z.string().min(1),
   CLOUDINARY_API_KEY: z.string().min(1),

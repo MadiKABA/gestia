@@ -9,12 +9,14 @@ import { PrismaAuthRepository } from "@/infrastructure/auth/auth.repository";
 import { PrismaAuditLogger } from "@/infrastructure/audit-log/audit-log.repository";
 
 /**
- * Plugin better-auth custom : authentification téléphone + PIN. La décision
- * métier (vérification Argon2, verrouillage, AuditLog) vit entièrement dans
- * application/auth/login.use-case.ts — ce plugin ne fait que ce que seul
- * better-auth peut faire : émettre la session et poser le cookie signé. Ne
- * passe jamais par le provider emailAndPassword — le PIN vit sur
- * User.pinHash (schéma §6), pas dans une table `account` séparée.
+ * Plugin better-auth custom : authentification téléphone (prioritaire) ou
+ * email + PIN. La décision métier (vérification Argon2, verrouillage,
+ * AuditLog) vit entièrement dans application/auth/login.use-case.ts — ce
+ * plugin ne fait que ce que seul better-auth peut faire : émettre la session
+ * et poser le cookie signé. Ne passe jamais par le provider
+ * emailAndPassword — le PIN vit sur User.pinHash (schéma §6), pas dans une
+ * table `account` séparée, et il n'y a jamais de mot de passe distinct pour
+ * l'email : c'est le même PIN, juste un second identifiant.
  */
 export function pinAuthPlugin() {
   const repository = new PrismaAuthRepository();
@@ -28,14 +30,18 @@ export function pinAuthPlugin() {
         "/sign-in/pin",
         {
           method: "POST",
-          body: z.object({ phone: z.string(), pin: z.string() }),
+          body: z.object({
+            channel: z.enum(["PHONE", "EMAIL"]),
+            identifier: z.string(),
+            pin: z.string(),
+          }),
         },
         async (ctx) => {
-          const { phone, pin } = ctx.body;
+          const { channel, identifier, pin } = ctx.body;
 
           let user;
           try {
-            user = await login({ repository, hasher, auditLogger }, { phone, pin });
+            user = await login({ repository, hasher, auditLogger }, { channel, identifier, pin });
           } catch (error) {
             if (error instanceof ForbiddenError) {
               throw new APIError("FORBIDDEN", { message: error.message });

@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { Button } from "@/presentation/shared/components/ui/button";
 import { Input } from "@/presentation/shared/components/ui/input";
 import { Label } from "@/presentation/shared/components/ui/label";
+import { OtpInput } from "@/presentation/shared/components/otp-input";
 
 export function CompleteRegistrationForm({
   initialPhone,
@@ -16,13 +17,16 @@ export function CompleteRegistrationForm({
     pin: string;
     tenantName: string;
     patronName: string;
+    email?: string;
   }) => Promise<void>;
 }) {
   const [phone, setPhone] = useState(initialPhone);
   const [otp, setOtp] = useState("");
-  const [pin, setPin] = useState("");
-  const [tenantName, setTenantName] = useState("");
   const [patronName, setPatronName] = useState("");
+  const patronNameRef = useRef<HTMLInputElement>(null);
+  const [tenantName, setTenantName] = useState("");
+  const [email, setEmail] = useState("");
+  const [pin, setPin] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -31,7 +35,14 @@ export function CompleteRegistrationForm({
     setError(null);
     startTransition(async () => {
       try {
-        await action({ phone, otp, pin, tenantName, patronName });
+        await action({
+          phone,
+          otp,
+          pin,
+          tenantName,
+          patronName,
+          email: email.trim() ? email.trim() : undefined,
+        });
       } catch (err) {
         setError(err instanceof Error ? err.message : "Une erreur est survenue");
       }
@@ -53,24 +64,38 @@ export function CompleteRegistrationForm({
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="otp">Code reçu par SMS</Label>
-        <Input
+        <OtpInput
           id="otp"
-          inputMode="numeric"
-          maxLength={6}
-          placeholder="123456"
           value={otp}
           onValueChange={setOtp}
-          required
+          onComplete={() => patronNameRef.current?.focus()}
           autoFocus
         />
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="patronName">Votre nom</Label>
-        <Input id="patronName" value={patronName} onValueChange={setPatronName} required />
+        <Input
+          id="patronName"
+          ref={patronNameRef}
+          value={patronName}
+          onValueChange={setPatronName}
+          required
+        />
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="tenantName">Nom de votre boutique</Label>
         <Input id="tenantName" value={tenantName} onValueChange={setTenantName} required />
+      </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="email">Email (optionnel)</Label>
+        <Input
+          id="email"
+          type="email"
+          inputMode="email"
+          placeholder="vous@exemple.com"
+          value={email}
+          onValueChange={setEmail}
+        />
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="pin">Choisissez un code PIN</Label>

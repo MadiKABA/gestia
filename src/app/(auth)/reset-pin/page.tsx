@@ -6,12 +6,13 @@ export default function ResetPinPage() {
   return (
     <AuthLayout
       heading="PIN oublié"
-      description="Recevez un code par SMS pour définir un nouveau PIN."
+      description="Recevez un code par SMS ou email pour définir un nouveau PIN."
     >
       <RequestOtpForm
         action={requestPinResetAction}
         nextPathBase="/reset-pin/confirm"
         submitLabel="Recevoir le code"
+        allowEmail
       />
     </AuthLayout>
   );

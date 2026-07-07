@@ -32,7 +32,8 @@ export async function requestRegistrationOtp(
 
   const code = generateOtpCode(OTP_LENGTH);
   await deps.repository.createOtp({
-    phone: input.phone,
+    identifier: input.phone,
+    channel: "PHONE",
     codeHash: await deps.hasher.hash(code),
     purpose: "REGISTRATION",
     expiresAt: new Date(Date.now() + OTP_EXPIRY_MS),

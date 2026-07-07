@@ -1,6 +1,6 @@
 import { AuthLayout } from "@/presentation/auth/components/auth-layout";
 import { RequestOtpForm } from "@/presentation/auth/components/request-otp-form";
-import { requestRegistrationOtpAction } from "@/presentation/auth/actions";
+import { requestRegistrationOtpFromIdentifierAction } from "@/presentation/auth/actions";
 
 export default function RegisterPage() {
   return (
@@ -17,7 +17,7 @@ export default function RegisterPage() {
       }
     >
       <RequestOtpForm
-        action={requestRegistrationOtpAction}
+        action={requestRegistrationOtpFromIdentifierAction}
         nextPathBase="/register/complete"
         submitLabel="Recevoir le code"
       />

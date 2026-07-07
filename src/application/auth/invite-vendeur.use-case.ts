@@ -56,7 +56,8 @@ export async function inviteVendeur(
 
   const code = generateOtpCode(OTP_LENGTH);
   await deps.repository.createOtp({
-    phone: input.phone,
+    identifier: input.phone,
+    channel: "PHONE",
     codeHash: await deps.hasher.hash(code),
     purpose: "PIN_RESET",
     expiresAt: new Date(Date.now() + OTP_EXPIRY_MS),

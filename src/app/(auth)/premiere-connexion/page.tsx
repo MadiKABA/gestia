@@ -20,7 +20,7 @@ export default async function PremiereConnexionPage({
       description="Votre patron vous a invité. Saisissez le code reçu par SMS et choisissez votre PIN."
     >
       <OtpPinForm
-        initialPhone={phone ?? ""}
+        initialIdentifier={phone ?? ""}
         action={confirmPinResetAction}
         redirectTo="/login"
         submitLabel="Définir mon PIN"

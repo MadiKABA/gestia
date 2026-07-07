@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/presentation/shared/components/ui/button";
 import { Input } from "@/presentation/shared/components/ui/input";
 import { Label } from "@/presentation/shared/components/ui/label";
+import { PhoneInput } from "@/presentation/shared/components/phone-input";
 import { inviteVendeurAction, deactivateVendeurAction } from "@/presentation/auth/actions";
 
 type Vendeur = {
@@ -72,15 +73,7 @@ export function VendeursPanel({ initialVendeurs }: { initialVendeurs: Vendeur[] 
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="vendeur-phone">Numéro de téléphone</Label>
-          <Input
-            id="vendeur-phone"
-            type="tel"
-            inputMode="tel"
-            placeholder="+221771234567"
-            value={phone}
-            onValueChange={setPhone}
-            required
-          />
+          <PhoneInput id="vendeur-phone" value={phone} onValueChange={setPhone} required />
         </div>
         {error ? <p className="text-destructive text-sm">{error}</p> : null}
         <Button type="submit" className="w-full" disabled={inviting}>

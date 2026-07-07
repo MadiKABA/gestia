@@ -20,13 +20,22 @@ je dois" / "ma caisse" — jamais de jargon comptable (pas de "débiteur",
   opérations. Jamais : trésorerie globale, suppression, gestion utilisateurs,
   theming.
 
-## Authentification (téléphone + PIN)
+## Authentification (téléphone + PIN, email en second identifiant)
 
 - Inscription : téléphone → OTP SMS (Africa's Talking) → PIN à 4 chiffres.
-- Connexion : téléphone + PIN (pas d'email/mot de passe en méthode principale
-  — l'email reste un champ optionnel).
+  Reste 100% téléphone/SMS ; un email optionnel peut être renseigné sur
+  l'écran final (jamais vérifié par OTP à cette étape).
+- Connexion : téléphone + PIN reste la méthode prioritaire, mise en avant
+  visuellement partout dans l'UI (sélectionnée par défaut). Un compte qui a
+  renseigné un email peut aussi se connecter avec **email + le même PIN** —
+  jamais un mot de passe distinct : c'est un second identifiant, pas un
+  provider email/mot de passe. Même règle pour la demande de réinitialisation
+  de PIN (choix téléphone/email). Compatible avec le "hors périmètre V2/V3"
+  ci-dessous, qui exclut spécifiquement l'auth **par mot de passe** — pas le
+  PIN sur un second identifiant.
 - Invitation vendeur : le patron ajoute un numéro ; le vendeur définit son PIN
-  via le même flux OTP que la réinitialisation de PIN, à sa première connexion.
+  via le même flux OTP que la réinitialisation de PIN, à sa première connexion
+  (toujours par téléphone, un vendeur est invité par numéro uniquement).
 - Sécurité : PIN hashé Argon2, verrouillage après 5 tentatives échouées
   (`MAX_FAILED_ATTEMPTS`, `src/domain/auth/pin-policy.ts`), session expirée
   après inactivité.
@@ -35,7 +44,9 @@ je dois" / "ma caisse" — jamais de jargon comptable (pas de "débiteur",
   (`src/infrastructure/auth/pin-auth.plugin.ts`) car `User.pinHash` vit sur le
   modèle User directement (schéma §6 ci-dessous), incompatible avec le modèle
   credential/account standard de better-auth. Aucun provider email/mot de
-  passe ni OAuth activé. Détails d'implémentation : voir ARCHITECTURE.md.
+  passe ni OAuth activé — l'email comme second identifiant passe par ce même
+  plugin custom, jamais par le provider `emailAndPassword` de better-auth.
+  Détails d'implémentation : voir ARCHITECTURE.md.
 
 ## Theming
 
@@ -90,12 +101,12 @@ PWA offline complet avec queue de synchronisation et résolution de conflit
 
 ## Hors périmètre (ne pas implémenter avant la version indiquée)
 
-| Version | Fonctionnalité                                                                                                  |
-| ------- | --------------------------------------------------------------------------------------------------------------- |
-| V1.5    | Pièces jointes (photo, signature), export PDF, thèmes avancés/color picker libre                                |
-| V2      | Facturation formelle, gestion de stock (Produit/Catégorie), POS/scan code-barres                                |
-| V2/V3   | Modèle Company distinct (NINEA, RCCM), auth email/mot de passe                                                  |
-| V3      | RBAC configurable, multi-boutique par tenant, plans d'abonnement SaaS, comptabilité SYSCOHADA, rapports avancés |
+| Version | Fonctionnalité                                                                                                              |
+| ------- | --------------------------------------------------------------------------------------------------------------------------- |
+| V1.5    | Pièces jointes (photo, signature), export PDF, thèmes avancés/color picker libre                                            |
+| V2      | Facturation formelle, gestion de stock (Produit/Catégorie), POS/scan code-barres                                            |
+| V2/V3   | Modèle Company distinct (NINEA, RCCM), auth **par mot de passe** (email + PIN existe dès V1, voir section Authentification) |
+| V3      | RBAC configurable, multi-boutique par tenant, plans d'abonnement SaaS, comptabilité SYSCOHADA, rapports avancés             |
 
 ## Exigences non-fonctionnelles clés
 

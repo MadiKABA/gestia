@@ -1,10 +1,11 @@
 import { z } from "zod";
 import { validatePhoneFormat } from "@/domain/auth/phone";
+import { validateEmailFormat } from "@/domain/auth/email";
 import { validatePinFormat } from "@/domain/auth/pin-policy";
 import { OTP_LENGTH } from "@/domain/auth/otp";
 
 /** Bornes de validation des formulaires — s'appuient sur les règles domain
- * (phone/pin) pour ne jamais dupliquer le format attendu côté serveur. */
+ * (phone/email/pin) pour ne jamais dupliquer le format attendu côté serveur. */
 const phoneField = z.string().refine(
   (value) => {
     try {
@@ -15,6 +16,18 @@ const phoneField = z.string().refine(
     }
   },
   { message: "Le numéro de téléphone doit être au format international (+221...)" },
+);
+
+const emailField = z.string().refine(
+  (value) => {
+    try {
+      validateEmailFormat(value);
+      return true;
+    } catch {
+      return false;
+    }
+  },
+  { message: "L'adresse email n'est pas valide" },
 );
 
 const pinField = z.string().refine(
@@ -43,20 +56,38 @@ export const confirmRegistrationSchema = z.object({
   pin: pinField,
   tenantName: z.string().trim().min(2, "Le nom de la boutique est requis"),
   patronName: z.string().trim().min(2, "Votre nom est requis"),
+  email: emailField.optional(),
 });
 export type ConfirmRegistrationInput = z.infer<typeof confirmRegistrationSchema>;
 
-export const loginSchema = z.object({ phone: phoneField, pin: pinField });
+/** Téléphone prioritaire, email un second identifiant possible — même PIN,
+ * jamais de mot de passe distinct (cahier des charges §4). */
+export const loginSchema = z.discriminatedUnion("channel", [
+  z.object({ channel: z.literal("PHONE"), identifier: phoneField, pin: pinField }),
+  z.object({ channel: z.literal("EMAIL"), identifier: emailField, pin: pinField }),
+]);
 export type LoginInput = z.infer<typeof loginSchema>;
 
-export const requestPinResetSchema = z.object({ phone: phoneField });
+export const requestPinResetSchema = z.discriminatedUnion("channel", [
+  z.object({ channel: z.literal("PHONE"), identifier: phoneField }),
+  z.object({ channel: z.literal("EMAIL"), identifier: emailField }),
+]);
 export type RequestPinResetInput = z.infer<typeof requestPinResetSchema>;
 
-export const confirmPinResetSchema = z.object({
-  phone: phoneField,
-  otp: otpField,
-  newPin: pinField,
-});
+export const confirmPinResetSchema = z.discriminatedUnion("channel", [
+  z.object({
+    channel: z.literal("PHONE"),
+    identifier: phoneField,
+    otp: otpField,
+    newPin: pinField,
+  }),
+  z.object({
+    channel: z.literal("EMAIL"),
+    identifier: emailField,
+    otp: otpField,
+    newPin: pinField,
+  }),
+]);
 export type ConfirmPinResetInput = z.infer<typeof confirmPinResetSchema>;
 
 export const inviteVendeurSchema = z.object({

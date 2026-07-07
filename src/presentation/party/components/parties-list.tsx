@@ -1,0 +1,113 @@
+"use client";
+
+import { useEffect, useState, useTransition } from "react";
+import Link from "next/link";
+import { Button } from "@/presentation/shared/components/ui/button";
+import { Input } from "@/presentation/shared/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/presentation/shared/components/ui/select";
+import { searchPartiesAction } from "@/presentation/party/actions";
+import type { PartyType } from "@/domain/party/party.entity";
+import type { PartyWithBalance } from "@/application/party/party.repository";
+
+const TYPE_FILTERS = [
+  { value: "ALL", label: "Tous" },
+  { value: "CLIENT", label: "Clients" },
+  { value: "SUPPLIER", label: "Fournisseurs" },
+  { value: "BOTH", label: "Client et fournisseur" },
+] as const;
+
+/** Recherche/tri par solde décroissant délégués au serveur (searchPartiesAction) —
+ * ce composant ne fait que refléter debounce + état des filtres. */
+export function PartiesList({ initialParties }: { initialParties: PartyWithBalance[] }) {
+  const [parties, setParties] = useState(initialParties);
+  const [search, setSearch] = useState("");
+  const [type, setType] = useState<"ALL" | PartyType>("ALL");
+  const [, startTransition] = useTransition();
+
+  // Le routeur App Router peut réutiliser cette instance de composant en
+  // revenant sur /tiers (redirect post-mutation) sans la remonter : sans cet
+  // ajustement, `parties` resterait figé sur l'ancien `initialParties` du
+  // premier montage et ne refléterait jamais une création/suppression.
+  // Pattern recommandé par React pour resynchroniser un state dérivé d'une
+  // prop sans passer par un effect (https://react.dev/learn/you-might-not-need-an-effect).
+  const [prevInitialParties, setPrevInitialParties] = useState(initialParties);
+  if (initialParties !== prevInitialParties) {
+    setPrevInitialParties(initialParties);
+    setParties(initialParties);
+  }
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      startTransition(async () => {
+        const results = await searchPartiesAction({
+          search: search || undefined,
+          type: type === "ALL" ? undefined : type,
+        });
+        setParties(results);
+      });
+    }, 250);
+    return () => clearTimeout(timeout);
+  }, [search, type]);
+
+  return (
+    <div className="mx-auto max-w-md space-y-4 p-4">
+      <div className="flex items-center justify-between">
+        <h1 className="text-foreground text-lg font-semibold">Tiers</h1>
+        <Button render={<Link href="/tiers/nouveau" />} nativeButton={false} size="sm">
+          Nouveau tiers
+        </Button>
+      </div>
+
+      <div className="flex gap-2">
+        <Input
+          placeholder="Rechercher par nom ou téléphone"
+          value={search}
+          onValueChange={setSearch}
+          className="flex-1"
+        />
+        <Select value={type} onValueChange={(value) => setType(value as "ALL" | PartyType)}>
+          <SelectTrigger className="w-36">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {TYPE_FILTERS.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <ul className="space-y-2">
+        {parties.map((party) => (
+          <li key={party.id}>
+            <Link
+              href={`/tiers/${party.id}`}
+              className="border-border hover:bg-accent flex items-center justify-between rounded-lg border p-3 transition-colors"
+            >
+              <div>
+                <p className="text-foreground text-sm font-medium">{party.name}</p>
+                <p className="text-muted-foreground text-sm">
+                  {party.phone ?? party.whatsappNumber}
+                </p>
+              </div>
+              <span className="text-foreground text-sm font-medium tabular-nums">
+                {party.balance.toLocaleString("fr-FR")} FCFA
+              </span>
+            </Link>
+          </li>
+        ))}
+        {parties.length === 0 ? (
+          <p className="text-muted-foreground text-sm">Aucun tiers pour le moment.</p>
+        ) : null}
+      </ul>
+    </div>
+  );
+}

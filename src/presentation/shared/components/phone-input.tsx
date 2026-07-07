@@ -2,6 +2,13 @@
 
 import { getCountries, getCountryCallingCode, type CountryCode } from "libphonenumber-js/min";
 import { Input } from "@/presentation/shared/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/presentation/shared/components/ui/select";
 import { cn } from "@/lib/utils";
 
 /** Codes ISO 3166-1 alpha-2 des pays africains desservis — Sénégal en tête
@@ -110,7 +117,8 @@ export function PhoneInput({
 }) {
   const { country, local } = splitPhone(value || DEFAULT_COUNTRY.dialCode);
 
-  function handleCountryChange(dialCode: string) {
+  function handleCountryChange(dialCode: string | null) {
+    if (!dialCode) return;
     onValueChange(`${dialCode}${local}`);
   }
 
@@ -120,18 +128,27 @@ export function PhoneInput({
 
   return (
     <div className={cn("flex gap-2", className)}>
-      <select
-        aria-label="Indicatif pays"
-        value={country.dialCode}
-        onChange={(event) => handleCountryChange(event.target.value)}
-        className="border-input bg-background focus-visible:border-ring focus-visible:ring-ring/50 h-10 shrink-0 rounded-lg border px-2 text-sm shadow-xs outline-none focus-visible:ring-3"
-      >
-        {AFRICAN_COUNTRIES.map((c) => (
-          <option key={c.code} value={c.dialCode}>
-            {isoToFlagEmoji(c.code)} {c.dialCode} {c.name}
-          </option>
-        ))}
-      </select>
+      <Select value={country.dialCode} onValueChange={handleCountryChange}>
+        <SelectTrigger aria-label="Indicatif pays" className="h-10 w-24 shrink-0 gap-1 px-2">
+          <SelectValue>
+            {() => (
+              <span className="flex items-center gap-1">
+                <span>{isoToFlagEmoji(country.code)}</span>
+                <span>{country.dialCode}</span>
+              </span>
+            )}
+          </SelectValue>
+        </SelectTrigger>
+        <SelectContent className="min-w-72">
+          {AFRICAN_COUNTRIES.map((c) => (
+            <SelectItem key={c.code} value={c.dialCode}>
+              <span>{isoToFlagEmoji(c.code)}</span>
+              <span>{c.dialCode}</span>
+              <span className="text-muted-foreground whitespace-normal">{c.name}</span>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
       <Input
         id={id}
         type="tel"
@@ -141,7 +158,7 @@ export function PhoneInput({
         onValueChange={handleLocalChange}
         required={required}
         autoFocus={autoFocus}
-        className="flex-1"
+        className="min-w-0 flex-1"
       />
     </div>
   );

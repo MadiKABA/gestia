@@ -81,3 +81,17 @@ export async function hasPendingMutationFor(
   const pending = await listPendingMutations(tenantId);
   return pending.some((m) => m.entity === entity && m.clientGeneratedId === clientGeneratedId);
 }
+
+/**
+ * Tenants ayant au moins une mutation en attente — utilisé par le service
+ * worker (voir src/app/sw.ts) lors d'un événement `sync` : il n'a pas accès
+ * au contexte de la page (donc pas de tenantId "courant" injecté), mais peut
+ * lire IndexedDB directement. En pratique un seul tenant est présent à la
+ * fois (account-guard.ts vide le cache à tout changement de compte), mais
+ * cette fonction reste correcte même transitoirement.
+ */
+export async function listPendingTenantIds(): Promise<string[]> {
+  const db = await getDb();
+  const all = await db.getAll("mutationQueue");
+  return [...new Set(all.filter((m) => !m.synced).map((m) => m.tenantId))];
+}

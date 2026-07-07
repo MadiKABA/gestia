@@ -4,6 +4,7 @@ import { useSyncExternalStore } from "react";
 import { Share, SquarePlus, X } from "lucide-react";
 import { Button } from "@/presentation/shared/components/ui/button";
 import { pwaLabels } from "@/presentation/shared/labels";
+import { isIosSafari } from "@/infrastructure/offline/platform";
 
 const SESSION_DISMISS_KEY = "gestia:install-prompt-dismissed";
 
@@ -27,15 +28,6 @@ const SERVER_SNAPSHOT: InstallSnapshot = {
 function isStandaloneDisplay(): boolean {
   const iosStandalone = (window.navigator as { standalone?: boolean }).standalone;
   return window.matchMedia("(display-mode: standalone)").matches || iosStandalone === true;
-}
-
-function isIosSafari(): boolean {
-  const ua = window.navigator.userAgent;
-  const isIosDevice =
-    /iphone|ipad|ipod/i.test(ua) ||
-    (window.navigator.platform === "MacIntel" && window.navigator.maxTouchPoints > 1);
-  const isSafariBrowser = /safari/i.test(ua) && !/crios|fxios|edgios|opios/i.test(ua);
-  return isIosDevice && isSafariBrowser;
 }
 
 /**

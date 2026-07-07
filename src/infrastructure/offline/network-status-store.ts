@@ -6,6 +6,7 @@ import {
 import { pullEntity, type PullTransport } from "@/infrastructure/offline/pull-engine";
 import { listPullableEntities } from "@/infrastructure/offline/pull-registry";
 import { listPendingMutations } from "@/infrastructure/offline/mutation-queue.store";
+import { BACKGROUND_SYNC_TAG, supportsBackgroundSync } from "@/infrastructure/offline/platform";
 
 export type SyncState = "idle" | "syncing" | "pending" | "error";
 
@@ -55,7 +56,28 @@ export class NetworkStatusStore {
   triggerSync = (): void => {
     this.ensureInitialized();
     void this.runSync();
+    this.registerBackgroundSync();
   };
+
+  /**
+   * Best-effort, jamais attendu : demande au navigateur de tenter une sync
+   * même si l'app se ferme avant que `runSync` ci-dessus n'aboutisse
+   * (Background Sync API — Android/Chrome et dérivés Chromium uniquement,
+   * voir ARCHITECTURE.md "Limitations iOS"). Sur un navigateur qui ne la
+   * supporte pas, cette fonction est un no-op silencieux : les déclencheurs
+   * déjà en place (`online`, `visibilitychange`, polling) restent le seul
+   * mécanisme, exactement le fallback prévu.
+   */
+  private registerBackgroundSync(): void {
+    if (!supportsBackgroundSync()) return;
+    void navigator.serviceWorker.ready
+      .then((registration) => registration.sync.register(BACKGROUND_SYNC_TAG))
+      .catch(() => {
+        // Best-effort : un refus/échec d'enregistrement laisse simplement les
+        // déclencheurs foreground faire le travail, comme sur un navigateur
+        // qui ne supporte pas l'API.
+      });
+  }
 
   private publish(patch: Partial<NetworkStatusSnapshot>) {
     this.snapshot = { ...this.snapshot, ...patch };

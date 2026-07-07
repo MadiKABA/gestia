@@ -32,6 +32,14 @@ export const metadata: Metadata = {
     ],
     apple: "/icons/icon-192.png",
   },
+  // Next.js 16 n'émet plus que le tag standard récent `mobile-web-app-capable`
+  // (via appleWebApp.capable ci-dessus) — Apple documente encore le tag
+  // préfixé historique pour les versions d'iOS antérieures à 17.4, absent
+  // sinon. Les deux coexistent sans conflit, ajouté ici manuellement (voir
+  // ARCHITECTURE.md "Limitations iOS").
+  other: {
+    "apple-mobile-web-app-capable": "yes",
+  },
 };
 
 export const viewport: Viewport = {

@@ -198,6 +198,55 @@ bloque pas le pull : ce sont deux opérations indépendantes. Pas de
 WebSocket/SSE pour cette version — complexité disproportionnée pour
 l'infra VPS actuelle (mono-instance), voir CLAUDE.md "Hors périmètre" (V2).
 
+### Limitations iOS — à ne jamais revisiter comme un bug
+
+**Background Sync API** (`ServiceWorkerRegistration.sync`, écouteur `sync`
+dans `src/app/sw.ts`) : permet de tenter une synchronisation même app
+fermée, sur Android/Chrome et dérivés Chromium. **iOS Safari (et tout
+navigateur sur iOS — Chrome/Firefox iOS sont du WebKit imposé par Apple,
+comme tous les navigateurs iOS) ne l'implémente pas et ne l'implémentera
+sans doute jamais** — décision Apple documentée, pas une lacune de ce
+projet. `infrastructure/offline/platform.ts:supportsBackgroundSync()` fait
+une détection par capacité (`"SyncManager" in window`), jamais par
+sniffing de user-agent : sur iOS, cette détection renvoie simplement
+`false` et le code saute silencieusement l'enregistrement — aucun code
+spécifique "si iOS" nécessaire, le fallback est mécanique. Sur iOS (et sur
+tout navigateur sans cette API), la synchronisation ne se déclenche donc
+que quand l'app est effectivement ouverte : `online`, retour au premier
+plan (`visibilitychange`), polling périodique, pull manuel — ces
+déclencheurs existent déjà pour tous les navigateurs, iOS n'a simplement
+rien de plus.
+
+**Même sur Android/Chrome, la Background Sync API reste "best-effort",
+jamais garantie** : le navigateur peut différer, regrouper ou refuser un
+événement `sync` selon batterie/data saver/heuristiques internes — rien de
+comparable à une file d'attente fiable. C'est pour ça que
+`mutationQueue` (IndexedDB) reste la seule source de vérité de "qu'est-ce
+qui n'est pas encore synchronisé", jamais l'inverse : le SW ne fait que
+tenter de la drainer plus tôt quand c'est possible, il ne remplace aucun
+des déclencheurs foreground déjà en place.
+
+**Portée du SW côté sync** : l'écouteur `sync` ne draine que le **push**
+(mutations locales en attente) — jamais le pull. `pull-registry.ts` (la
+liste des entities à rafraîchir) vit côté page, jamais chargé par le
+bundle du service worker ; et recevoir les changements des autres postes
+du tenant est moins urgent app fermée que la garantie "aucune mutation
+locale perdue" que cet événement sert avant tout. Le pull continue de
+dépendre exclusivement des déclencheurs foreground.
+
+**Stockage persistant** : iOS Safari applique une politique d'éviction
+d'IndexedDB plus agressive qu'Android après une période d'inactivité —
+voir la section stockage persistant (à venir) pour `navigator.storage.persist()`.
+
+**Installation** : `apple-touch-icon`, `apple-mobile-web-app-title`,
+`apple-mobile-web-app-status-bar-style` sont émis par la Metadata API de
+Next.js (`appleWebApp` dans `src/app/layout.tsx`) — vérifié par inspection
+du HTML rendu. Next.js 16 n'émet plus que `mobile-web-app-capable` (non
+préfixé, standard récent, supporté depuis iOS 17.4) — l'historique
+`apple-mobile-web-app-capable` qu'Apple documente encore pour les versions
+antérieures n'est plus généré automatiquement, ajouté manuellement via
+`metadata.other` dans le même fichier pour ne pas dépendre d'iOS 17.4+.
+
 ## Next.js 16 — particularité à connaître
 
 Le middleware s'appelle désormais `proxy` (`src/proxy.ts`, plus

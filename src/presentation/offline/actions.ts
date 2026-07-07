@@ -9,7 +9,7 @@ import { pullChanges, type PullChangesResult } from "@/application/offline/pull-
 import type { QueuedMutation } from "@/application/offline/mutation-handler";
 import { PrismaAuditLogger } from "@/infrastructure/audit-log/audit-log.repository";
 import { registerPartySync } from "@/infrastructure/party/register-party-sync";
-import { pullChangesInputSchema } from "@/presentation/offline/schemas";
+import { pullChangesInputSchema, queuedMutationInputSchema } from "@/presentation/offline/schemas";
 
 const auditLogger = new PrismaAuditLogger();
 
@@ -34,8 +34,9 @@ registerPartySync();
 export async function syncMutationAction(
   mutation: Omit<QueuedMutation, "tenantId">,
 ): Promise<SyncMutationResult> {
+  const parsed = queuedMutationInputSchema.parse(mutation);
   const context = await requireTenantContext();
-  return syncMutation(context, { auditLogger }, { ...mutation, tenantId: context.tenantId });
+  return syncMutation(context, { auditLogger }, { ...parsed, tenantId: context.tenantId });
 }
 
 /**

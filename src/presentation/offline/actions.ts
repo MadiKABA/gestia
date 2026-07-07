@@ -5,9 +5,11 @@ import {
   syncMutation,
   type SyncMutationResult,
 } from "@/application/offline/sync-mutation.use-case";
+import { pullChanges, type PullChangesResult } from "@/application/offline/pull-changes.use-case";
 import type { QueuedMutation } from "@/application/offline/mutation-handler";
 import { PrismaAuditLogger } from "@/infrastructure/audit-log/audit-log.repository";
 import { registerPartySync } from "@/infrastructure/party/register-party-sync";
+import { pullChangesInputSchema } from "@/presentation/offline/schemas";
 
 const auditLogger = new PrismaAuditLogger();
 
@@ -34,4 +36,20 @@ export async function syncMutationAction(
 ): Promise<SyncMutationResult> {
   const context = await requireTenantContext();
   return syncMutation(context, { auditLogger }, { ...mutation, tenantId: context.tenantId });
+}
+
+/**
+ * Point d'entrée générique unique du pull (symétrique à syncMutationAction
+ * ci-dessus) — `since`/`pageCursor` ne pilotent qu'une fenêtre de lecture,
+ * jamais un `tenantId` : celui-ci vient exclusivement de la session, comme
+ * partout ailleurs.
+ */
+export async function pullChangesAction(input: {
+  entity: string;
+  since: string;
+  pageCursor?: string;
+}): Promise<PullChangesResult> {
+  const { entity, since, pageCursor } = pullChangesInputSchema.parse(input);
+  const context = await requireTenantContext();
+  return pullChanges(context, entity, new Date(since), pageCursor);
 }

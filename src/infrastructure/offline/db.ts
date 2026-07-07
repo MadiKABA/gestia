@@ -37,6 +37,21 @@ export type LocalCacheRecord<TData = unknown> = {
   updatedAt: string;
 };
 
+/**
+ * Curseur de synchronisation descendante — un par couple tenant/entity.
+ * `lastSyncedAt` n'avance qu'après confirmation qu'un pull complet (toutes
+ * les pages) a réussi, jamais en cas d'échec partiel (voir pull-engine.ts) :
+ * une valeur en retard ne fait que refaire relire des enregistrements déjà à
+ * jour (fusion idempotente), alors qu'une valeur trop avancée ferait manquer
+ * des changements serveur définitivement.
+ */
+export type SyncCursorRecord = {
+  key: string;
+  tenantId: string;
+  entity: string;
+  lastSyncedAt: string;
+};
+
 interface GestiaOfflineDB extends DBSchema {
   mutationQueue: {
     key: string;
@@ -47,10 +62,14 @@ interface GestiaOfflineDB extends DBSchema {
     value: LocalCacheRecord;
     indexes: { "by-entity": [string, string] };
   };
+  syncCursors: {
+    key: string;
+    value: SyncCursorRecord;
+  };
 }
 
 const DB_NAME = "gestia-offline";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 let dbPromise: Promise<IDBPDatabase<GestiaOfflineDB>> | null = null;
 
@@ -63,10 +82,15 @@ let dbPromise: Promise<IDBPDatabase<GestiaOfflineDB>> | null = null;
 export function getDb(): Promise<IDBPDatabase<GestiaOfflineDB>> {
   if (!dbPromise) {
     dbPromise = openDB<GestiaOfflineDB>(DB_NAME, DB_VERSION, {
-      upgrade(db) {
-        db.createObjectStore("mutationQueue", { keyPath: "id" });
-        const localCache = db.createObjectStore("localCache", { keyPath: "key" });
-        localCache.createIndex("by-entity", ["tenantId", "entity"]);
+      upgrade(db, oldVersion) {
+        if (oldVersion < 1) {
+          db.createObjectStore("mutationQueue", { keyPath: "id" });
+          const localCache = db.createObjectStore("localCache", { keyPath: "key" });
+          localCache.createIndex("by-entity", ["tenantId", "entity"]);
+        }
+        if (oldVersion < 2) {
+          db.createObjectStore("syncCursors", { keyPath: "key" });
+        }
       },
     });
   }

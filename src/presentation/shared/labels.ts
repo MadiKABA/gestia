@@ -59,3 +59,13 @@ export const pwaLabels = {
   iosInstructions: "Appuyez sur Partager, puis « Sur l'écran d'accueil ».",
   dismissAria: "Plus tard",
 };
+
+export const syncLabels = {
+  offline: "Hors ligne",
+  offlinePending: (count: number) =>
+    `Hors ligne — ${count} action${count > 1 ? "s" : ""} en attente`,
+  syncing: "Synchronisation en cours...",
+  pending: (count: number) => `${count} action${count > 1 ? "s" : ""} en attente`,
+  error: "Échec de la synchronisation, nouvelle tentative en cours",
+  syncNow: "Synchroniser maintenant",
+};

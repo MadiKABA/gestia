@@ -200,6 +200,13 @@ passage le payload avec le schéma Zod enregistré pour l'entity
 (`mutation-schema-registry.ts`, ex. `partySyncPayloadSchema`) avant tout
 appel au handler.
 
+**TODO connu (non critique en V1)** : une mutation passée à l'état `synced`
+dans `mutationQueue` n'est aujourd'hui jamais purgée d'IndexedDB — la file
+ne fait que croître. Sans impact au volume d'usage V1 (une boutique génère
+quelques dizaines de mutations/jour), mais à traiter avant une croissance
+significative du nombre de mutations par appareil : purge périodique ou à
+la connexion des entrées `synced` au-delà d'une rétention donnée.
+
 ## Synchronisation descendante (pull)
 
 Symétrique à la synchronisation montante (`infrastructure/offline/sync-engine.ts`,

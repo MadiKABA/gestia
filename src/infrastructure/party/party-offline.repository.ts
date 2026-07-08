@@ -15,15 +15,14 @@ const ENTITY = "party";
 export type PartyOfflineDeps = {
   tenantId: string;
   userId: string;
-  /** Nudge non bloquant après avoir enfilé une mutation — voir
+  /** Nudge non bloquant, jamais attendu par l'appelant — déclenche plus tôt
+   * un cycle de sync (push puis pull générique, cf. party-pull-handler.ts)
+   * déjà prévu par ailleurs (online/visibilitychange/polling), aussi bien
+   * après une mutation locale qu'avant de servir une lecture en ligne. Voir
    * presentation/shared/hooks/use-network-status.ts:triggerBackgroundSync.
    * Injecté plutôt qu'importé : infrastructure/ ne dépend jamais de
    * presentation/. */
-  onMutationEnqueued?: () => void;
-  /** Rafraîchissement en arrière-plan si en ligne — jamais attendu par
-   * l'appelant, best-effort. Enveloppe getPartyByIdAction/searchPartiesAction. */
-  fetchRemoteById?: (id: string) => Promise<PartyWithBalance | null>;
-  fetchRemoteList?: (filters: PartySearchQuery) => Promise<PartyWithBalance[]>;
+  onSyncNeeded?: () => void;
 };
 
 /**
@@ -32,6 +31,13 @@ export type PartyOfflineDeps = {
  * queue de sync générique plutôt que d'appeler Prisma ou une Server Action
  * de mutation directement. La cible serveur réelle (appelée uniquement à la
  * synchronisation) vit dans party-mutation-handler.ts.
+ *
+ * Le rafraîchissement des lectures (`getById`/`list`) ne fait plus l'objet
+ * d'un refetch ad hoc propre à Party : il passe par le même cycle de pull
+ * générique que tout autre module retrofité sur cette couche (curseur
+ * incrémental, pagination, soft-delete — party-pull-handler.ts), déjà
+ * déclenché par online/visibilitychange/polling. `onSyncNeeded` ne fait que
+ * demander un cycle plus tôt, jamais une requête dédiée à Party.
  *
  * Le solde (`balance`) n'est jamais recalculé ici : tant que le module
  * Transaction n'existe pas, il reste à 0 partout, exactement comme dans
@@ -76,7 +82,7 @@ export class PartyOfflineRepository implements OfflineFirstRepository<
       clientGeneratedId: id,
       createdById: this.deps.userId,
     });
-    this.deps.onMutationEnqueued?.();
+    this.deps.onSyncNeeded?.();
 
     return party;
   }
@@ -119,7 +125,7 @@ export class PartyOfflineRepository implements OfflineFirstRepository<
       clientGeneratedId: id,
       createdById: this.deps.userId,
     });
-    this.deps.onMutationEnqueued?.();
+    this.deps.onSyncNeeded?.();
 
     return updated;
   }
@@ -141,14 +147,12 @@ export class PartyOfflineRepository implements OfflineFirstRepository<
       createdById: this.deps.userId,
       clientKnownUpdatedAt: cached?.updatedAt,
     });
-    this.deps.onMutationEnqueued?.();
+    this.deps.onSyncNeeded?.();
   }
 
   async getById(id: string): Promise<PartyWithBalance | null> {
     const cached = await getCachedEntity<PartyWithBalance>(this.deps.tenantId, ENTITY, id);
-    if (this.deps.fetchRemoteById && isOnline()) {
-      void this.refreshOne(id);
-    }
+    if (isOnline()) this.deps.onSyncNeeded?.();
     return cached?.data ?? null;
   }
 
@@ -159,48 +163,9 @@ export class PartyOfflineRepository implements OfflineFirstRepository<
       filters,
     );
 
-    if (this.deps.fetchRemoteList && isOnline()) {
-      void this.refreshList(filters);
-    }
+    if (isOnline()) this.deps.onSyncNeeded?.();
 
     return filtered.sort((a, b) => b.balance - a.balance);
-  }
-
-  private async refreshOne(id: string): Promise<void> {
-    try {
-      const remote = await this.deps.fetchRemoteById?.(id);
-      if (remote) {
-        await setCachedEntity(
-          this.deps.tenantId,
-          ENTITY,
-          id,
-          remote,
-          remote.updatedAt.toISOString(),
-        );
-      }
-    } catch {
-      // Meilleur effort : le cache local reste la source affichée en cas d'échec.
-    }
-  }
-
-  private async refreshList(filters: PartySearchQuery): Promise<void> {
-    try {
-      const remote = await this.deps.fetchRemoteList?.(filters);
-      if (!remote) return;
-      await Promise.all(
-        remote.map((party) =>
-          setCachedEntity(
-            this.deps.tenantId,
-            ENTITY,
-            party.id,
-            party,
-            party.updatedAt.toISOString(),
-          ),
-        ),
-      );
-    } catch {
-      // Meilleur effort.
-    }
   }
 }
 

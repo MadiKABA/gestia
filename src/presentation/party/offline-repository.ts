@@ -1,17 +1,19 @@
 import { PartyOfflineRepository } from "@/infrastructure/party/party-offline.repository";
 import { setCachedEntity } from "@/infrastructure/offline/local-cache.store";
 import type { PartyWithBalance } from "@/application/party/party.repository";
-import { getPartyByIdAction, searchPartiesAction } from "@/presentation/party/actions";
 import { triggerBackgroundSync } from "@/presentation/shared/hooks/use-network-status";
 
 const ENTITY = "party";
 
 /**
- * Seul endroit qui enveloppe les Server Actions de lecture et le nudge de
- * sync en dépendances concrètes de PartyOfflineRepository — l'infra ne
- * connaît que des interfaces, cette usine (présentation, composition root)
- * fait le branchement, comme une Server Action le fait déjà pour
- * PrismaPartyRepository/PrismaAuditLogger.
+ * Seul endroit qui enveloppe le nudge de sync en dépendance concrète de
+ * PartyOfflineRepository — l'infra ne connaît que l'interface
+ * `onSyncNeeded`, cette usine (présentation, composition root) fait le
+ * branchement, comme une Server Action le fait déjà pour
+ * PrismaPartyRepository/PrismaAuditLogger. Le rafraîchissement des lectures
+ * ne passe plus par un refetch Server Action dédié à Party (voir
+ * party-offline.repository.ts) : `triggerBackgroundSync` déclenche le même
+ * cycle de pull générique déjà utilisé après une mutation locale.
  */
 export function createPartyOfflineRepository(
   tenantId: string,
@@ -20,16 +22,7 @@ export function createPartyOfflineRepository(
   return new PartyOfflineRepository({
     tenantId,
     userId,
-    onMutationEnqueued: () => triggerBackgroundSync(tenantId),
-    fetchRemoteById: async (id) => {
-      try {
-        const { party, balance } = await getPartyByIdAction(id);
-        return { ...party, balance };
-      } catch {
-        return null;
-      }
-    },
-    fetchRemoteList: (filters) => searchPartiesAction(filters),
+    onSyncNeeded: () => triggerBackgroundSync(tenantId),
   });
 }
 

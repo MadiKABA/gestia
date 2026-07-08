@@ -3,6 +3,7 @@ import { ValidationError } from "@/domain/shared/errors";
 import type { AuditLogger } from "@/application/shared/audit-logger";
 import type { QueuedMutation } from "@/application/offline/mutation-handler";
 import { getMutationHandler } from "@/application/offline/mutation-handler-registry";
+import { getMutationSchema } from "@/application/offline/mutation-schema-registry";
 
 export type SyncMutationResult = {
   updatedAt: string;
@@ -28,15 +29,17 @@ export async function syncMutation(
     throw new ValidationError(`Aucun gestionnaire de synchronisation pour "${mutation.entity}"`);
   }
 
+  const payload = validatePayload(mutation);
+
   const result = await (() => {
     switch (mutation.action) {
       case "create":
-        return handler.create(context, mutation.clientGeneratedId, mutation.payload);
+        return handler.create(context, mutation.clientGeneratedId, payload);
       case "update":
         return handler.update(
           context,
           mutation.clientGeneratedId,
-          mutation.payload,
+          payload,
           requireClientUpdatedAt(mutation),
         );
       case "delete":
@@ -54,11 +57,35 @@ export async function syncMutation(
       entity: mutation.entity,
       entityId: mutation.clientGeneratedId,
       oldData: result.conflict.serverValueBeforeOverwrite,
-      newData: mutation.payload,
+      newData: payload,
     });
   }
 
   return { updatedAt: result.updatedAt, conflict: Boolean(result.conflict) };
+}
+
+/**
+ * Valide `mutation.payload` avec le schéma Zod enregistré pour cette entity
+ * (mutation-schema-registry.ts), s'il en existe un — un `delete` n'a pas de
+ * payload à valider. Une entity sans schéma enregistré n'est pas bloquée
+ * (rétrocompatible avec les gestionnaires de test qui n'en ont pas besoin),
+ * mais toute entity qui EN enregistre un voit son payload rejeté proprement
+ * (ValidationError, jamais une erreur Prisma brute qui remonterait au
+ * client) avant tout accès au gestionnaire métier. Retourne la valeur
+ * validée par Zod (trim/valeurs par défaut appliqués), pas le payload brut.
+ */
+function validatePayload(mutation: QueuedMutation): unknown {
+  if (mutation.action === "delete") return mutation.payload;
+
+  const schema = getMutationSchema(mutation.entity);
+  if (!schema) return mutation.payload;
+
+  const parsed = schema.safeParse(mutation.payload);
+  if (!parsed.success) {
+    const details = parsed.error.issues.map((issue) => issue.message).join(", ");
+    throw new ValidationError(`Payload invalide pour la mutation "${mutation.entity}": ${details}`);
+  }
+  return parsed.data;
 }
 
 /**

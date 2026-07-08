@@ -1,0 +1,34 @@
+import { z } from "zod";
+import { validatePartyInput, type PartyInput } from "@/domain/party/party.entity";
+import { ValidationError } from "@/domain/shared/errors";
+
+/**
+ * Schéma du payload de mutation Party tel qu'il transite réellement dans la
+ * queue de sync — la forme domaine `PartyInput` (`phone`/`whatsappNumber` en
+ * `string | null`), pas la forme formulaire de partyInputSchema
+ * (presentation/party/schemas.ts, chaînes vides) : party-form.tsx convertit
+ * déjà via toPartyInput avant d'appeler repository.create/update, donc ce
+ * qui arrive ici est toujours la forme domaine. Même règle métier que le
+ * formulaire (délégation à validatePartyInput, jamais dupliquée) : c'est le
+ * même contrat, juste sur l'autre forme des mêmes données.
+ */
+export const partySyncPayloadSchema = z
+  .object({
+    name: z.string().trim().min(1),
+    phone: z.string().trim().nullable().optional(),
+    whatsappNumber: z.string().trim().nullable().optional(),
+    type: z.enum(["CLIENT", "SUPPLIER", "BOTH"]),
+    isCompany: z.boolean().optional(),
+    companyName: z.string().trim().nullable().optional(),
+    contactName: z.string().trim().nullable().optional(),
+    note: z.string().trim().nullable().optional(),
+  })
+  .superRefine((input, ctx) => {
+    try {
+      validatePartyInput(input as PartyInput);
+    } catch (error) {
+      if (error instanceof ValidationError) {
+        ctx.addIssue({ code: "custom", message: error.message, path: ["phone"] });
+      }
+    }
+  });

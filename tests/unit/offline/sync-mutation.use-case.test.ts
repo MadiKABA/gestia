@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
+import { z } from "zod";
 import { syncMutation } from "@/application/offline/sync-mutation.use-case";
 import { registerMutationHandler } from "@/application/offline/mutation-handler-registry";
+import { registerMutationSchema } from "@/application/offline/mutation-schema-registry";
 import type { MutationHandler, QueuedMutation } from "@/application/offline/mutation-handler";
 import type { AuditLogger } from "@/application/shared/audit-logger";
 import { ValidationError } from "@/domain/shared/errors";
@@ -108,6 +110,48 @@ describe("syncMutation", () => {
       entityId: clientGeneratedId,
       oldData: { name: "Valeur écrasée" },
       newData: { name: "Nouvelle valeur" },
+    });
+  });
+
+  it("rejette un payload qui échoue le schéma enregistré pour l'entity, avant tout appel au gestionnaire", async () => {
+    const entity = `fake-${generateClientId()}`;
+    const handler: MutationHandler = {
+      create: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+    };
+    registerMutationHandler(entity, handler);
+    registerMutationSchema(entity, z.object({ name: z.string().min(1) }));
+    const auditLogger: AuditLogger = { log: vi.fn() };
+
+    await expect(
+      syncMutation(
+        context,
+        { auditLogger },
+        fakeMutation({ entity, action: "create", payload: { name: "" } }),
+      ),
+    ).rejects.toThrow(ValidationError);
+    expect(handler.create).not.toHaveBeenCalled();
+  });
+
+  it("une entity sans schéma enregistré n'est pas bloquée (validation optionnelle)", async () => {
+    const entity = `fake-${generateClientId()}`;
+    const handler: MutationHandler = {
+      create: vi.fn().mockResolvedValue({ updatedAt: "2026-01-01T00:00:00.000Z" }),
+      update: vi.fn(),
+      delete: vi.fn(),
+    };
+    registerMutationHandler(entity, handler);
+    const auditLogger: AuditLogger = { log: vi.fn() };
+
+    await syncMutation(
+      context,
+      { auditLogger },
+      fakeMutation({ entity, action: "create", payload: { anything: "goes" } }),
+    );
+
+    expect(handler.create).toHaveBeenCalledWith(context, expect.any(String), {
+      anything: "goes",
     });
   });
 });

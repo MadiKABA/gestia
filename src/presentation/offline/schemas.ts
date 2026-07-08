@@ -18,11 +18,12 @@ export type PullChangesInput = z.infer<typeof pullChangesInputSchema>;
 /**
  * Enveloppe d'entrée du push générique — valide la structure de la mutation
  * (id/entity/action/clientGeneratedId/dates), jamais son `payload` métier
- * (chaque MutationHandler reste responsable de valider son propre payload
- * avec son schéma Zod, ex: partyInputSchema — pas le rôle du moteur
- * générique qui ne connaît aucune entity). `tenantId` est délibérément
- * absent d'ici : il n'est jamais lu depuis l'entrée cliente, voir
- * syncMutationAction/le Route Handler /api/sync.
+ * ici même : le `payload` est validé par sync-mutation.use-case.ts via le
+ * schéma Zod enregistré pour l'entity (mutation-schema-registry.ts, ex.
+ * partySyncPayloadSchema pour "party") — ce fichier ne connaît aucune entity
+ * et ne peut donc pas résoudre ce schéma lui-même. `tenantId` est
+ * délibérément absent d'ici : il n'est jamais lu depuis l'entrée cliente,
+ * voir syncMutationAction/le Route Handler /api/sync.
  */
 export const queuedMutationInputSchema = z.object({
   id: z.string().trim().min(1),

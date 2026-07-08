@@ -5,11 +5,14 @@ import { PrismaPartyRepository } from "@/infrastructure/party/party.repository";
 import { PrismaAuditLogger } from "@/infrastructure/audit-log/audit-log.repository";
 import { updateParty } from "@/application/party/update-party.use-case";
 import { registerMutationHandler } from "@/application/offline/mutation-handler-registry";
+import { registerMutationSchema } from "@/application/offline/mutation-schema-registry";
 import { partyMutationHandler } from "@/infrastructure/party/party-mutation-handler";
+import { partySyncPayloadSchema } from "@/infrastructure/party/party-mutation.schema";
 import { syncMutation } from "@/application/offline/sync-mutation.use-case";
 import { syncQueue } from "@/infrastructure/offline/sync-engine";
 import { listPendingMutations } from "@/infrastructure/offline/mutation-queue.store";
 import { PartyOfflineRepository } from "@/infrastructure/party/party-offline.repository";
+import { ValidationError } from "@/domain/shared/errors";
 import type { TenantContext } from "@/domain/shared/tenant-context";
 import type { QueuedMutation } from "@/application/offline/mutation-handler";
 
@@ -36,6 +39,7 @@ describe("Party offline-first : bout en bout", () => {
 
   beforeAll(async () => {
     registerMutationHandler("party", partyMutationHandler);
+    registerMutationSchema("party", partySyncPayloadSchema);
 
     await prisma.tenant.create({ data: { id: tenantId, name: "Tenant de test offline" } });
     const patron = await prisma.user.create({
@@ -197,5 +201,24 @@ describe("Party offline-first : bout en bout", () => {
     const inDb = await prisma.party.findUnique({ where: { id: created.id } });
     expect(inDb).not.toBeNull();
     expect(await listPendingMutations(tenantId)).toHaveLength(0);
+  });
+
+  it("rejette un payload invalide (type hors énumération) avec une ValidationError propre, sans jamais écrire en base", async () => {
+    const rejectedId = "party-payload-invalide-test";
+
+    await expect(
+      syncTransport({
+        id: "mutation-payload-invalide",
+        tenantId,
+        entity: "party",
+        action: "create",
+        payload: { name: "Payload invalide", phone: "+221771111199", type: "TYPE_INEXISTANT" },
+        clientGeneratedId: rejectedId,
+        createdAt: new Date().toISOString(),
+        createdById: context.userId,
+      }),
+    ).rejects.toThrow(ValidationError);
+
+    expect(await prisma.party.findUnique({ where: { id: rejectedId } })).toBeNull();
   });
 });

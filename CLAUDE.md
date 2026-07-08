@@ -133,7 +133,15 @@ offline complet avec queue de synchronisation et résolution de conflit
   `TenantScopedRepository` (ARCHITECTURE.md) — jamais de filtrage `tenantId`
   ad hoc dans une query.
 - Sync offline : aucune transaction perdue même si l'app ferme avant sync ;
-  toute divergence tracée en AuditLog, jamais écrasée silencieusement.
+  toute divergence tracée en AuditLog **au moment du push**, jamais
+  écrasée silencieusement. Le pull (rapatriement des changements serveur)
+  ne retrace jamais de conflit lui-même : c'est une décision assumée, pas
+  un oubli — toute donnée qu'il lit a déjà été réconciliée et auditée par
+  le push qui l'a écrite, quel que soit l'appareil d'origine (voir
+  ARCHITECTURE.md "Synchronisation descendante"). Condition à préserver
+  pour chaque futur module : toute écriture doit passer par le
+  `MutationHandler` enregistré, jamais un accès direct hors du moteur de
+  sync générique.
 - Presets de couleur validés contraste/lisibilité uniquement — jamais de
   choix libre non contrôlé.
 

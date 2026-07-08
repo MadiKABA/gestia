@@ -186,10 +186,24 @@ idempotente, sans risque à réappliquer des enregistrements déjà à jour).
 du point de vue de l'utilisateur. Une entité `deletedAt` non nul est
 retirée du cache local plutôt que gardée affichée. Les vrais conflits
 (entité modifiée des deux côtés) sont résolus et tracés en AuditLog
-exclusivement côté push (`sync-mutation.use-case.ts`) : au moment où le
-pull s'exécute, le push du même cycle a déjà réconcilié toute mutation que
-CE client tentait de pousser — le pull n'a donc jamais besoin de sa propre
-détection de conflit, uniquement de rafraîchir en lecture.
+exclusivement côté push (`sync-mutation.use-case.ts`), jamais côté pull —
+décision assumée, pas un oubli de traçabilité. Ça tient parce que toute
+donnée que le pull lit a déjà été écrite par un push : celui de CE client
+(déjà réconcilié dans le même cycle, juste avant) ou celui d'un autre
+appareil du même tenant (réconcilié et audité lors de SON propre push). Le
+pull ne fait jamais que rafraîchir une valeur déjà tranchée, jamais
+trancher lui-même un nouveau conflit.
+
+Condition dont dépend cette garantie : elle suppose que **toute** écriture
+sur une entity synchronisée passe par le `MutationHandler` enregistré pour
+cette entity — jamais un accès direct au repository hors du moteur de sync
+générique (import en masse, script d'admin, seed compris). Party la
+respecte aujourd'hui : `createParty`/`updateParty`/`deleteParty` n'ont
+qu'un seul appelant, `party-mutation-handler.ts` (voir
+`presentation/party/actions.ts`, en lecture seule). Tout futur module
+(Transaction inclus) doit préserver cette même invariante pour que
+l'absence d'AuditLog au pull reste une garantie plutôt que de devenir un
+angle mort silencieux.
 
 **Cycle** : push puis pull, dans cet ordre, à chaque déclenchement
 (`online`, retour au premier plan — `visibilitychange`, polling périodique

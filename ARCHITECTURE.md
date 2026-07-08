@@ -159,6 +159,47 @@ Le client est généré dans `src/generated/prisma` (gitignored, régénéré pa
 `datasource db` du schéma n'a pas d'`url` inline — elle vient de
 `prisma.config.ts` (`process.env.DATABASE_URL`, chargé via `dotenv/config`).
 
+## Synchronisation montante (push) et `OfflineFirstRepository<T>`
+
+Chaque module métier retrofité sur la couche offline (Party aujourd'hui,
+Transaction ensuite) expose côté présentation un repository qui implémente
+`OfflineFirstRepository<T, TInput, TFilters = void>`
+(`application/offline/offline-first-repository.ts`) :
+
+```ts
+interface OfflineFirstRepository<T, TInput, TFilters = void> {
+  create(data: TInput): Promise<T>;
+  update(id: string, data: TInput): Promise<T>;
+  delete(id: string): Promise<void>;
+  getById(id: string): Promise<T | null>;
+  list(filters: TFilters): Promise<T[]>;
+}
+```
+
+Contrat commun à toute écriture/lecture locale-first, jamais un accès
+direct à Prisma ni à une Server Action de mutation depuis la
+présentation : chaque méthode lit/écrit le cache local (`localCache`) et
+enfile la mutation correspondante dans `mutationQueue`
+(`infrastructure/offline/{local-cache,mutation-queue}.store.ts`), avant de
+nudger un cycle de sync (`onSyncNeeded`, jamais attendu par l'appelant).
+`TFilters` vaut `void` par défaut pour un module sans recherche/filtre
+côté liste.
+
+Implémentation de référence : `PartyOfflineRepository`
+(`infrastructure/party/party-offline.repository.ts`) implémente
+`OfflineFirstRepository<PartyWithBalance, PartyInput, PartySearchQuery>` —
+c'est le modèle à suivre pour tout futur module (même don Party : cache
+optimiste, `clientKnownUpdatedAt` du cache capturé avant toute mutation,
+jamais recalculé après coup).
+
+Côté serveur, le pendant symétrique est le `MutationHandler`
+(`application/offline/mutation-handler.ts`, cf. `partyMutationHandler`) —
+seule cible réelle des mutations, jamais appelé autrement que par le
+moteur de sync générique (`sync-mutation.use-case.ts`), qui valide au
+passage le payload avec le schéma Zod enregistré pour l'entity
+(`mutation-schema-registry.ts`, ex. `partySyncPayloadSchema`) avant tout
+appel au handler.
+
 ## Synchronisation descendante (pull)
 
 Symétrique à la synchronisation montante (`infrastructure/offline/sync-engine.ts`,
@@ -249,8 +290,15 @@ locale perdue" que cet événement sert avant tout. Le pull continue de
 dépendre exclusivement des déclencheurs foreground.
 
 **Stockage persistant** : iOS Safari applique une politique d'éviction
-d'IndexedDB plus agressive qu'Android après une période d'inactivité —
-voir la section stockage persistant (à venir) pour `navigator.storage.persist()`.
+d'IndexedDB plus agressive qu'Android après une période d'inactivité.
+`infrastructure/offline/storage-persistence.ts` demande la persistance
+(`navigator.storage.persist()`, best-effort, jamais garanti) — résout à
+`false` sans lancer d'erreur sur un navigateur sans l'API. Le composant
+`StoragePersistenceWarning` (`presentation/shared/components/`, monté dans
+l'app shell) fait la demande une fois par montage et avertit l'utilisateur
+uniquement en cas de refus confirmé (`isStoragePersisted()` après le refus
+de `persist()`), fermeture mémorisée en sessionStorage comme la bannière
+d'installation.
 
 **Installation** : `apple-touch-icon`, `apple-mobile-web-app-title`,
 `apple-mobile-web-app-status-bar-style` sont émis par la Metadata API de

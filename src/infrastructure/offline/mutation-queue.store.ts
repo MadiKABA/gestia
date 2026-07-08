@@ -16,6 +16,12 @@ export type NewMutationQueueEntry = Pick<
  * CRUD de la queue de mutations (IndexedDB, store `mutationQueue`). Ne
  * supprime jamais une entrée avant confirmation serveur explicite — voir
  * `markSynced`, jamais de `delete` direct exposé ici.
+ *
+ * TODO: les entrées `synced: true` ne sont jamais purgées après coup —
+ * `markMutationSynced` ne fait que les marquer, la queue ne fait donc que
+ * grandir sur la durée de vie d'un appareil. Pas critique pour le volume
+ * d'usage V1 (voir CLAUDE.md), mais à traiter avant que ça devienne
+ * perceptible (purge périodique des entrées synced anciennes, par exemple).
  */
 export async function enqueueMutation(entry: NewMutationQueueEntry): Promise<MutationQueueRecord> {
   const db = await getDb();

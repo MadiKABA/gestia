@@ -282,6 +282,36 @@ maîtrisé, exigence réglementaire), il resterait à ajouter une couche de
 chiffrement symétrique dérivée d'un secret de session — non fait ici, piste
 à documenter séparément le jour où le besoin se confirme.
 
+## Session expirée pendant une synchronisation
+
+`syncMutationAction`/`pullChangesAction` (`presentation/offline/actions.ts`)
+retournent une enveloppe `SyncActionResult<T>` (`application/offline/sync-result.ts`) —
+`{ ok: true; data: T } | { ok: false; reason: "auth_required" }` — plutôt
+que de laisser échapper l'erreur d'authentification comme une exception
+ordinaire. Raison : les classes d'erreur custom (`ForbiddenError`) ne
+survivent pas à la sérialisation d'une Server Action, seul `message`
+traverse la frontière réseau — un `catch (e) { if (e instanceof
+ForbiddenError) }` côté client ne fonctionnerait donc jamais. Toute autre
+erreur (validation, bug serveur, réseau) continue de rejeter normalement,
+gérée par le backoff générique déjà en place.
+
+`sync-engine.ts`/`pull-engine.ts` traduisent un `{ ok: false }` reçu en
+`AuthRequiredError` (`infrastructure/offline/errors.ts`), levée plutôt que
+retournée : rejoint ainsi l'idiome déjà utilisé partout ailleurs dans le
+projet pour les erreurs typées (`instanceof`). Cette erreur n'est **jamais**
+traitée comme un échec de mutation ordinaire — pas de backoff exponentiel,
+pas de `retryCount` incrémenté, la mutation reste intacte en queue.
+`network-status-store.ts` l'intercepte (push et pull) et redirige
+immédiatement vers `/login` (`window.location.assign`, rechargement complet
+— pas de routeur Next.js dans cette couche, volontairement agnostique) :
+aucun code de "reprise" dédié n'est nécessaire, le prochain cycle de sync
+déclenché après reconnexion retente la mutation restée en attente.
+
+Le Route Handler `/api/sync` (service worker) signale la même situation
+par un simple `401` HTTP plutôt que par cette enveloppe — pas de Server
+Action à ce niveau, un code de statut suffit et le SW n'a de toute façon
+aucun routeur vers lequel rediriger.
+
 ## Next.js 16 — particularité à connaître
 
 Le middleware s'appelle désormais `proxy` (`src/proxy.ts`, plus

@@ -48,9 +48,10 @@ describe("syncQueue", () => {
 
     const result = await syncQueue({
       tenantId,
-      syncTransport: async (mutation: QueuedMutation): Promise<SyncMutationResult> => {
+      syncTransport: async (mutation: QueuedMutation) => {
         calls.push((mutation.payload as { name: string }).name);
-        return { updatedAt: new Date().toISOString(), conflict: false };
+        const data: SyncMutationResult = { updatedAt: new Date().toISOString(), conflict: false };
+        return { ok: true, data };
       },
     });
 
@@ -126,7 +127,7 @@ describe("syncQueue", () => {
       tenantId,
       syncTransport: async (mutation) => {
         receivedUpdatedAt = mutation.clientKnownUpdatedAt;
-        return { updatedAt: "2026-01-02T00:00:00.000Z", conflict: false };
+        return { ok: true, data: { updatedAt: "2026-01-02T00:00:00.000Z", conflict: false } };
       },
     });
 
@@ -161,11 +162,38 @@ describe("syncQueue", () => {
       tenantId,
       syncTransport: async (mutation) => {
         receivedUpdatedAt = mutation.clientKnownUpdatedAt;
-        return { updatedAt: "2026-01-02T00:00:00.000Z", conflict: false };
+        return { ok: true, data: { updatedAt: "2026-01-02T00:00:00.000Z", conflict: false } };
       },
     });
 
     expect(receivedUpdatedAt).toBe("2026-01-01T00:00:00.000Z");
     expect(result.failed).toBe(false);
+  });
+
+  it("session expirée (ok:false) : mutation ni synchronisée ni marquée échouée, pas de backoff", async () => {
+    const tenantId = tenant();
+    await enqueueMutation({
+      id: generateClientId(),
+      tenantId,
+      entity: "party",
+      action: "create",
+      payload: { name: "A" },
+      clientGeneratedId: generateClientId(),
+      createdById: "user-1",
+    });
+
+    const result = await syncQueue({
+      tenantId,
+      syncTransport: async () => ({ ok: false, reason: "auth_required" }),
+    });
+
+    expect(result.failed).toBe(true);
+    expect(result.reason).toBe("auth_required");
+    expect(result.nextRetryDelayMs).toBeUndefined();
+
+    const pending = await listPendingMutations(tenantId);
+    expect(pending).toHaveLength(1);
+    expect(pending[0].retryCount).toBe(0);
+    expect(pending[0].syncError).toBeUndefined();
   });
 });

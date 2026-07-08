@@ -1,19 +1,23 @@
 import type { PullChangesResult } from "@/application/offline/pull-changes.use-case";
+import type { SyncActionResult } from "@/application/offline/sync-result";
 import { getCursor, setCursor } from "@/infrastructure/offline/sync-cursor.store";
 import { removeCachedEntity, setCachedEntity } from "@/infrastructure/offline/local-cache.store";
 import { hasPendingMutationFor } from "@/infrastructure/offline/mutation-queue.store";
+import { AuthRequiredError } from "@/infrastructure/offline/errors";
 
 /**
  * Appel réseau réel vers le serveur pour une page de pull — injecté comme
  * `SyncTransport` côté push, pour les mêmes raisons (testable, indépendant
  * de Next.js ; le transport réel enveloppe la Server Action générique
  * `pullChangesAction`, voir presentation/shared/hooks/use-network-status.ts).
+ * Même contrat que SyncTransport : rejette pour toute erreur inattendue,
+ * ne résout `{ ok: false }` que pour les issues à distinguer explicitement.
  */
 export type PullTransport = (input: {
   entity: string;
   since: string;
   pageCursor?: string;
-}) => Promise<PullChangesResult>;
+}) => Promise<SyncActionResult<PullChangesResult>>;
 
 export type PullEntityResult = { applied: number; skipped: number };
 
@@ -50,7 +54,9 @@ export async function pullEntity(deps: {
   let skipped = 0;
 
   do {
-    const result = await deps.pullTransport({ entity: deps.entity, since, pageCursor });
+    const outcome = await deps.pullTransport({ entity: deps.entity, since, pageCursor });
+    if (!outcome.ok) throw new AuthRequiredError();
+    const result = outcome.data;
     latestServerTimestamp = result.serverTimestamp;
 
     for (const record of result.records) {

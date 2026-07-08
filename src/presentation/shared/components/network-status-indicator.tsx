@@ -27,13 +27,19 @@ export function NetworkStatusIndicator({
     ? pendingCount > 0
       ? syncLabels.offlinePending(pendingCount)
       : syncLabels.offline
-    : syncState === "syncing"
-      ? syncLabels.syncing
-      : syncState === "error"
-        ? syncLabels.error
-        : syncLabels.pending(pendingCount);
+    : syncState === "auth_required"
+      ? syncLabels.authRequired
+      : syncState === "syncing"
+        ? syncLabels.syncing
+        : syncState === "error"
+          ? syncLabels.error
+          : syncLabels.pending(pendingCount);
 
-  const canRetry = online && pendingCount > 0 && syncState !== "syncing";
+  // auth_required déclenche déjà une redirection vers /login (voir
+  // network-status-store.ts) : retenter ici n'aurait aucun sens, la session
+  // n'est plus valide tant que l'utilisateur ne s'est pas reconnecté.
+  const canRetry =
+    online && pendingCount > 0 && syncState !== "syncing" && syncState !== "auth_required";
 
   return (
     <button
@@ -43,7 +49,7 @@ export function NetworkStatusIndicator({
       title={canRetry ? syncLabels.syncNow : undefined}
       className={cn(
         "flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium",
-        !online || syncState === "error"
+        !online || syncState === "error" || syncState === "auth_required"
           ? "bg-destructive/10 text-destructive"
           : "bg-muted text-muted-foreground",
         canRetry && "cursor-pointer",
@@ -54,7 +60,7 @@ export function NetworkStatusIndicator({
         <WifiOff className="size-3.5 shrink-0" aria-hidden />
       ) : syncState === "syncing" ? (
         <RefreshCw className="size-3.5 shrink-0 animate-spin" aria-hidden />
-      ) : syncState === "error" ? (
+      ) : syncState === "error" || syncState === "auth_required" ? (
         <CircleAlert className="size-3.5 shrink-0" aria-hidden />
       ) : (
         <RefreshCw className="size-3.5 shrink-0" aria-hidden />

@@ -7,8 +7,9 @@ import { pullEntity, type PullTransport } from "@/infrastructure/offline/pull-en
 import { listPullableEntities } from "@/infrastructure/offline/pull-registry";
 import { listPendingMutations } from "@/infrastructure/offline/mutation-queue.store";
 import { BACKGROUND_SYNC_TAG, supportsBackgroundSync } from "@/infrastructure/offline/platform";
+import { AuthRequiredError } from "@/infrastructure/offline/errors";
 
-export type SyncState = "idle" | "syncing" | "pending" | "error";
+export type SyncState = "idle" | "syncing" | "pending" | "error" | "auth_required";
 
 export type NetworkStatusSnapshot = {
   online: boolean;
@@ -131,6 +132,13 @@ export class NetworkStatusStore {
    * opérations indépendantes, un pull qui réussit reste utile même si une
    * mutation locale a échoué (l'utilisateur voit quand même les changements
    * des autres postes du tenant).
+   *
+   * Session expirée détectée (push OU pull) : jamais traitée comme un échec
+   * ordinaire — aucun backoff programmé (retenter avant reconnexion n'a
+   * aucun sens), redirection immédiate vers /login. La mutation en attente
+   * n'est ni perdue ni marquée échouée (voir sync-engine.ts/pull-engine.ts) :
+   * la reprise se fait automatiquement au prochain cycle de sync déclenché
+   * après reconnexion, sans code de "reprise" dédié.
    */
   private async runSync(): Promise<void> {
     if (this.syncing || !navigator.onLine) return;
@@ -145,13 +153,25 @@ export class NetworkStatusStore {
         tenantId: this.tenantId,
         syncTransport: this.syncTransport,
       });
+
+      if (pushResult.reason === "auth_required") {
+        this.publish({ syncState: "auth_required" });
+        this.redirectToLogin();
+        return;
+      }
+
       const count = await this.refreshPendingCount();
 
       let pullFailed = false;
       for (const entity of listPullableEntities()) {
         try {
           await pullEntity({ tenantId: this.tenantId, entity, pullTransport: this.pullTransport });
-        } catch {
+        } catch (error) {
+          if (error instanceof AuthRequiredError) {
+            this.publish({ syncState: "auth_required" });
+            this.redirectToLogin();
+            return;
+          }
           pullFailed = true;
         }
       }
@@ -170,6 +190,10 @@ export class NetworkStatusStore {
     } finally {
       this.syncing = false;
     }
+  }
+
+  private redirectToLogin(): void {
+    window.location.assign("/login");
   }
 }
 

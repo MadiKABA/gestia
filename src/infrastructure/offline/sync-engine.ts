@@ -1,11 +1,13 @@
 import type { QueuedMutation } from "@/application/offline/mutation-handler";
 import type { SyncMutationResult } from "@/application/offline/sync-mutation.use-case";
+import type { SyncActionResult, SyncFailureReason } from "@/application/offline/sync-result";
 import {
   listPendingMutations,
   markMutationFailed,
   markMutationSynced,
 } from "@/infrastructure/offline/mutation-queue.store";
 import { getCachedEntity, setCachedEntity } from "@/infrastructure/offline/local-cache.store";
+import { AuthRequiredError } from "@/infrastructure/offline/errors";
 
 /**
  * Appel réseau réel vers le serveur pour une mutation — injecté plutôt
@@ -13,14 +15,20 @@ import { getCachedEntity, setCachedEntity } from "@/infrastructure/offline/local
  * transport réel, qui enveloppe la Server Action générique
  * `presentation/offline/actions.ts:syncMutationAction`, est fourni par
  * l'appelant — voir presentation/shared/hooks/use-network-status.ts).
+ * Rejette normalement pour toute erreur inattendue (réseau, bug serveur) ;
+ * ne résout `{ ok: false }` que pour les issues que l'appelant doit
+ * distinguer explicitement, voir SyncActionResult.
  */
-export type SyncTransport = (mutation: QueuedMutation) => Promise<SyncMutationResult>;
+export type SyncTransport = (
+  mutation: QueuedMutation,
+) => Promise<SyncActionResult<SyncMutationResult>>;
 
 export type SyncQueueResult = {
   succeeded: number;
   remaining: number;
   failed: boolean;
   nextRetryDelayMs?: number;
+  reason?: SyncFailureReason;
 };
 
 const BASE_RETRY_DELAY_MS = 2_000;
@@ -80,7 +88,10 @@ export async function syncQueue(deps: {
     }
 
     try {
-      const result = await deps.syncTransport(mutation);
+      const outcome = await deps.syncTransport(mutation);
+      if (!outcome.ok) throw new AuthRequiredError();
+      const result = outcome.data;
+
       await markMutationSynced(record.id, new Date().toISOString());
       succeeded += 1;
 
@@ -101,9 +112,19 @@ export async function syncQueue(deps: {
         }
       }
     } catch (error) {
+      const remaining = (await listPendingMutations(deps.tenantId)).length;
+
+      if (error instanceof AuthRequiredError) {
+        // Ni marquée échouée ni synced : la mutation reste intacte, sans
+        // backoff — retenter immédiatement n'a aucun sens tant que la
+        // session n'est pas renouvelée (voir network-status-store.ts, qui
+        // redirige vers /login sur cette raison plutôt que de planifier une
+        // nouvelle tentative).
+        return { succeeded, remaining, failed: true, reason: "auth_required" };
+      }
+
       const message = error instanceof Error ? error.message : String(error);
       const updated = await markMutationFailed(record.id, message);
-      const remaining = (await listPendingMutations(deps.tenantId)).length;
       return {
         succeeded,
         remaining,

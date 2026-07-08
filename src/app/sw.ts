@@ -2,11 +2,9 @@
 import { defaultCache } from "@serwist/turbopack/worker";
 import { NetworkFirst, Serwist } from "serwist";
 import type { PrecacheEntry, SerwistGlobalConfig } from "serwist";
-import { syncQueue } from "@/infrastructure/offline/sync-engine";
+import { syncQueue, type SyncTransport } from "@/infrastructure/offline/sync-engine";
 import { listPendingTenantIds } from "@/infrastructure/offline/mutation-queue.store";
 import { BACKGROUND_SYNC_TAG } from "@/infrastructure/offline/platform";
-import type { QueuedMutation } from "@/application/offline/mutation-handler";
-import type { SyncMutationResult } from "@/application/offline/sync-mutation.use-case";
 
 // SyncEvent/ServiceWorkerRegistration.sync : voir src/types/background-sync.d.ts.
 
@@ -84,22 +82,29 @@ serwist.addEventListeners();
  * navigateur en contexte page, pas exploitable de façon fiable ici.
  * `credentials: "include"` transmet le cookie de session (même origine) ;
  * requireTenantContext() le revalide côté serveur exactement comme pour une
- * Server Action.
+ * Server Action. /api/sync signale une session expirée par un 401 HTTP
+ * (pas par l'enveloppe {ok,reason} des Server Actions, inutile ici) —
+ * traduit en `{ ok: false }` pour rester compatible avec syncQueue, qui la
+ * traite alors comme une session expirée plutôt qu'un échec réseau
+ * ordinaire (voir sync-engine.ts). Sans redirection possible depuis un
+ * service worker, la mutation reste simplement en attente jusqu'à la
+ * prochaine synchronisation foreground, qui gère la redirection.
  */
-async function pushMutationFromServiceWorker(
-  mutation: QueuedMutation,
-): Promise<SyncMutationResult> {
+const pushMutationFromServiceWorker: SyncTransport = async (mutation) => {
   const response = await fetch("/api/sync", {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ kind: "push", mutation }),
   });
+  if (response.status === 401) {
+    return { ok: false, reason: "auth_required" };
+  }
   if (!response.ok) {
     throw new Error(`Échec de la synchronisation en arrière-plan (${response.status})`);
   }
-  return response.json();
-}
+  return { ok: true, data: await response.json() };
+};
 
 /**
  * Drainage best-effort de la queue au retour de connectivité, y compris app
@@ -108,10 +113,14 @@ async function pushMutationFromServiceWorker(
  * pour le pull dans ce contexte (pull-registry.ts vit côté page, jamais
  * chargé par ce bundle SW), et le pull reste moins urgent app fermée que la
  * garantie "aucune mutation locale perdue" que cet événement sert. Si
- * `syncQueue` rejette (échec réseau, session expirée...), la promesse
- * transmise à `event.waitUntil` rejette aussi : le navigateur replanifie
+ * `syncQueue` échoue pour une raison transitoire (réseau, bug serveur), la
+ * promesse transmise à `event.waitUntil` rejette : le navigateur replanifie
  * alors lui-même une nouvelle tentative selon sa propre politique de
- * backoff — jamais géré manuellement ici.
+ * backoff — jamais géré manuellement ici. Une session expirée
+ * ("auth_required") est en revanche définitive tant que l'app ne rouvre
+ * pas : rejeter ferait juste s'accumuler des tentatives 401 inutiles, la
+ * mutation reste simplement en attente et sera reprise par la prochaine
+ * synchronisation foreground (qui gère elle la redirection vers /login).
  */
 self.addEventListener("sync", (event) => {
   if (event.tag !== BACKGROUND_SYNC_TAG) return;
@@ -119,7 +128,7 @@ self.addEventListener("sync", (event) => {
     (async () => {
       for (const tenantId of await listPendingTenantIds()) {
         const result = await syncQueue({ tenantId, syncTransport: pushMutationFromServiceWorker });
-        if (result.failed) {
+        if (result.failed && result.reason !== "auth_required") {
           throw new Error("Synchronisation en arrière-plan incomplète, nouvelle tentative à venir");
         }
       }

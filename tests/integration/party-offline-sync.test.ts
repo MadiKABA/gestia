@@ -27,9 +27,12 @@ describe("Party offline-first : bout en bout", () => {
   const context: TenantContext = { tenantId, userId: "", role: "PATRON" };
 
   // Transport de sync réel : appelle syncMutation directement (équivalent de
-  // ce que fait syncMutationAction, sans passer par le réseau/la session).
-  const syncTransport = (mutation: QueuedMutation) =>
-    syncMutation(context, { auditLogger }, mutation);
+  // ce que fait syncMutationAction, sans passer par le réseau/la session),
+  // enveloppé en { ok: true } comme le fait réellement syncMutationAction.
+  const syncTransport = async (mutation: QueuedMutation) => ({
+    ok: true as const,
+    data: await syncMutation(context, { auditLogger }, mutation),
+  });
 
   beforeAll(async () => {
     registerMutationHandler("party", partyMutationHandler);
@@ -164,7 +167,7 @@ describe("Party offline-first : bout en bout", () => {
       createdById: context.userId,
     });
 
-    expect(secondAttempt.updatedAt).toBe(firstAttempt.updatedAt);
+    expect(secondAttempt.data.updatedAt).toBe(firstAttempt.data.updatedAt);
     expect(await prisma.party.count({ where: { tenantId, id: created.id } })).toBe(1);
     expect(
       await prisma.auditLog.count({

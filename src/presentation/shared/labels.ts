@@ -74,5 +74,6 @@ export const syncLabels = {
   syncing: "Synchronisation en cours...",
   pending: (count: number) => `${count} action${count > 1 ? "s" : ""} en attente`,
   error: "Échec de la synchronisation, nouvelle tentative en cours",
+  authRequired: "Session expirée — reconnexion nécessaire",
   syncNow: "Synchroniser maintenant",
 };

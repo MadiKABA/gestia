@@ -1,6 +1,7 @@
 import "fake-indexeddb/auto";
 import { describe, expect, it } from "vitest";
 import { pullEntity, type PullTransport } from "@/infrastructure/offline/pull-engine";
+import { AuthRequiredError } from "@/infrastructure/offline/errors";
 import { getCursor } from "@/infrastructure/offline/sync-cursor.store";
 import { getCachedEntity } from "@/infrastructure/offline/local-cache.store";
 import { enqueueMutation } from "@/infrastructure/offline/mutation-queue.store";
@@ -17,10 +18,13 @@ describe("pullEntity", () => {
     const transport: PullTransport = async ({ since }) => {
       expect(new Date(since).getTime()).toBe(0); // epoch tant qu'aucun curseur n'existe
       return {
-        records: [
-          { id, updatedAt: "2026-01-01T00:00:00.000Z", deletedAt: null, data: { name: "A" } },
-        ],
-        serverTimestamp: "2026-01-02T00:00:00.000Z",
+        ok: true,
+        data: {
+          records: [
+            { id, updatedAt: "2026-01-01T00:00:00.000Z", deletedAt: null, data: { name: "A" } },
+          ],
+          serverTimestamp: "2026-01-02T00:00:00.000Z",
+        },
       };
     };
 
@@ -36,25 +40,31 @@ describe("pullEntity", () => {
     const tenantId = tenant();
     const id = generateClientId();
     const transport: PullTransport = async () => ({
-      records: [
-        {
-          id,
-          updatedAt: "2026-01-01T00:00:00.000Z",
-          deletedAt: "2026-01-01T00:00:00.000Z",
-          data: {},
-        },
-      ],
-      serverTimestamp: "2026-01-02T00:00:00.000Z",
+      ok: true,
+      data: {
+        records: [
+          {
+            id,
+            updatedAt: "2026-01-01T00:00:00.000Z",
+            deletedAt: "2026-01-01T00:00:00.000Z",
+            data: {},
+          },
+        ],
+        serverTimestamp: "2026-01-02T00:00:00.000Z",
+      },
     });
     // Pré-remplit le cache pour vérifier qu'il est bien vidé.
     await pullEntity({
       tenantId,
       entity: "party",
       pullTransport: async () => ({
-        records: [
-          { id, updatedAt: "2025-01-01T00:00:00.000Z", deletedAt: null, data: { name: "A" } },
-        ],
-        serverTimestamp: "2025-01-02T00:00:00.000Z",
+        ok: true,
+        data: {
+          records: [
+            { id, updatedAt: "2025-01-01T00:00:00.000Z", deletedAt: null, data: { name: "A" } },
+          ],
+          serverTimestamp: "2025-01-02T00:00:00.000Z",
+        },
       }),
     });
     expect(await getCachedEntity(tenantId, "party", id)).not.toBeUndefined();
@@ -78,15 +88,18 @@ describe("pullEntity", () => {
     });
 
     const transport: PullTransport = async () => ({
-      records: [
-        {
-          id: clientGeneratedId,
-          updatedAt: "2026-01-01T00:00:00.000Z",
-          deletedAt: null,
-          data: { name: "Valeur serveur" },
-        },
-      ],
-      serverTimestamp: "2026-01-02T00:00:00.000Z",
+      ok: true,
+      data: {
+        records: [
+          {
+            id: clientGeneratedId,
+            updatedAt: "2026-01-01T00:00:00.000Z",
+            deletedAt: null,
+            data: { name: "Valeur serveur" },
+          },
+        ],
+        serverTimestamp: "2026-01-02T00:00:00.000Z",
+      },
     });
 
     const result = await pullEntity({ tenantId, entity: "party", pullTransport: transport });
@@ -102,14 +115,22 @@ describe("pullEntity", () => {
       calls.push(pageCursor);
       if (!pageCursor) {
         return {
-          records: [{ id: "a", updatedAt: "2026-01-01T00:00:00.000Z", deletedAt: null, data: {} }],
-          nextPageCursor: "page-2",
-          serverTimestamp: "2026-01-05T00:00:00.000Z",
+          ok: true,
+          data: {
+            records: [
+              { id: "a", updatedAt: "2026-01-01T00:00:00.000Z", deletedAt: null, data: {} },
+            ],
+            nextPageCursor: "page-2",
+            serverTimestamp: "2026-01-05T00:00:00.000Z",
+          },
         };
       }
       return {
-        records: [{ id: "b", updatedAt: "2026-01-02T00:00:00.000Z", deletedAt: null, data: {} }],
-        serverTimestamp: "2026-01-06T00:00:00.000Z",
+        ok: true,
+        data: {
+          records: [{ id: "b", updatedAt: "2026-01-02T00:00:00.000Z", deletedAt: null, data: {} }],
+          serverTimestamp: "2026-01-06T00:00:00.000Z",
+        },
       };
     };
 
@@ -125,9 +146,14 @@ describe("pullEntity", () => {
     const transport: PullTransport = async ({ pageCursor }) => {
       if (!pageCursor) {
         return {
-          records: [{ id: "a", updatedAt: "2026-01-01T00:00:00.000Z", deletedAt: null, data: {} }],
-          nextPageCursor: "page-2",
-          serverTimestamp: "2026-01-05T00:00:00.000Z",
+          ok: true,
+          data: {
+            records: [
+              { id: "a", updatedAt: "2026-01-01T00:00:00.000Z", deletedAt: null, data: {} },
+            ],
+            nextPageCursor: "page-2",
+            serverTimestamp: "2026-01-05T00:00:00.000Z",
+          },
         };
       }
       throw new Error("Erreur réseau sur la page 2");
@@ -144,15 +170,29 @@ describe("pullEntity", () => {
     const tenantA = tenant();
     const tenantB = tenant();
     const transport: PullTransport = async () => ({
-      records: [
-        { id: "a", updatedAt: "2026-01-01T00:00:00.000Z", deletedAt: null, data: { name: "A" } },
-      ],
-      serverTimestamp: "2026-01-02T00:00:00.000Z",
+      ok: true,
+      data: {
+        records: [
+          { id: "a", updatedAt: "2026-01-01T00:00:00.000Z", deletedAt: null, data: { name: "A" } },
+        ],
+        serverTimestamp: "2026-01-02T00:00:00.000Z",
+      },
     });
 
     await pullEntity({ tenantId: tenantA, entity: "party", pullTransport: transport });
 
     expect(await getCursor(tenantB, "party")).toBeUndefined();
     expect(await getCachedEntity(tenantB, "party", "a")).toBeUndefined();
+  });
+
+  it("session expirée (ok:false) : lève AuthRequiredError, curseur non avancé", async () => {
+    const tenantId = tenant();
+    const transport: PullTransport = async () => ({ ok: false, reason: "auth_required" });
+
+    await expect(
+      pullEntity({ tenantId, entity: "party", pullTransport: transport }),
+    ).rejects.toBeInstanceOf(AuthRequiredError);
+
+    expect(await getCursor(tenantId, "party")).toBeUndefined();
   });
 });

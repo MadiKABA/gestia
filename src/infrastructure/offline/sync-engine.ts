@@ -89,7 +89,14 @@ export async function syncQueue(deps: {
 
     try {
       const outcome = await deps.syncTransport(mutation);
-      if (!outcome.ok) throw new AuthRequiredError();
+      if (!outcome.ok) {
+        // "rate_limited" tombe dans le catch générique ci-dessous (backoff
+        // exponentiel classique, comme une coupure réseau) — seul
+        // "auth_required" a un traitement dédié, sans backoff.
+        throw outcome.reason === "auth_required"
+          ? new AuthRequiredError()
+          : new Error("Trop de synchronisations récentes, nouvelle tentative différée");
+      }
       const result = outcome.data;
 
       await markMutationSynced(record.id, new Date().toISOString());

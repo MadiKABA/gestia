@@ -55,7 +55,14 @@ export async function pullEntity(deps: {
 
   do {
     const outcome = await deps.pullTransport({ entity: deps.entity, since, pageCursor });
-    if (!outcome.ok) throw new AuthRequiredError();
+    if (!outcome.ok) {
+      // "rate_limited" remonte comme une erreur générique (échec transitoire
+      // ordinaire côté network-status-store.ts) — seul "auth_required" a un
+      // traitement dédié, voir sync-engine.ts pour le même choix côté push.
+      throw outcome.reason === "auth_required"
+        ? new AuthRequiredError()
+        : new Error("Trop de synchronisations récentes, nouvelle tentative différée");
+    }
     const result = outcome.data;
     latestServerTimestamp = result.serverTimestamp;
 

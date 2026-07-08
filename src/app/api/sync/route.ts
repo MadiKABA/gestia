@@ -6,6 +6,7 @@ import { PrismaAuditLogger } from "@/infrastructure/audit-log/audit-log.reposito
 import { registerPartySync } from "@/infrastructure/party/register-party-sync";
 import { pullChangesInputSchema, queuedMutationInputSchema } from "@/presentation/offline/schemas";
 import { ForbiddenError } from "@/domain/shared/errors";
+import { checkRateLimit, SYNC_RATE_LIMIT } from "@/infrastructure/shared/rate-limiter";
 
 // Même précaution que presentation/offline/actions.ts : enregistré dans ce
 // module précisément (pas seulement instrumentation.ts), qui bundle dans un
@@ -43,6 +44,13 @@ export async function POST(request: Request): Promise<Response> {
       return Response.json({ error: error.message }, { status: 401 });
     }
     throw error;
+  }
+
+  // Même compteur que syncMutationAction/pullChangesAction (clé identique
+  // tenant+utilisateur) : un client buggé qui bascule entre Server Action et
+  // ce endpoint ne doit pas doubler son quota effectif.
+  if (!checkRateLimit(`${context.tenantId}:${context.userId}`, SYNC_RATE_LIMIT)) {
+    return Response.json({ error: "Trop de requêtes" }, { status: 429 });
   }
 
   let body: z.infer<typeof syncRouteInputSchema>;

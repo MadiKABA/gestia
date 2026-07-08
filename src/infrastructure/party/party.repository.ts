@@ -33,6 +33,41 @@ export class PrismaPartyRepository extends TenantScopedRepository implements Par
     return parties.map((party) => ({ ...party, balance: 0 }));
   }
 
+  /**
+   * Réservé au PullHandler de synchronisation descendante
+   * (infrastructure/party/party-pull-handler.ts) — n'appartient pas à
+   * `PartyRepository` (contrat consommé par les use cases métier) : inclut
+   * volontairement les lignes soft-deleted (`deletedAt` non nul), que le
+   * pull générique doit répercuter comme suppression côté client plutôt que
+   * les filtrer comme le fait `findMany` ci-dessus.
+   *
+   * `cursor` départage les lignes ayant exactement le même `updatedAt`
+   * (pagination stable) : jamais recalculé ni réassigné en cours de
+   * pagination par l'appelant, voir pull-engine.ts.
+   */
+  async findChangedSince(
+    since: Date,
+    queryStartedAt: Date,
+    cursor: { updatedAt: Date; id: string } | undefined,
+    take: number,
+  ) {
+    return this.prisma.party.findMany({
+      where: this.scoped({
+        updatedAt: { gt: since, lte: queryStartedAt },
+        ...(cursor
+          ? {
+              OR: [
+                { updatedAt: { gt: cursor.updatedAt } },
+                { updatedAt: cursor.updatedAt, id: { gt: cursor.id } },
+              ],
+            }
+          : {}),
+      }),
+      orderBy: [{ updatedAt: "asc" }, { id: "asc" }],
+      take,
+    });
+  }
+
   async create(id: string, input: PartyInput): Promise<Party> {
     return this.prisma.party.create({
       data: {

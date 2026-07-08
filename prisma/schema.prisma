@@ -255,6 +255,7 @@ model Party {
 
   @@index([tenantId])
   @@index([tenantId, name])
+  @@index([tenantId, updatedAt])
   @@map("parties")
 }
 

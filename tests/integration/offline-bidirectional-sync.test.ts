@@ -7,14 +7,13 @@ import { updateParty } from "@/application/party/update-party.use-case";
 import { registerMutationHandler } from "@/application/offline/mutation-handler-registry";
 import { registerPullHandler } from "@/application/offline/pull-handler-registry";
 import { partyMutationHandler } from "@/infrastructure/party/party-mutation-handler";
+import { partyPullHandler } from "@/infrastructure/party/party-pull-handler";
 import { syncMutation } from "@/application/offline/sync-mutation.use-case";
 import { pullChanges } from "@/application/offline/pull-changes.use-case";
 import { syncQueue, type SyncTransport } from "@/infrastructure/offline/sync-engine";
 import { pullEntity, type PullTransport } from "@/infrastructure/offline/pull-engine";
 import { PartyOfflineRepository } from "@/infrastructure/party/party-offline.repository";
 import { getCachedEntity } from "@/infrastructure/offline/local-cache.store";
-import type { PullHandler } from "@/application/offline/pull-handler";
-import type { PartyWithBalance } from "@/application/party/party.repository";
 import type { TenantContext } from "@/domain/shared/tenant-context";
 
 /**
@@ -22,37 +21,13 @@ import type { TenantContext } from "@/domain/shared/tenant-context";
  * les tests unitaires (fake-transport) ne peuvent pas : que le curseur/pull
  * réel réconcilie correctement ce qu'un push vient tout juste d'écrire.
  *
- * Le module Party n'a pas encore de PullHandler de production (retrofit
- * prévu séparément, cf. CLAUDE.md) — ce fichier en enregistre un minimal,
- * local à ce test, pour valider le mécanisme générique de bout en bout sans
- * attendre ce retrofit. Ne fuit jamais dans le code applicatif.
- *
- * Enregistré sous l'entity "party" (pas un nom synthétique) : c'est celle
- * que PartyOfflineRepository utilise déjà en dur côté push/cache local —
- * hasPendingMutationFor (skip du pull sur mutation en attente) corrèle les
- * deux côtés par ce nom, un nom différent romprait silencieusement cette
- * corrélation sans que ça ressemble à un bug de test.
+ * Utilise le PullHandler de production de Party (retrofit, voir
+ * infrastructure/party/party-pull-handler.ts) — les particularités propres
+ * à Party (solde à 0, soft-delete) sont testées séparément dans
+ * party-pull-handler.test.ts, ce fichier se concentre sur le mécanisme
+ * générique push -> pull -> fusion.
  */
 const entity = "party";
-
-function testPartyPullHandler(): PullHandler<PartyWithBalance> {
-  return {
-    async findChangedSince(context, since, queryStartedAt) {
-      const rows = await prisma.party.findMany({
-        where: { tenantId: context.tenantId, updatedAt: { gt: since, lte: queryStartedAt } },
-        orderBy: { updatedAt: "asc" },
-      });
-      return {
-        records: rows.map((row) => ({
-          id: row.id,
-          updatedAt: row.updatedAt.toISOString(),
-          deletedAt: row.deletedAt?.toISOString() ?? null,
-          data: { ...row, balance: 0 },
-        })),
-      };
-    },
-  };
-}
 
 describe("Cycle de synchronisation bidirectionnel : push -> pull -> fusion", () => {
   const tenantId = "test-tenant-bidirectional-sync";
@@ -70,7 +45,7 @@ describe("Cycle de synchronisation bidirectionnel : push -> pull -> fusion", () 
 
   beforeAll(async () => {
     registerMutationHandler("party", partyMutationHandler);
-    registerPullHandler(entity, testPartyPullHandler());
+    registerPullHandler(entity, partyPullHandler);
 
     await prisma.tenant.create({ data: { id: tenantId, name: "Tenant bidirectionnel" } });
     const patron = await prisma.user.create({

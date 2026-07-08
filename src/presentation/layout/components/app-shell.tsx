@@ -8,6 +8,7 @@ import { SidebarFixed } from "@/presentation/layout/components/sidebar-fixed";
 import { QuickActionSheet } from "@/presentation/layout/components/quick-action-sheet";
 import { StoragePersistenceWarning } from "@/presentation/shared/components/storage-persistence-warning";
 import { ensureCacheMatchesAccount } from "@/infrastructure/offline/account-guard";
+import { registerPullableEntities } from "@/presentation/offline/register-pullable-entities";
 import type { NavRole } from "@/presentation/layout/nav-config";
 import type { TenantBranding } from "@/application/tenant/tenant-branding.repository";
 
@@ -50,6 +51,13 @@ export function AppShell({
       cancelled = true;
     };
   }, [tenantId, userId]);
+
+  // Enregistrement idempotent (Set) — une fois suffit, avant que le premier
+  // cycle de sync (network-status-store.ts) ne parcoure la liste des
+  // entities à rafraîchir par pull.
+  useEffect(() => {
+    registerPullableEntities();
+  }, []);
 
   return (
     <div className="bg-background min-h-dvh">

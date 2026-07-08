@@ -5,43 +5,23 @@ import { PrismaAuditLogger } from "@/infrastructure/audit-log/audit-log.reposito
 import { registerMutationHandler } from "@/application/offline/mutation-handler-registry";
 import { registerPullHandler } from "@/application/offline/pull-handler-registry";
 import { partyMutationHandler } from "@/infrastructure/party/party-mutation-handler";
+import { partyPullHandler } from "@/infrastructure/party/party-pull-handler";
 import { syncMutation } from "@/application/offline/sync-mutation.use-case";
 import { pullChanges } from "@/application/offline/pull-changes.use-case";
 import { syncQueue, type SyncTransport } from "@/infrastructure/offline/sync-engine";
 import { PartyOfflineRepository } from "@/infrastructure/party/party-offline.repository";
-import type { PullHandler } from "@/application/offline/pull-handler";
-import type { PartyWithBalance } from "@/application/party/party.repository";
 import type { TenantContext } from "@/domain/shared/tenant-context";
 
 /**
  * Isolation multi-tenant du pull générique — symétrique aux tests
- * d'isolation déjà en place côté push (TenantScopedRepository). Même
- * PullHandler de test que offline-bidirectional-sync.test.ts (voir son
- * commentaire : Party n'a pas encore de PullHandler de production).
+ * d'isolation déjà en place côté push (TenantScopedRepository). Utilise le
+ * PullHandler de production de Party (voir
+ * infrastructure/party/party-pull-handler.ts), retrofité sur cette couche.
  *
- * Entity "party" (pas un nom synthétique) : voir le commentaire équivalent
- * dans offline-bidirectional-sync.test.ts — PartyOfflineRepository l'utilise
+ * Entity "party" (pas un nom synthétique) : PartyOfflineRepository l'utilise
  * déjà en dur côté push/cache local.
  */
 const entity = "party";
-
-function testPartyPullHandler(): PullHandler<PartyWithBalance> {
-  return {
-    async findChangedSince(context, since, queryStartedAt) {
-      const rows = await prisma.party.findMany({
-        where: { tenantId: context.tenantId, updatedAt: { gt: since, lte: queryStartedAt } },
-      });
-      return {
-        records: rows.map((row) => ({
-          id: row.id,
-          updatedAt: row.updatedAt.toISOString(),
-          deletedAt: row.deletedAt?.toISOString() ?? null,
-          data: { ...row, balance: 0 },
-        })),
-      };
-    },
-  };
-}
 
 describe("Isolation multi-tenant du pull générique", () => {
   const auditLogger = new PrismaAuditLogger();
@@ -54,7 +34,7 @@ describe("Isolation multi-tenant du pull générique", () => {
 
   beforeAll(async () => {
     registerMutationHandler("party", partyMutationHandler);
-    registerPullHandler(entity, testPartyPullHandler());
+    registerPullHandler(entity, partyPullHandler);
 
     await prisma.tenant.createMany({
       data: [

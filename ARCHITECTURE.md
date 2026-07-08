@@ -247,6 +247,41 @@ préfixé, standard récent, supporté depuis iOS 17.4) — l'historique
 antérieures n'est plus généré automatiquement, ajouté manuellement via
 `metadata.other` dans le même fichier pour ne pas dépendre d'iOS 17.4+.
 
+## Sécurité du cache local (IndexedDB)
+
+Le cache offline (`localCache`, `mutationQueue` — voir
+`infrastructure/offline/db.ts`) contient des données métier sensibles
+(montants, coordonnées clients) directement lisibles depuis
+IndexedDB sur l'appareil, potentiellement partagé (plusieurs vendeurs sur
+le même téléphone boutique) ou volé. **Décision V1, assumée** : pas de
+chiffrement du contenu IndexedDB lui-même — complexité et coût de
+performance disproportionnés pour cette version, sur un device supposé
+personnel dans l'usage nominal. La protection réelle repose sur le cycle
+de vie du cache, pas sur son contenu :
+
+- **Déconnexion** (`clearAccountCache`, appelé par
+  `sidebar-nav-content.tsx` avant `signOutAction()`) : vide entièrement le
+  cache et le marqueur de compte. Aucune donnée ne doit rester accessible
+  après déconnexion sur un appareil partagé.
+- **Changement de compte** (`ensureCacheMatchesAccount`, appelé au montage
+  de `app-shell.tsx`) : si le compte actuellement connecté diffère du
+  dernier marqueur connu (autre `tenantId`/`userId` sur ce même
+  appareil/navigateur — ex: un vendeur qui se connecte après un autre sans
+  déconnexion explicite préalable), le cache est vidé avant que le
+  moindre enfant ne puisse le lire. L'ordre d'exécution des effets React
+  (enfants avant parents) impose que ce garde-fou bloque le rendu de ses
+  enfants jusqu'à sa propre résolution — sans ça, un composant descendant
+  pourrait lire le cache de l'ancien compte avant que ce garde-fou n'ait eu
+  la main.
+- Le marqueur de compte lui-même vit en `localStorage` (synchrone), jamais
+  IndexedDB : il doit être lisible sans attendre l'ouverture d'une
+  connexion IndexedDB, avant tout accès potentiel au cache.
+
+Si le chiffrement au repos devient nécessaire (device professionnel non
+maîtrisé, exigence réglementaire), il resterait à ajouter une couche de
+chiffrement symétrique dérivée d'un secret de session — non fait ici, piste
+à documenter séparément le jour où le besoin se confirme.
+
 ## Next.js 16 — particularité à connaître
 
 Le middleware s'appelle désormais `proxy` (`src/proxy.ts`, plus

@@ -8,8 +8,9 @@ import { ForbiddenError } from "@/domain/shared/errors";
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
   let role: "PATRON" | "VENDEUR";
   let tenantId: string;
+  let userId: string;
   try {
-    ({ role, tenantId } = await requireTenantContext());
+    ({ role, tenantId, userId } = await requireTenantContext());
   } catch (error) {
     if (error instanceof ForbiddenError) {
       redirect("/login");
@@ -20,7 +21,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   const branding = await getTenantBrandingAction();
 
   return (
-    <AppShell role={role} branding={branding} tenantId={tenantId}>
+    <AppShell role={role} branding={branding} tenantId={tenantId} userId={userId}>
       {children}
     </AppShell>
   );

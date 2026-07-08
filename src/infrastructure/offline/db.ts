@@ -102,6 +102,22 @@ export function resetDbConnection(): void {
   dbPromise = null;
 }
 
+/**
+ * Vide entièrement le cache offline — déconnexion ou changement de
+ * compte/tenant sur le même appareil (voir account-guard.ts). Les données
+ * en cache local contiennent des informations métier sensibles (montants,
+ * coordonnées clients) sur un appareil potentiellement partagé ou volé,
+ * jamais chiffrées au repos dans IndexedDB (voir ARCHITECTURE.md "Sécurité
+ * du cache local") : ce vidage systématique est la seule protection réelle
+ * de cette version. `clear()` sur chaque store plutôt qu'un `deleteDB` :
+ * évite de fermer/rouvrir la connexion IndexedDB déjà ouverte par cet
+ * onglet, source de blocages silencieux si un autre appel est en cours.
+ */
+export async function clearAllOfflineData(): Promise<void> {
+  const db = await getDb();
+  await Promise.all([db.clear("mutationQueue"), db.clear("localCache"), db.clear("syncCursors")]);
+}
+
 export function localCacheKey(tenantId: string, entity: string, entityId: string): string {
   return `${tenantId}:${entity}:${entityId}`;
 }

@@ -7,6 +7,7 @@ import { LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getSidebarNavItems, type NavRole } from "@/presentation/layout/nav-config";
 import { signOutAction } from "@/presentation/auth/actions";
+import { clearAccountCache } from "@/infrastructure/offline/account-guard";
 
 /** Contenu de navigation partagé par le drawer mobile et la sidebar fixe
  * desktop — une seule liste à étendre pour les futures features. */
@@ -51,7 +52,16 @@ export function SidebarNavContent({
         <button
           type="button"
           disabled={signingOut}
-          onClick={() => startSignOut(() => signOutAction())}
+          onClick={() =>
+            startSignOut(async () => {
+              // Vidé avant l'appel serveur, jamais après : un appareil
+              // partagé ne doit garder aucune donnée accessible même si la
+              // redirection qui suit est interrompue (cahier des charges
+              // §9, voir ARCHITECTURE.md "Sécurité du cache local").
+              await clearAccountCache();
+              await signOutAction();
+            })
+          }
           className="text-muted-foreground hover:bg-accent hover:text-accent-foreground flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors disabled:opacity-60"
         >
           <LogOut className="size-5 shrink-0" aria-hidden />

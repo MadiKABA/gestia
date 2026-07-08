@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { AppHeader } from "@/presentation/layout/components/app-header";
 import { BottomTabBar } from "@/presentation/layout/components/bottom-tab-bar";
 import { SidebarDrawer } from "@/presentation/layout/components/sidebar-drawer";
 import { SidebarFixed } from "@/presentation/layout/components/sidebar-fixed";
 import { QuickActionSheet } from "@/presentation/layout/components/quick-action-sheet";
 import { StoragePersistenceWarning } from "@/presentation/shared/components/storage-persistence-warning";
+import { ensureCacheMatchesAccount } from "@/infrastructure/offline/account-guard";
 import type { NavRole } from "@/presentation/layout/nav-config";
 import type { TenantBranding } from "@/application/tenant/tenant-branding.repository";
 
@@ -20,15 +21,35 @@ export function AppShell({
   role,
   branding,
   tenantId,
+  userId,
   children,
 }: {
   role: NavRole;
   branding: TenantBranding;
   tenantId: string;
+  userId: string;
   children: ReactNode;
 }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [quickActionOpen, setQuickActionOpen] = useState(false);
+  // Toujours false au premier rendu (serveur ET client, avant hydratation) :
+  // aucun risque de mismatch. Ne passe à true qu'une fois le garde-fou de
+  // compte résolu (voir account-guard.ts) — dans le cas courant (pas de
+  // changement de compte), quasi instantané (une lecture localStorage), le
+  // coût perçu est négligeable ; ça garantit surtout qu'aucun enfant (ex:
+  // PartiesList) ne peut lire le cache offline avant que ce garde-fou n'ait
+  // eu la main, l'ordre des effets React étant enfants avant parents.
+  const [cacheReady, setCacheReady] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void ensureCacheMatchesAccount(tenantId, userId).then(() => {
+      if (!cancelled) setCacheReady(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [tenantId, userId]);
 
   return (
     <div className="bg-background min-h-dvh">
@@ -37,7 +58,7 @@ export function AppShell({
 
       <main className="min-h-dvh pt-14 pb-16 lg:pb-0 lg:pl-64">
         <StoragePersistenceWarning />
-        {children}
+        {cacheReady ? children : null}
       </main>
 
       <BottomTabBar

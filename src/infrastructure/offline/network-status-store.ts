@@ -5,7 +5,10 @@ import {
 } from "@/infrastructure/offline/sync-engine";
 import { pullEntity, type PullTransport } from "@/infrastructure/offline/pull-engine";
 import { listPullableEntities } from "@/infrastructure/offline/pull-registry";
-import { listPendingMutations } from "@/infrastructure/offline/mutation-queue.store";
+import {
+  listPendingMutations,
+  purgeSyncedMutations,
+} from "@/infrastructure/offline/mutation-queue.store";
 import { BACKGROUND_SYNC_TAG, supportsBackgroundSync } from "@/infrastructure/offline/platform";
 import { AuthRequiredError } from "@/infrastructure/offline/errors";
 
@@ -185,6 +188,12 @@ export class NetworkStatusStore {
           pushResult.nextRetryDelayMs ?? computeBackoffDelayMs(0),
         );
       } else {
+        // Cycle push+pull entièrement réussi : bon moment pour purger les
+        // mutations déjà confirmées trop anciennes (cf.
+        // mutation-queue.store.ts:purgeSyncedMutations) — jamais tenté sur
+        // un cycle en échec, où la queue doit rester intacte pour la
+        // prochaine tentative.
+        await purgeSyncedMutations(this.tenantId);
         this.publish({ syncState: count > 0 ? "pending" : "idle" });
       }
     } finally {

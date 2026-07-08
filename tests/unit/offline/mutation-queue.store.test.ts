@@ -2,10 +2,12 @@ import "fake-indexeddb/auto";
 import { describe, expect, it } from "vitest";
 import {
   enqueueMutation,
+  getMutation,
   hasPendingMutationFor,
   listPendingMutations,
   markMutationFailed,
   markMutationSynced,
+  purgeSyncedMutations,
 } from "@/infrastructure/offline/mutation-queue.store";
 import { generateClientId } from "@/infrastructure/offline/id-generator";
 
@@ -164,6 +166,102 @@ describe("mutation-queue.store", () => {
       });
 
       expect(await hasPendingMutationFor(tenantId, "transaction", clientGeneratedId)).toBe(false);
+    });
+  });
+
+  describe("purgeSyncedMutations", () => {
+    const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+
+    it("supprime une mutation synced dont syncedAt dépasse la rétention", async () => {
+      const tenantId = tenant();
+      const record = await enqueueMutation({
+        id: generateClientId(),
+        tenantId,
+        entity: "party",
+        action: "create",
+        payload: {},
+        clientGeneratedId: generateClientId(),
+        createdById: "user-1",
+      });
+      const eightDaysAgo = new Date(Date.now() - 8 * ONE_DAY_MS).toISOString();
+      await markMutationSynced(record.id, eightDaysAgo);
+
+      const purged = await purgeSyncedMutations(tenantId, 7 * ONE_DAY_MS);
+
+      expect(purged).toBe(1);
+      expect(await getMutation(record.id)).toBeUndefined();
+    });
+
+    it("garde une mutation synced encore dans la fenêtre de rétention", async () => {
+      const tenantId = tenant();
+      const record = await enqueueMutation({
+        id: generateClientId(),
+        tenantId,
+        entity: "party",
+        action: "create",
+        payload: {},
+        clientGeneratedId: generateClientId(),
+        createdById: "user-1",
+      });
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+      await markMutationSynced(record.id, oneHourAgo);
+
+      const purged = await purgeSyncedMutations(tenantId, 7 * ONE_DAY_MS);
+
+      expect(purged).toBe(0);
+      expect(await getMutation(record.id)).toBeDefined();
+    });
+
+    it("ne touche jamais une mutation non synchronisée, même en erreur", async () => {
+      const tenantId = tenant();
+      const pending = await enqueueMutation({
+        id: generateClientId(),
+        tenantId,
+        entity: "party",
+        action: "create",
+        payload: {},
+        clientGeneratedId: generateClientId(),
+        createdById: "user-1",
+      });
+      const failed = await enqueueMutation({
+        id: generateClientId(),
+        tenantId,
+        entity: "party",
+        action: "create",
+        payload: {},
+        clientGeneratedId: generateClientId(),
+        createdById: "user-1",
+      });
+      await markMutationFailed(failed.id, "Network error");
+
+      // Rétention à 0 : n'importe quelle mutation synced serait purgée
+      // immédiatement, mais ni pending ni failed ne sont synced.
+      const purged = await purgeSyncedMutations(tenantId, 0);
+
+      expect(purged).toBe(0);
+      expect(await getMutation(pending.id)).toBeDefined();
+      expect(await getMutation(failed.id)).toBeDefined();
+    });
+
+    it("isole la purge par tenant", async () => {
+      const tenantA = tenant();
+      const tenantB = tenant();
+      const recordA = await enqueueMutation({
+        id: generateClientId(),
+        tenantId: tenantA,
+        entity: "party",
+        action: "create",
+        payload: {},
+        clientGeneratedId: generateClientId(),
+        createdById: "user-1",
+      });
+      const eightDaysAgo = new Date(Date.now() - 8 * ONE_DAY_MS).toISOString();
+      await markMutationSynced(recordA.id, eightDaysAgo);
+
+      const purged = await purgeSyncedMutations(tenantB, 7 * ONE_DAY_MS);
+
+      expect(purged).toBe(0);
+      expect(await getMutation(recordA.id)).toBeDefined();
     });
   });
 });

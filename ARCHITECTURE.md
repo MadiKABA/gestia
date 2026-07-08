@@ -200,12 +200,14 @@ passage le payload avec le schéma Zod enregistré pour l'entity
 (`mutation-schema-registry.ts`, ex. `partySyncPayloadSchema`) avant tout
 appel au handler.
 
-**TODO connu (non critique en V1)** : une mutation passée à l'état `synced`
-dans `mutationQueue` n'est aujourd'hui jamais purgée d'IndexedDB — la file
-ne fait que croître. Sans impact au volume d'usage V1 (une boutique génère
-quelques dizaines de mutations/jour), mais à traiter avant une croissance
-significative du nombre de mutations par appareil : purge périodique ou à
-la connexion des entrées `synced` au-delà d'une rétention donnée.
+**Purge des mutations synced** : `purgeSyncedMutations`
+(`infrastructure/offline/mutation-queue.store.ts`) supprime les entrées
+`synced: true` dont `syncedAt` dépasse une rétention de 7 jours
+(`SYNCED_MUTATION_RETENTION_MS`) — assez pour investiguer un incident de
+sync récent sans laisser `mutationQueue` croître indéfiniment. Déclenchée à
+la fin de chaque cycle push+pull réussi (`network-status-store.ts:runSync`),
+jamais sur un cycle en échec : une mutation non confirmée ou en erreur
+(`syncError`) reste toujours intacte, seule `synced: true` est concernée.
 
 ## Synchronisation descendante (pull)
 

@@ -14,14 +14,9 @@ export type NewMutationQueueEntry = Pick<
 
 /**
  * CRUD de la queue de mutations (IndexedDB, store `mutationQueue`). Ne
- * supprime jamais une entrée avant confirmation serveur explicite — voir
- * `markSynced`, jamais de `delete` direct exposé ici.
- *
- * TODO: les entrées `synced: true` ne sont jamais purgées après coup —
- * `markMutationSynced` ne fait que les marquer, la queue ne fait donc que
- * grandir sur la durée de vie d'un appareil. Pas critique pour le volume
- * d'usage V1 (voir CLAUDE.md), mais à traiter avant que ça devienne
- * perceptible (purge périodique des entrées synced anciennes, par exemple).
+ * supprime une entrée qu'après confirmation serveur explicite ET expiration
+ * de la rétention de debug (voir `purgeSyncedMutations` plus bas) — jamais
+ * de suppression directe d'une mutation non confirmée ou en erreur.
  */
 export async function enqueueMutation(entry: NewMutationQueueEntry): Promise<MutationQueueRecord> {
   const db = await getDb();
@@ -100,4 +95,35 @@ export async function listPendingTenantIds(): Promise<string[]> {
   const db = await getDb();
   const all = await db.getAll("mutationQueue");
   return [...new Set(all.filter((m) => !m.synced).map((m) => m.tenantId))];
+}
+
+/** Rétention de debug par défaut pour une mutation déjà synchronisée — assez
+ * pour investiguer un incident de sync récent sans laisser la file croître
+ * indéfiniment (cf. ARCHITECTURE.md). */
+export const SYNCED_MUTATION_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
+
+/**
+ * Supprime les mutations `synced: true` dont `syncedAt` dépasse la
+ * rétention donnée — jamais une mutation non confirmée (`synced: false`,
+ * qu'elle soit en attente ou en erreur `syncError`) : celles-ci doivent
+ * rester visibles pour debug/retry, purger ne concerne que la queue déjà
+ * confirmée côté serveur. Appelée à la fin de chaque cycle push+pull réussi
+ * (voir `network-status-store.ts:runSync`), jamais sur un cycle en échec.
+ */
+export async function purgeSyncedMutations(
+  tenantId: string,
+  retentionMs: number = SYNCED_MUTATION_RETENTION_MS,
+): Promise<number> {
+  const db = await getDb();
+  const all = await db.getAll("mutationQueue");
+  const cutoff = Date.now() - retentionMs;
+  const expired = all.filter(
+    (m) =>
+      m.tenantId === tenantId &&
+      m.synced &&
+      m.syncedAt !== undefined &&
+      Date.parse(m.syncedAt) < cutoff,
+  );
+  await Promise.all(expired.map((m) => db.delete("mutationQueue", m.id)));
+  return expired.length;
 }

@@ -24,20 +24,29 @@ const NEW_PARTY_TYPE_LABEL: Record<"CLIENT" | "SUPPLIER", string> = {
 export type PickedParty = { id: string; name: string };
 
 /**
- * Étape "personne" du wizard de création d'opération : recherche/sélection
- * d'un tiers existant, ou création à la volée sans quitter le flux. La
- * question client/fournisseur n'est posée que dans ce second cas — un tiers
- * déjà existant garde son type actuel, jamais reposé ici (voir
- * domain/party/party.entity.ts, PartyType déterminé une seule fois à la
- * création, mis à jour uniquement à la main via la fiche Party).
+ * Étape "personne" du parcours de création d'opération (page unique et
+ * wizard modal mobile) : recherche/sélection d'un tiers existant, ou
+ * création à la volée sans quitter le flux. La question client/fournisseur
+ * n'est posée que dans ce second cas — un tiers déjà existant garde son type
+ * actuel, jamais reposé ici (voir domain/party/party.entity.ts, PartyType
+ * déterminé une seule fois à la création, mis à jour uniquement à la main
+ * via la fiche Party).
+ *
+ * `filterType` (page de création unique uniquement, absent dans le wizard) :
+ * restreint la recherche aux tiers de ce type et, en création à la volée,
+ * fixe directement `newType` sans reposer la question — déduit de la
+ * situation choisie à l'étape précédente ("On me doit" → clients, "Je dois"
+ * → fournisseurs), jamais redemandé.
  */
 export function PartyPickerStep({
   tenantId,
   userId,
+  filterType,
   onSelect,
 }: {
   tenantId: string;
   userId: string;
+  filterType?: "CLIENT" | "SUPPLIER";
   onSelect: (party: PickedParty) => void;
 }) {
   const repository = useMemo(
@@ -49,14 +58,14 @@ export function PartyPickerStep({
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState("");
   const [newPhone, setNewPhone] = useState("");
-  const [newType, setNewType] = useState<"CLIENT" | "SUPPLIER">("CLIENT");
+  const [newType, setNewType] = useState<"CLIENT" | "SUPPLIER">(filterType ?? "CLIENT");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     const timeout = setTimeout(() => {
-      void repository.list({ search: search || undefined }).then((parties) => {
+      void repository.list({ search: search || undefined, type: filterType }).then((parties) => {
         if (cancelled) return;
         setResults(
           parties.map((party) => ({
@@ -71,7 +80,7 @@ export function PartyPickerStep({
       cancelled = true;
       clearTimeout(timeout);
     };
-  }, [search, repository]);
+  }, [search, filterType, repository]);
 
   async function confirmNewParty() {
     if (!newName.trim()) {
@@ -110,23 +119,25 @@ export function PartyPickerStep({
           <Label htmlFor="new-party-phone">{partyLabels.pickerCreateNewPhoneField}</Label>
           <PhoneInput id="new-party-phone" value={newPhone} onValueChange={setNewPhone} />
         </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="new-party-type">{partyLabels.pickerTypeQuestion}</Label>
-          <Select
-            value={newType}
-            onValueChange={(value) => setNewType(value as "CLIENT" | "SUPPLIER")}
-          >
-            <SelectTrigger id="new-party-type" className="w-full">
-              <SelectValue>
-                {(value: string) => NEW_PARTY_TYPE_LABEL[value as "CLIENT" | "SUPPLIER"]}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="CLIENT">{partyLabels.typeClient}</SelectItem>
-              <SelectItem value="SUPPLIER">{partyLabels.typeSupplier}</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        {filterType ? null : (
+          <div className="space-y-1.5">
+            <Label htmlFor="new-party-type">{partyLabels.pickerTypeQuestion}</Label>
+            <Select
+              value={newType}
+              onValueChange={(value) => setNewType(value as "CLIENT" | "SUPPLIER")}
+            >
+              <SelectTrigger id="new-party-type" className="w-full">
+                <SelectValue>
+                  {(value: string) => NEW_PARTY_TYPE_LABEL[value as "CLIENT" | "SUPPLIER"]}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="CLIENT">{partyLabels.typeClient}</SelectItem>
+                <SelectItem value="SUPPLIER">{partyLabels.typeSupplier}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
         {error ? <p className="text-destructive text-sm">{error}</p> : null}
         <div className="flex gap-2">
           <Button variant="outline" className="flex-1" onClick={() => setCreating(false)}>

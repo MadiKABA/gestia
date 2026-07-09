@@ -4,6 +4,7 @@ import {
   HandCoins,
   Home,
   MessageCircle,
+  PlusCircle,
   Receipt,
   Settings,
   UserCircle,
@@ -37,6 +38,13 @@ export const SIDEBAR_NAV_ITEMS: SidebarNavItem[] = [
     label: partyLabels.listTitle,
     href: "/tiers",
     icon: Users,
+    roles: ["PATRON", "VENDEUR"],
+  },
+  {
+    key: "nouvelle-operation",
+    label: transactionLabels.newOperationButtonLabel,
+    href: "/transactions/nouvelle",
+    icon: PlusCircle,
     roles: ["PATRON", "VENDEUR"],
   },
   {

@@ -40,8 +40,14 @@ const DEFAULT_VALUES: TransactionFormInput = {
   dueDate: "",
 };
 
+/**
+ * Édition uniquement — la création passe désormais par la page unique
+ * dédiée (transaction-create-form.tsx, cf. plan de refonte), jamais par ce
+ * formulaire. `partyId` est immuable après création (voir
+ * domain/transaction/transaction.entity.ts), le sélecteur reste donc
+ * toujours désactivé ici.
+ */
 export function TransactionForm({
-  mode,
   transactionId,
   tenantId,
   userId,
@@ -49,14 +55,9 @@ export function TransactionForm({
   defaultValues,
   submitLabel,
 }: {
-  mode: "create" | "edit";
-  /** Requis en mode "edit". */
-  transactionId?: string;
+  transactionId: string;
   tenantId: string;
   userId: string;
-  /** Tiers du tenant, pour le sélecteur — `partyId` est immuable après
-   * création (voir domain/transaction/transaction.entity.ts), le sélecteur
-   * est donc désactivé en mode "edit". */
   parties: { id: string; name: string }[];
   defaultValues?: Partial<TransactionFormInput>;
   submitLabel: string;
@@ -82,13 +83,9 @@ export function TransactionForm({
     startTransition(async () => {
       try {
         const input = toTransactionInput(values);
-        if (mode === "create") {
-          await repository.create(input);
-        } else {
-          await repository.update(transactionId!, input);
-        }
+        await repository.update(transactionId, input);
         // Retour à la liste plutôt qu'à la page détail — même raison que
-        // party-form.tsx : indisponible juste après une création hors ligne.
+        // party-form.tsx : indisponible juste après une modification hors ligne.
         router.push("/transactions");
       } catch (err) {
         setSubmitError(err instanceof Error ? err.message : commonLabels.genericError);
@@ -104,11 +101,7 @@ export function TransactionForm({
           control={control}
           name="partyId"
           render={({ field }) => (
-            <Select
-              value={field.value}
-              onValueChange={(value) => field.onChange(value)}
-              disabled={mode === "edit"}
-            >
+            <Select value={field.value} onValueChange={(value) => field.onChange(value)} disabled>
               <SelectTrigger id="partyId" className="w-full" aria-invalid={!!errors.partyId}>
                 <SelectValue placeholder="Choisir un client">
                   {(value: string) => parties.find((party) => party.id === value)?.name ?? value}

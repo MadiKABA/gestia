@@ -5,6 +5,7 @@ import { pullChanges } from "@/application/offline/pull-changes.use-case";
 import { PrismaAuditLogger } from "@/infrastructure/audit-log/audit-log.repository";
 import { registerPartySync } from "@/infrastructure/party/register-party-sync";
 import { registerTransactionSync } from "@/infrastructure/transaction/register-transaction-sync";
+import { registerPaymentSync } from "@/infrastructure/payment/register-payment-sync";
 import { pullChangesInputSchema, queuedMutationInputSchema } from "@/presentation/offline/schemas";
 import { ForbiddenError } from "@/domain/shared/errors";
 import { checkRateLimit, SYNC_RATE_LIMIT } from "@/infrastructure/shared/rate-limiter";
@@ -14,6 +15,7 @@ import { checkRateLimit, SYNC_RATE_LIMIT } from "@/infrastructure/shared/rate-li
 // graphe séparé en production — voir le commentaire détaillé là-bas.
 registerPartySync();
 registerTransactionSync();
+registerPaymentSync();
 
 const auditLogger = new PrismaAuditLogger();
 

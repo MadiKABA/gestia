@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { requireTenantContext } from "@/infrastructure/auth/session";
 import { getTenantBrandingAction } from "@/presentation/tenant/actions";
+import { getCurrentUserAction } from "@/presentation/auth/actions";
 import { AppShell } from "@/presentation/layout/components/app-shell";
 import { ForbiddenError } from "@/domain/shared/errors";
 
@@ -18,10 +19,19 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     throw error;
   }
 
-  const branding = await getTenantBrandingAction();
+  const [branding, currentUser] = await Promise.all([
+    getTenantBrandingAction(),
+    getCurrentUserAction(),
+  ]);
 
   return (
-    <AppShell role={role} branding={branding} tenantId={tenantId} userId={userId}>
+    <AppShell
+      role={role}
+      branding={branding}
+      currentUser={currentUser}
+      tenantId={tenantId}
+      userId={userId}
+    >
       {children}
     </AppShell>
   );

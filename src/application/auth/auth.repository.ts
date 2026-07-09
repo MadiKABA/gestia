@@ -17,6 +17,7 @@ export type AuthUser = {
   phone: string;
   pinHash: string;
   email: string | null;
+  image: string | null;
   role: "PATRON" | "VENDEUR";
   active: boolean;
   failedAttempts: number;

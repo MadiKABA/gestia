@@ -12,6 +12,7 @@ import { ensureCacheMatchesAccount } from "@/infrastructure/offline/account-guar
 import { registerPullableEntities } from "@/presentation/offline/register-pullable-entities";
 import type { NavRole } from "@/presentation/layout/nav-config";
 import type { TenantBranding } from "@/application/tenant/tenant-branding.repository";
+import type { CurrentUser } from "@/application/auth/get-current-user.use-case";
 
 /**
  * Layout applicatif principal : seul endroit portant la logique responsive
@@ -22,12 +23,14 @@ import type { TenantBranding } from "@/application/tenant/tenant-branding.reposi
 export function AppShell({
   role,
   branding,
+  currentUser,
   tenantId,
   userId,
   children,
 }: {
   role: NavRole;
   branding: TenantBranding;
+  currentUser: CurrentUser;
   tenantId: string;
   userId: string;
   children: ReactNode;
@@ -62,8 +65,12 @@ export function AppShell({
 
   return (
     <div className="bg-background min-h-dvh">
-      <SidebarFixed role={role} />
-      <AppHeader branding={branding} tenantId={tenantId} onMenuClick={() => setDrawerOpen(true)} />
+      <SidebarFixed role={role} branding={branding} />
+      <AppHeader
+        currentUser={currentUser}
+        tenantId={tenantId}
+        onMenuClick={() => setDrawerOpen(true)}
+      />
 
       <main className="min-h-dvh pt-14 pb-16 lg:pb-0 lg:pl-64">
         {/* Juste sous le header, visible sans scroll sur toutes les tailles

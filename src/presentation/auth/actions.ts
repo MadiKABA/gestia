@@ -21,6 +21,7 @@ import { confirmPinReset } from "@/application/auth/confirm-pin-reset.use-case";
 import { inviteVendeur } from "@/application/auth/invite-vendeur.use-case";
 import { deactivateVendeur } from "@/application/auth/deactivate-vendeur.use-case";
 import { listVendeurs } from "@/application/auth/list-vendeurs.use-case";
+import { getCurrentUser } from "@/application/auth/get-current-user.use-case";
 import { NotFoundError, ValidationError } from "@/domain/shared/errors";
 import { authLabels } from "@/presentation/shared/labels";
 import {
@@ -166,6 +167,11 @@ export async function deactivateVendeurAction(input: DeactivateVendeurInput) {
 export async function listVendeursAction() {
   const context = await requireTenantContext();
   return listVendeurs(context, { repository });
+}
+
+export async function getCurrentUserAction() {
+  const context = await requireTenantContext();
+  return getCurrentUser(context, { repository });
 }
 
 export async function signOutAction() {

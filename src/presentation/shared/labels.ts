@@ -148,6 +148,18 @@ export const paymentLabels = {
 
 export const authLabels = {
   vendeurNotFoundMessage: "Ce vendeur n'existe plus.",
+
+  viewProfileLabel: "Voir mon profil",
+  signOutLabel: "Se déconnecter",
+  signingOutLabel: "Déconnexion...",
+
+  profilePageTitle: "Mon profil",
+  profileNameLabel: "Nom",
+  profilePhoneLabel: "Téléphone",
+  profileEmailLabel: "Email",
+  profileRoleLabel: "Rôle",
+  roleLabelPatron: "Patron",
+  roleLabelVendeur: "Vendeur",
 };
 
 export const pwaLabels = {

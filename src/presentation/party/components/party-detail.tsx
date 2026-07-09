@@ -62,19 +62,22 @@ export function PartyDetail({
     });
   }
 
+  const balanceColorClass =
+    party.balance > 0 ? "text-[#1B7A5A]" : party.balance < 0 ? "text-[#0F2A4A]" : "text-foreground";
+
   return (
-    <div className="mx-auto max-w-md space-y-6 p-4">
-      <div className="flex items-start justify-between">
+    <div className="mx-auto w-full max-w-md space-y-6 p-4 lg:max-w-2xl">
+      <div className="bg-card border-border flex items-start justify-between rounded-xl border p-4 shadow-xs">
         <div>
           <h1 className="text-foreground text-lg font-semibold">{party.name}</h1>
           <p className="text-muted-foreground text-sm">{TYPE_LABELS[party.type]}</p>
         </div>
-        <span className="text-foreground text-sm font-medium tabular-nums">
+        <span className={`text-sm font-medium tabular-nums ${balanceColorClass}`}>
           {party.balance.toLocaleString("fr-FR")} FCFA
         </span>
       </div>
 
-      <div className="border-border space-y-2 rounded-xl border p-4 text-sm">
+      <div className="bg-card border-border space-y-2 rounded-xl border p-4 text-sm shadow-xs">
         {party.phone ? (
           <p>
             <span className="text-muted-foreground">Téléphone : </span>
@@ -129,7 +132,7 @@ export function PartyDetail({
       </div>
 
       <div>
-        <h2 className="text-foreground mb-2 text-sm font-semibold">Historique des transactions</h2>
+        <h2 className="text-foreground mb-2 text-sm font-semibold">{partyLabels.historyTitle}</h2>
         {transactions.length === 0 ? (
           <p className="text-muted-foreground text-sm">{partyLabels.emptyStateTransactions}</p>
         ) : (
@@ -137,14 +140,16 @@ export function PartyDetail({
             {transactions.map((transaction) => {
               const signedAmount =
                 transaction.type === "CREANCE" ? transaction.amount : -transaction.amount;
+              const amountColorClass =
+                transaction.type === "CREANCE" ? "text-[#1B7A5A]" : "text-[#0F2A4A]";
               return (
                 <li key={transaction.id}>
                   <Link
                     href={`/transactions/${transaction.id}`}
-                    className="border-border hover:bg-accent flex items-center justify-between rounded-lg border p-3 text-sm transition-colors"
+                    className="bg-card border-border hover:bg-accent flex items-center justify-between rounded-lg border p-3 text-sm shadow-xs transition-colors"
                   >
                     <span className="text-foreground truncate">{transaction.description}</span>
-                    <span className="text-foreground shrink-0 font-medium tabular-nums">
+                    <span className={`shrink-0 font-medium tabular-nums ${amountColorClass}`}>
                       {signedAmount.toLocaleString("fr-FR")} FCFA
                     </span>
                   </Link>
@@ -164,7 +169,7 @@ export function PartyDetail({
           render={<Link href={`/tiers/${party.id}/modifier`} />}
           nativeButton={false}
         >
-          Modifier
+          {partyLabels.editButtonLabel}
         </Button>
         {canDelete ? (
           <Button

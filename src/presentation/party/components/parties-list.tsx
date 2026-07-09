@@ -115,24 +115,32 @@ export function PartiesList({
       </div>
 
       <ul className="space-y-2">
-        {parties.map((party) => (
-          <li key={party.id}>
-            <Link
-              href={`/tiers/${party.id}`}
-              className="border-border hover:bg-accent flex items-center justify-between rounded-lg border p-3 transition-colors"
-            >
-              <div>
-                <p className="text-foreground text-sm font-medium">{party.name}</p>
-                <p className="text-muted-foreground text-sm">
-                  {party.phone ?? party.whatsappNumber}
-                </p>
-              </div>
-              <span className="text-foreground text-sm font-medium tabular-nums">
-                {party.balance.toLocaleString("fr-FR")} FCFA
-              </span>
-            </Link>
-          </li>
-        ))}
+        {parties.map((party) => {
+          const balanceColorClass =
+            party.balance > 0
+              ? "text-[#1B7A5A]"
+              : party.balance < 0
+                ? "text-[#0F2A4A]"
+                : "text-foreground";
+          return (
+            <li key={party.id}>
+              <Link
+                href={`/tiers/${party.id}`}
+                className="bg-card border-border hover:bg-accent flex items-center justify-between rounded-lg border p-3 shadow-xs transition-colors"
+              >
+                <div>
+                  <p className="text-foreground text-sm font-medium">{party.name}</p>
+                  <p className="text-muted-foreground text-sm">
+                    {party.phone ?? party.whatsappNumber}
+                  </p>
+                </div>
+                <span className={`text-sm font-medium tabular-nums ${balanceColorClass}`}>
+                  {party.balance.toLocaleString("fr-FR")} FCFA
+                </span>
+              </Link>
+            </li>
+          );
+        })}
         {parties.length === 0 ? (
           <p className="text-muted-foreground text-sm">{partyLabels.emptyStateList}</p>
         ) : null}

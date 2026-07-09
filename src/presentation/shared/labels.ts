@@ -28,14 +28,22 @@ export const partyLabels = {
   editPageTitle: "Modifier le client",
   createSubmitLabel: "Créer le client",
   editSubmitLabel: "Enregistrer les modifications",
+  editButtonLabel: "Modifier",
 
   emptyStateList: "Aucun client pour le moment.",
-  emptyStateTransactions: "Aucune transaction pour ce client.",
+  emptyStateTransactions: "Aucune opération pour ce client.",
 
   isCompanyLabel: "Entreprise",
   isCompanyDescription: "Ce client est une société, pas un particulier",
   companyNameField: "Nom de la société (recommandé)",
   contactNameField: "Nom du contact",
+
+  nameField: "Nom",
+  phoneField: "Téléphone",
+  whatsappField: "WhatsApp (si différent du téléphone)",
+  whatsappHelperText: "Un moyen de contact est requis : téléphone ou WhatsApp.",
+  typeField: "Type",
+  noteField: "Note (optionnel)",
 
   nameRequiredError: "Le nom du client est obligatoire",
 
@@ -44,6 +52,17 @@ export const partyLabels = {
     "Ce client sera retiré de votre liste. Rien n'est perdu définitivement : il pourra être restauré si besoin.",
 
   notFoundMessage: "Ce client n'existe plus, il a peut-être déjà été supprimé.",
+
+  historyTitle: "Historique",
+
+  // Étape "personne" du parcours de création d'une opération (wizard) :
+  // recherche/sélection d'un tiers existant ou création à la volée.
+  pickerSearchPlaceholder: "Rechercher un client par nom ou téléphone",
+  pickerCreateNewLabel: "Créer une nouvelle personne",
+  pickerCreateNewNameField: "Nom",
+  pickerCreateNewPhoneField: "Téléphone (optionnel)",
+  pickerTypeQuestion: "Client ou fournisseur ?",
+  pickerContinueLabel: "Continuer",
 };
 
 export const transactionLabels = {
@@ -60,19 +79,25 @@ export const transactionLabels = {
   listTitle: "Créances et dettes",
   newCreanceButtonLabel: "Nouvelle créance",
   newDetteButtonLabel: "Nouvelle dette",
+  newOperationButtonLabel: "Nouvelle opération",
   newPageTitleCreance: "Nouvelle créance",
   newPageTitleDette: "Nouvelle dette",
-  editPageTitle: "Modifier la transaction",
+  editPageTitle: "Modifier l'opération",
   createSubmitLabel: "Enregistrer",
   editSubmitLabel: "Enregistrer les modifications",
+  editButtonLabel: "Modifier",
 
   emptyStateList: "Aucune créance ni dette pour le moment.",
 
   partyField: "Client",
-  descriptionField: "Description",
+  descriptionField: "Qu'est-ce qui a été pris ?",
   amountField: "Montant (FCFA)",
   quantityField: "Quantité (optionnel)",
   dueDateField: "Échéance (optionnel)",
+  referenceLabel: "Référence",
+  statusLabel: "Statut",
+  quantityLabel: "Quantité",
+  dueDateLabel: "Échéance",
 
   descriptionRequiredError: "La description est obligatoire",
   amountInvalidError: "Le montant doit être supérieur à zéro",
@@ -80,9 +105,26 @@ export const transactionLabels = {
 
   deleteConfirmTitle: (reference: string) => `Supprimer ${reference} ?`,
   deleteConfirmDescription:
-    "Cette transaction sera retirée de votre liste. Rien n'est perdu définitivement : elle pourra être restaurée si besoin.",
+    "Cette opération sera retirée de votre liste. Rien n'est perdu définitivement : elle pourra être restaurée si besoin.",
 
-  notFoundMessage: "Cette transaction n'existe plus, elle a peut-être déjà été supprimée.",
+  notFoundMessage: "Cette opération n'existe plus, elle a peut-être déjà été supprimée.",
+
+  // Vocabulaire "situation" (étape 3 du wizard ET résumé agrégé) — mêmes
+  // termes exacts partout dans l'app, jamais reformulés différemment.
+  owedToMeLabel: "On me doit",
+  owedByMeLabel: "Je dois",
+  situationQuestion: "Quelle est la situation ?",
+
+  // Parcours de création unifié (wizard).
+  amountFieldShort: "Montant",
+  quickAmountAriaLabel: (amount: number) => `Ajouter ${amount.toLocaleString("fr-FR")} FCFA`,
+  stepPersonTitle: "Qui est concerné ?",
+  stepAmountTitle: "Montant et description",
+  stepSituationTitle: "Situation",
+  backLabel: "Retour",
+  saveLabel: "Enregistrer",
+
+  showMoreLabel: "Voir plus",
 };
 
 export const authLabels = {

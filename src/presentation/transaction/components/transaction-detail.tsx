@@ -60,41 +60,42 @@ export function TransactionDetail({
   }
 
   const signedAmount = transaction.type === "CREANCE" ? transaction.amount : -transaction.amount;
+  const amountColorClass = transaction.type === "CREANCE" ? "text-[#1B7A5A]" : "text-[#0F2A4A]";
 
   return (
-    <div className="mx-auto max-w-md space-y-6 p-4">
-      <div className="flex items-start justify-between">
+    <div className="mx-auto w-full max-w-md space-y-6 p-4 lg:max-w-2xl">
+      <div className="bg-card border-border flex items-start justify-between rounded-xl border p-4 shadow-xs">
         <div>
           <h1 className="text-foreground text-lg font-semibold">{transaction.description}</h1>
           <p className="text-muted-foreground text-sm">
             {TYPE_LABELS[transaction.type]} · {partyName ?? "—"}
           </p>
         </div>
-        <span className="text-foreground text-sm font-medium tabular-nums">
+        <span className={`text-sm font-medium tabular-nums ${amountColorClass}`}>
           {signedAmount.toLocaleString("fr-FR")} FCFA
         </span>
       </div>
 
-      <div className="border-border space-y-2 rounded-xl border p-4 text-sm">
+      <div className="bg-card border-border space-y-2 rounded-xl border p-4 text-sm shadow-xs">
         <p>
-          <span className="text-muted-foreground">Référence : </span>
+          <span className="text-muted-foreground">{transactionLabels.referenceLabel} : </span>
           {transaction.reference ?? syncLabels.syncing}
         </p>
         <p>
-          <span className="text-muted-foreground">Statut : </span>
+          <span className="text-muted-foreground">{transactionLabels.statusLabel} : </span>
           <span className={transaction.status === "REGLEE" ? "text-[#1B7A5A]" : undefined}>
             {STATUS_LABEL[transaction.status]}
           </span>
         </p>
         {transaction.quantity != null ? (
           <p>
-            <span className="text-muted-foreground">Quantité : </span>
+            <span className="text-muted-foreground">{transactionLabels.quantityLabel} : </span>
             {transaction.quantity}
           </p>
         ) : null}
         {transaction.dueDate ? (
           <p>
-            <span className="text-muted-foreground">Échéance : </span>
+            <span className="text-muted-foreground">{transactionLabels.dueDateLabel} : </span>
             {transaction.dueDate.toLocaleDateString("fr-FR")}
           </p>
         ) : null}
@@ -109,7 +110,7 @@ export function TransactionDetail({
           render={<Link href={`/transactions/${transaction.id}/modifier`} />}
           nativeButton={false}
         >
-          Modifier
+          {transactionLabels.editButtonLabel}
         </Button>
         {canDelete ? (
           <Button

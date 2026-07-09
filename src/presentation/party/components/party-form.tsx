@@ -102,7 +102,7 @@ export function PartyForm({
   return (
     <form onSubmit={handleSubmit(submit)} className="space-y-4">
       <div className="space-y-1.5">
-        <Label htmlFor="name">Nom</Label>
+        <Label htmlFor="name">{partyLabels.nameField}</Label>
         <Controller
           control={control}
           name="name"
@@ -120,7 +120,7 @@ export function PartyForm({
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="phone">Téléphone</Label>
+        <Label htmlFor="phone">{partyLabels.phoneField}</Label>
         <Controller
           control={control}
           name="phone"
@@ -136,7 +136,7 @@ export function PartyForm({
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="whatsappNumber">WhatsApp (si différent du téléphone)</Label>
+        <Label htmlFor="whatsappNumber">{partyLabels.whatsappField}</Label>
         <Controller
           control={control}
           name="whatsappNumber"
@@ -151,14 +151,12 @@ export function PartyForm({
         {errors.phone ? (
           <p className="text-destructive text-sm">{errors.phone.message}</p>
         ) : (
-          <p className="text-muted-foreground text-sm">
-            Un moyen de contact est requis : téléphone ou WhatsApp.
-          </p>
+          <p className="text-muted-foreground text-sm">{partyLabels.whatsappHelperText}</p>
         )}
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="type">Type</Label>
+        <Label htmlFor="type">{partyLabels.typeField}</Label>
         <Controller
           control={control}
           name="type"
@@ -225,7 +223,7 @@ export function PartyForm({
       ) : null}
 
       <div className="space-y-1.5">
-        <Label htmlFor="note">Note (optionnel)</Label>
+        <Label htmlFor="note">{partyLabels.noteField}</Label>
         <Textarea id="note" {...register("note")} />
       </div>
 

@@ -23,8 +23,8 @@ import { commonLabels, transactionLabels } from "@/presentation/shared/labels";
 import { createTransactionOfflineRepository } from "@/presentation/transaction/offline-repository";
 
 const TYPE_OPTIONS = [
-  { value: "CREANCE", label: transactionLabels.typeCreance },
-  { value: "DETTE", label: transactionLabels.typeDette },
+  { value: "CREANCE", label: transactionLabels.owedToMeLabel },
+  { value: "DETTE", label: transactionLabels.owedByMeLabel },
 ] as const;
 
 const TYPE_LABEL_BY_VALUE: Record<string, string> = Object.fromEntries(
@@ -130,7 +130,7 @@ export function TransactionForm({
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="type">Type</Label>
+        <Label htmlFor="type">{transactionLabels.situationQuestion}</Label>
         <Controller
           control={control}
           name="type"

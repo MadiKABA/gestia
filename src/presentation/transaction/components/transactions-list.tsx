@@ -117,11 +117,13 @@ export function TransactionsList({
         {transactions.map((transaction) => {
           const signedAmount =
             transaction.type === "CREANCE" ? transaction.amount : -transaction.amount;
+          const amountColorClass =
+            transaction.type === "CREANCE" ? "text-[#1B7A5A]" : "text-[#0F2A4A]";
           return (
             <li key={transaction.id}>
               <Link
                 href={`/transactions/${transaction.id}`}
-                className="border-border hover:bg-accent flex items-center justify-between rounded-lg border p-3 transition-colors"
+                className="bg-card border-border hover:bg-accent flex items-center justify-between rounded-lg border p-3 shadow-xs transition-colors"
               >
                 <div className="min-w-0">
                   <p className="text-foreground truncate text-sm font-medium">
@@ -141,7 +143,7 @@ export function TransactionsList({
                     </span>
                   </p>
                 </div>
-                <span className="text-foreground shrink-0 text-sm font-medium tabular-nums">
+                <span className={`shrink-0 text-sm font-medium tabular-nums ${amountColorClass}`}>
                   {signedAmount.toLocaleString("fr-FR")} FCFA
                 </span>
               </Link>

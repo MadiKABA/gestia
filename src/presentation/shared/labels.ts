@@ -126,6 +126,8 @@ export const transactionLabels = {
   saveLabel: "Enregistrer",
 
   showMoreLabel: "Voir plus",
+
+  whatsappButtonLabel: "Contacter sur WhatsApp",
 };
 
 export const paymentLabels = {

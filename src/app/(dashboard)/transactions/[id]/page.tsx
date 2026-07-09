@@ -3,6 +3,7 @@ import { requireTenantContext } from "@/infrastructure/auth/session";
 import { ForbiddenError, NotFoundError } from "@/domain/shared/errors";
 import { getTransactionByIdAction } from "@/presentation/transaction/actions";
 import { listPaymentsByTransactionAction } from "@/presentation/payment/actions";
+import { getTenantWhatsappTemplateAction } from "@/presentation/tenant/actions";
 import { TransactionDetail } from "@/presentation/transaction/components/transaction-detail";
 
 export default async function TransactionDetailPage({
@@ -32,12 +33,16 @@ export default async function TransactionDetailPage({
     throw error;
   }
 
-  const payments = await listPaymentsByTransactionAction(id);
+  const [payments, whatsappTemplate] = await Promise.all([
+    listPaymentsByTransactionAction(id),
+    getTenantWhatsappTemplateAction(),
+  ]);
 
   return (
     <TransactionDetail
       transaction={detail.transaction}
-      partyName={detail.partyName}
+      party={detail.party}
+      whatsappTemplate={whatsappTemplate}
       tenantId={context.tenantId}
       userId={context.userId}
       canDelete={context.role === "PATRON"}

@@ -12,6 +12,7 @@ import {
 import { PaymentModal } from "@/presentation/payment/components/payment-modal";
 import { PaymentHistory } from "@/presentation/payment/components/payment-history";
 import { seedPaymentCache } from "@/presentation/payment/offline-repository";
+import { WhatsappLink } from "@/presentation/shared/components/whatsapp-link";
 import {
   commonLabels,
   paymentLabels,
@@ -20,6 +21,8 @@ import {
 } from "@/presentation/shared/labels";
 import type { Transaction } from "@/domain/transaction/transaction.entity";
 import type { Payment } from "@/domain/payment/payment.entity";
+
+type PartyContact = { name: string; phone: string | null; whatsappNumber: string | null };
 
 const TYPE_LABELS: Record<Transaction["type"], string> = {
   CREANCE: transactionLabels.typeCreance,
@@ -34,14 +37,16 @@ const STATUS_LABEL: Record<Transaction["status"], string> = {
 
 export function TransactionDetail({
   transaction: initialTransaction,
-  partyName,
+  party,
+  whatsappTemplate,
   tenantId,
   userId,
   canDelete,
   initialPayments,
 }: {
   transaction: Transaction;
-  partyName: string | null;
+  party: PartyContact | null;
+  whatsappTemplate: string | null;
   tenantId: string;
   userId: string;
   canDelete: boolean;
@@ -87,6 +92,7 @@ export function TransactionDetail({
 
   const signedAmount = transaction.type === "CREANCE" ? transaction.amount : -transaction.amount;
   const amountColorClass = transaction.type === "CREANCE" ? "text-[#1B7A5A]" : "text-[#0F2A4A]";
+  const whatsappNumber = party?.whatsappNumber ?? party?.phone ?? null;
 
   return (
     <div className="mx-auto w-full max-w-md space-y-6 p-4 lg:max-w-2xl">
@@ -94,7 +100,7 @@ export function TransactionDetail({
         <div>
           <h1 className="text-foreground text-lg font-semibold">{transaction.description}</h1>
           <p className="text-muted-foreground text-sm">
-            {TYPE_LABELS[transaction.type]} · {partyName ?? "—"}
+            {TYPE_LABELS[transaction.type]} · {party?.name ?? "—"}
           </p>
         </div>
         <span className={`text-sm font-medium tabular-nums ${amountColorClass}`}>
@@ -136,6 +142,16 @@ export function TransactionDetail({
       ) : null}
 
       {payments.length > 1 ? <PaymentHistory payments={payments} /> : null}
+
+      {transaction.status !== "REGLEE" && transaction.type === "CREANCE" && whatsappNumber ? (
+        <WhatsappLink
+          phone={whatsappNumber}
+          template={whatsappTemplate}
+          client={party?.name ?? ""}
+          amount={transaction.amount - transaction.paidAmount}
+          reference={transaction.reference}
+        />
+      ) : null}
 
       <div className="flex gap-2">
         {transaction.paidAmount > 0 ? (

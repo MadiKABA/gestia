@@ -2,8 +2,9 @@ import { NotFoundError } from "@/domain/shared/errors";
 import type { TransactionRepository } from "@/application/transaction/transaction.repository";
 import type { PartyRepository } from "@/application/party/party.repository";
 
-/** Résout le nom du tiers pour l'affichage plutôt que de dénormaliser Party
- * dans le type domain Transaction (jamais de couplage dans l'autre sens). */
+/** Résout les infos du tiers pour l'affichage (nom, contact WhatsApp)
+ * plutôt que de dénormaliser Party dans le type domain Transaction (jamais
+ * de couplage dans l'autre sens). */
 export async function getTransactionById(
   deps: { repository: TransactionRepository; partyRepository: PartyRepository },
   id: string,
@@ -15,5 +16,10 @@ export async function getTransactionById(
 
   const party = await deps.partyRepository.findById(transaction.partyId);
 
-  return { transaction, partyName: party?.name ?? null };
+  return {
+    transaction,
+    party: party
+      ? { name: party.name, phone: party.phone, whatsappNumber: party.whatsappNumber }
+      : null,
+  };
 }

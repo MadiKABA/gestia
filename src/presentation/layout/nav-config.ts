@@ -1,6 +1,5 @@
 import {
   ClipboardList,
-  HandCoins,
   Home,
   MessageCircle,
   PlusCircle,
@@ -40,24 +39,24 @@ export const SIDEBAR_NAV_ITEMS: SidebarNavItem[] = [
     roles: ["PATRON", "VENDEUR"],
   },
   {
+    // Réservée à VENDEUR : PATRON crée désormais une opération depuis le
+    // bouton dédié de la page liste unifiée ci-dessous (pas de lien sidebar
+    // séparé) — VENDEUR n'a pas encore cette page ("mes-operations" non
+    // construite), ce lien reste donc son seul accès sidebar à la création.
     key: "nouvelle-operation",
     label: transactionLabels.newOperationButtonLabel,
     href: "/transactions/nouvelle",
     icon: PlusCircle,
-    roles: ["PATRON", "VENDEUR"],
+    roles: ["VENDEUR"],
   },
   {
-    key: "creances",
-    label: "Créances",
-    href: "/transactions?type=CREANCE",
+    // Fusion des anciennes entrées "Créances"/"Dettes" — une seule liste
+    // unifiée (voir transactions-list.tsx), plus de filtre pré-appliqué par
+    // l'URL de la sidebar.
+    key: "operations",
+    label: transactionLabels.listTitle,
+    href: "/transactions",
     icon: Receipt,
-    roles: ["PATRON"],
-  },
-  {
-    key: "dettes",
-    label: "Dettes",
-    href: "/transactions?type=DETTE",
-    icon: HandCoins,
     roles: ["PATRON"],
   },
   { key: "caisse", label: "Caisse", href: "/caisse", icon: Wallet, roles: ["PATRON"] },
@@ -90,31 +89,15 @@ export function getSidebarNavItems(role: NavRole): SidebarNavItem[] {
   return SIDEBAR_NAV_ITEMS.filter((item) => item.roles.includes(role));
 }
 
-/**
- * Titres de pages accessibles (ex: depuis la fiche client ou le bouton "+")
- * mais qui n'ont pas leur propre entrée de navigation dédiée. Sert aussi de
- * secours pour "Créances"/"Dettes" (SIDEBAR_NAV_ITEMS) : leur `href` inclut
- * une query string (`/transactions?type=...`), jamais égale à `pathname`
- * (qui ne la contient pas) — ce mapping matche sur le pathname seul, peu
- * importe le filtre choisi. Distinct de SIDEBAR_NAV_ITEMS pour ne jamais
- * faire apparaître cette entrée générique dans le menu.
- */
-const EXTRA_PAGE_TITLES: { href: string; label: string }[] = [
-  { href: "/transactions", label: transactionLabels.listTitle },
-];
-
 /** Titre de la page courante affiché dans le header, dérivé du pathname —
- * pas de breadcrumb, un seul titre clair. */
+ * pas de breadcrumb, un seul titre clair. Le premier item dont le `href`
+ * préfixe le pathname l'emporte (ex: "/transactions/nouvelle" matche
+ * "nouvelle-operation" avant "operations", grâce à l'ordre du tableau). */
 export function getPageTitle(pathname: string): string {
   const match = SIDEBAR_NAV_ITEMS.find(
     (item) => pathname === item.href || pathname.startsWith(`${item.href}/`),
   );
-  if (match) return match.label;
-
-  const extra = EXTRA_PAGE_TITLES.find(
-    (item) => pathname === item.href || pathname.startsWith(`${item.href}/`),
-  );
-  return extra?.label ?? "Gestia";
+  return match?.label ?? "Gestia";
 }
 
 /**

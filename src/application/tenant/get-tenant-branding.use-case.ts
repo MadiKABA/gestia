@@ -11,5 +11,7 @@ export async function getTenantBranding(
   deps: { repository: TenantBrandingRepository },
 ): Promise<TenantBranding> {
   const branding = await deps.repository.findByTenant();
-  return branding ?? { logoUrl: null, brandColor: null, displayName: null };
+  // Ne se produit jamais en pratique (context.tenantId provient d'une session
+  // valide, donc le tenant existe toujours) — secours defensif uniquement.
+  return branding ?? { logoUrl: null, brandColor: null, displayName: null, tenantName: "" };
 }

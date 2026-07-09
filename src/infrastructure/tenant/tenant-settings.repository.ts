@@ -10,13 +10,20 @@ export class PrismaTenantSettingsRepository
   implements TenantBrandingRepository, TenantMessagingRepository
 {
   async findByTenant(): Promise<TenantBranding | null> {
-    const settings = await this.prisma.tenantSettings.findUnique({ where: this.scoped() });
-    if (!settings) return null;
+    // Requêté depuis Tenant (pas TenantSettings) : `tenantName` doit rester
+    // disponible même si la ligne TenantSettings n'existe pas encore pour ce
+    // tenant, `settings` peut donc être `null` sans faire échouer l'appel.
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: this.tenantId },
+      include: { settings: true },
+    });
+    if (!tenant) return null;
 
     return {
-      logoUrl: settings.logoUrl,
-      brandColor: settings.brandColor,
-      displayName: settings.displayName,
+      logoUrl: tenant.settings?.logoUrl ?? null,
+      brandColor: tenant.settings?.brandColor ?? null,
+      displayName: tenant.settings?.displayName ?? null,
+      tenantName: tenant.name,
     };
   }
 

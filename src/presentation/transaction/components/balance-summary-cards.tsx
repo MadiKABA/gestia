@@ -20,13 +20,17 @@ export function BalanceSummaryCards({
   return (
     <>
       <div className="bg-card border-border rounded-xl border p-4 shadow-xs">
-        <p className="text-muted-foreground text-sm">{transactionLabels.owedToMeLabel}</p>
+        <p className="text-muted-foreground text-sm">
+          <span aria-hidden>🤝</span> {transactionLabels.owedToMeLabel}
+        </p>
         <p className="mt-1 text-xl font-semibold text-[#1B7A5A] tabular-nums">
           {owedToMe.toLocaleString("fr-FR")} FCFA
         </p>
       </div>
       <div className="bg-card border-border rounded-xl border p-4 shadow-xs">
-        <p className="text-muted-foreground text-sm">{transactionLabels.owedByMeLabel}</p>
+        <p className="text-muted-foreground text-sm">
+          <span aria-hidden>🚚</span> {transactionLabels.owedByMeLabel}
+        </p>
         <p className="mt-1 text-xl font-semibold text-[#0F2A4A] tabular-nums">
           {owedByMe.toLocaleString("fr-FR")} FCFA
         </p>

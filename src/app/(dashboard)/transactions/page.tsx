@@ -6,6 +6,7 @@ import {
   getTransactionBalanceSummaryAction,
 } from "@/presentation/transaction/actions";
 import { searchPartiesAction } from "@/presentation/party/actions";
+import { getLastPaymentMethodsAction } from "@/presentation/payment/actions";
 import { TransactionsList } from "@/presentation/transaction/components/transactions-list";
 
 export default async function TransactionsPage({
@@ -34,15 +35,22 @@ export default async function TransactionsPage({
     searchPartiesAction(),
     getTransactionBalanceSummaryAction(),
   ]);
+  // Batch séparé (dépend des ids de transactions déjà résolus) : mode de
+  // paiement du dernier paiement de chaque ligne, affiché en colonne
+  // desktop/tablette (voir transactions-list.tsx).
+  const lastPaymentMethodByTransactionId = await getLastPaymentMethodsAction(
+    transactions.map((transaction) => transaction.id),
+  );
 
   return (
     <TransactionsList
       initialTransactions={transactions}
       tenantId={context.tenantId}
       userId={context.userId}
-      parties={parties.map((party) => ({ id: party.id, name: party.name }))}
+      parties={parties.map((party) => ({ id: party.id, name: party.name, phone: party.phone }))}
       summary={summary}
       initialType={initialType}
+      lastPaymentMethodByTransactionId={lastPaymentMethodByTransactionId}
     />
   );
 }

@@ -2,8 +2,10 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
+import { Eye, Pencil, Banknote } from "lucide-react";
 import { Input } from "@/presentation/shared/components/ui/input";
 import { Button } from "@/presentation/shared/components/ui/button";
+import { Badge } from "@/presentation/shared/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -18,7 +20,10 @@ import {
 import { BalanceSummaryCards } from "@/presentation/transaction/components/balance-summary-cards";
 import { PaymentModal } from "@/presentation/payment/components/payment-modal";
 import type { Transaction, TransactionType } from "@/domain/transaction/transaction.entity";
+import type { PaymentMethod } from "@/domain/payment/payment.entity";
 import { paymentLabels, transactionLabels, syncLabels } from "@/presentation/shared/labels";
+
+type StatusFilter = "ALL" | Transaction["status"];
 
 const TYPE_FILTERS = [
   { value: "ALL", label: transactionLabels.filterAll },
@@ -26,23 +31,57 @@ const TYPE_FILTERS = [
   { value: "DETTE", label: transactionLabels.filterDette },
 ] as const;
 
+const STATUS_FILTERS: { value: StatusFilter; label: string }[] = [
+  { value: "ALL", label: transactionLabels.filterAll },
+  { value: "EN_COURS", label: transactionLabels.statusEnCours },
+  { value: "PARTIELLE", label: transactionLabels.statusPartielle },
+  { value: "REGLEE", label: transactionLabels.statusReglee },
+];
+
 const TYPE_FILTER_LABEL_BY_VALUE: Record<string, string> = Object.fromEntries(
   TYPE_FILTERS.map((option) => [option.value, option.label]),
 );
+const STATUS_FILTER_LABEL_BY_VALUE: Record<string, string> = Object.fromEntries(
+  STATUS_FILTERS.map((option) => [option.value, option.label]),
+);
 
+/** Wording mobile/détail ("En cours") — inchangé. */
 const STATUS_LABEL: Record<Transaction["status"], string> = {
   EN_COURS: transactionLabels.statusEnCours,
   PARTIELLE: transactionLabels.statusPartielle,
   REGLEE: transactionLabels.statusReglee,
 };
 
+/** Wording + couleur du badge tableau desktop/tablette : "Impayée" plutôt
+ * que "En cours", rouge d'alerte réservé à ce seul statut (voir CLAUDE.md
+ * "Theming"). */
+const STATUS_BADGE_LABEL: Record<Transaction["status"], string> = {
+  EN_COURS: transactionLabels.statusImpayee,
+  PARTIELLE: transactionLabels.statusPartielle,
+  REGLEE: transactionLabels.statusReglee,
+};
+const STATUS_BADGE_VARIANT: Record<Transaction["status"], "success" | "info" | "alert"> = {
+  EN_COURS: "alert",
+  PARTIELLE: "info",
+  REGLEE: "success",
+};
+
+const PAYMENT_METHOD_LABEL: Record<PaymentMethod, string> = {
+  CASH: paymentLabels.methodCash,
+  WAVE: paymentLabels.methodWave,
+  ORANGE_MONEY: paymentLabels.methodOrangeMoney,
+  AUTRE: paymentLabels.methodOther,
+};
+
 /** Nombre d'opérations affichées par page — jamais toute la liste d'un coup
  * (cahier des charges : éviter une liste surchargée à l'écran). */
 const PAGE_SIZE = 20;
 
+type PartyContact = { id: string; name: string; phone: string | null };
+
 /** Lit le cache local en priorité (affichage instantané, fonctionne hors
  * ligne) — même pattern que PartiesList. `parties` sert uniquement à
- * afficher un nom lisible (Transaction ne dénormalise jamais le nom du
+ * afficher un nom/téléphone lisibles (Transaction ne dénormalise jamais le
  * tiers, voir domain/transaction/transaction.entity.ts). */
 export function TransactionsList({
   initialTransactions,
@@ -51,19 +90,26 @@ export function TransactionsList({
   parties,
   summary,
   initialType,
+  lastPaymentMethodByTransactionId,
 }: {
   initialTransactions: Transaction[];
   tenantId: string;
   userId: string;
-  parties: { id: string; name: string }[];
+  parties: PartyContact[];
   summary: { owedToMe: number; owedByMe: number };
   /** Filtre initial ("Créances"/"Dettes" du menu, voir nav-config.ts) — la
    * page a déjà rendu la liste filtrée côté serveur avec cette même valeur. */
   initialType?: TransactionType;
+  /** Mode de paiement du dernier paiement de chaque transaction (colonne
+   * desktop/tablette) — calculé une fois au chargement serveur de la page ;
+   * peut rester incomplet pour une transaction créée/filtrée après coup
+   * (re-filtrage client hors ligne), auquel cas la colonne affiche "—". */
+  lastPaymentMethodByTransactionId: Record<string, PaymentMethod>;
 }) {
   const [transactions, setTransactions] = useState(initialTransactions);
   const [search, setSearch] = useState("");
   const [type, setType] = useState<"ALL" | TransactionType>(initialType ?? "ALL");
+  const [status, setStatus] = useState<StatusFilter>("ALL");
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [paymentTarget, setPaymentTarget] = useState<Transaction | null>(null);
   const [, startTransition] = useTransition();
@@ -71,10 +117,7 @@ export function TransactionsList({
     () => createTransactionOfflineRepository(tenantId, userId),
     [tenantId, userId],
   );
-  const partyNameById = useMemo(
-    () => new Map(parties.map((party) => [party.id, party.name])),
-    [parties],
-  );
+  const partyById = useMemo(() => new Map(parties.map((party) => [party.id, party])), [parties]);
 
   // Même resynchronisation que PartiesList : le routeur peut réutiliser ce
   // composant sans le remonter après un redirect post-mutation.
@@ -88,62 +131,136 @@ export function TransactionsList({
     void seedTransactionCache(tenantId, initialTransactions);
   }, [tenantId, initialTransactions]);
 
+  // La recherche texte (référence/nom/téléphone) est filtrée en mémoire
+  // (voir `filteredTransactions` ci-dessous), donc seuls type/statut
+  // déclenchent une nouvelle lecture du cache local — pas de debounce
+  // nécessaire, ce sont des Select, pas un champ texte.
   useEffect(() => {
-    const timeout = setTimeout(() => {
-      startTransition(async () => {
-        const results = await repository.list({
-          search: search || undefined,
-          type: type === "ALL" ? undefined : type,
-        });
-        setTransactions(results);
-        setVisibleCount(PAGE_SIZE);
+    startTransition(async () => {
+      const results = await repository.list({
+        type: type === "ALL" ? undefined : type,
+        status: status === "ALL" ? undefined : status,
       });
-    }, 250);
-    return () => clearTimeout(timeout);
-  }, [search, type, repository]);
-
-  const visibleTransactions = transactions.slice(0, visibleCount);
+      setTransactions(results);
+      setVisibleCount(PAGE_SIZE);
+    });
+  }, [type, status, repository]);
 
   async function refresh() {
     const results = await repository.list({
-      search: search || undefined,
       type: type === "ALL" ? undefined : type,
+      status: status === "ALL" ? undefined : status,
     });
     setTransactions(results);
   }
 
-  return (
-    <div className="mx-auto w-full max-w-md space-y-4 p-4 lg:max-w-5xl">
-      <h1 className="text-foreground text-lg font-semibold">{transactionLabels.listTitle}</h1>
+  // Recherche par référence/description/nom/téléphone — volontairement pas
+  // envoyée au repository (qui ne matche que la description) : ce filtre
+  // texte reste local à l'écran plutôt que de faire évoluer le contrat
+  // offline (TransactionSearchQuery) pour un besoin purement UI.
+  const filteredTransactions = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    if (!term) return transactions;
+    return transactions.filter((transaction) => {
+      const party = partyById.get(transaction.partyId);
+      return (
+        transaction.description.toLowerCase().includes(term) ||
+        (transaction.reference ?? "").toLowerCase().includes(term) ||
+        (party?.name.toLowerCase().includes(term) ?? false) ||
+        (party?.phone?.toLowerCase().includes(term) ?? false)
+      );
+    });
+  }, [transactions, search, partyById]);
 
-      <div className="grid grid-cols-2 gap-3 lg:max-w-md">
+  const visibleTransactions = filteredTransactions.slice(0, visibleCount);
+
+  // Cartes résumé desktop/tablette : total et impayées reflètent le
+  // filtre type/statut couramment appliqué (comme la liste), pas la
+  // recherche texte — cohérent avec "On me doit"/"Je dois" (résumé tenant
+  // entier, jamais réduit par un filtre de cette page).
+  const unpaidCount = useMemo(
+    () => transactions.filter((transaction) => transaction.status !== "REGLEE").length,
+    [transactions],
+  );
+
+  return (
+    <div className="mx-auto w-full max-w-md space-y-4 p-4 md:max-w-5xl">
+      <div className="flex items-center justify-between gap-2">
+        <h1 className="text-foreground text-lg font-semibold">{transactionLabels.listTitle}</h1>
+        <Button
+          size="sm"
+          render={<Link href="/transactions/nouvelle" />}
+          nativeButton={false}
+          className="shrink-0"
+        >
+          {transactionLabels.newOperationButtonLabel}
+        </Button>
+      </div>
+
+      {/* Mobile (< md) : résumé 2 cases, design inchangé. */}
+      <div className="grid grid-cols-2 gap-3 md:hidden">
         <BalanceSummaryCards owedToMe={summary.owedToMe} owedByMe={summary.owedByMe} />
       </div>
 
-      <div className="flex gap-2 lg:max-w-md">
-        <Input
-          placeholder="Rechercher par description"
-          value={search}
-          onValueChange={setSearch}
-          className="flex-1"
-        />
-        <Select value={type} onValueChange={(value) => setType(value as "ALL" | TransactionType)}>
-          <SelectTrigger className="w-32">
-            <SelectValue>
-              {(value: string) => TYPE_FILTER_LABEL_BY_VALUE[value] ?? value}
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            {TYPE_FILTERS.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      {/* Desktop/tablette (≥ md) : résumé étendu à 4 cases. */}
+      <div className="hidden gap-3 md:grid md:grid-cols-4">
+        <BalanceSummaryCards owedToMe={summary.owedToMe} owedByMe={summary.owedByMe} />
+        <div className="bg-card border-border rounded-xl border p-4 shadow-xs">
+          <p className="text-muted-foreground text-sm">{transactionLabels.totalCountLabel}</p>
+          <p className="text-foreground mt-1 text-xl font-semibold tabular-nums">
+            {transactions.length}
+          </p>
+        </div>
+        <div className="bg-card border-border rounded-xl border p-4 shadow-xs">
+          <p className="text-muted-foreground text-sm">{transactionLabels.unpaidCountLabel}</p>
+          <p className="mt-1 text-xl font-semibold text-[#C0392B] tabular-nums">{unpaidCount}</p>
+        </div>
       </div>
 
-      <ul className="grid grid-cols-1 gap-2 lg:grid-cols-2">
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <Input
+          placeholder={transactionLabels.searchPlaceholder}
+          value={search}
+          onValueChange={(value) => {
+            setSearch(value);
+            setVisibleCount(PAGE_SIZE);
+          }}
+          className="flex-1"
+        />
+        <div className="flex gap-2">
+          <Select value={type} onValueChange={(value) => setType(value as "ALL" | TransactionType)}>
+            <SelectTrigger className="w-32">
+              <SelectValue>
+                {(value: string) => TYPE_FILTER_LABEL_BY_VALUE[value] ?? value}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {TYPE_FILTERS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={status} onValueChange={(value) => setStatus(value as StatusFilter)}>
+            <SelectTrigger className="w-32">
+              <SelectValue>
+                {(value: string) => STATUS_FILTER_LABEL_BY_VALUE[value] ?? value}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {STATUS_FILTERS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* Mobile (< md) : cartes tap → détail, design inchangé. */}
+      <ul className="grid grid-cols-1 gap-2 md:hidden">
         {visibleTransactions.map((transaction) => {
           const signedAmount =
             transaction.type === "CREANCE" ? transaction.amount : -transaction.amount;
@@ -163,7 +280,7 @@ export function TransactionsList({
                     {transaction.description}
                   </p>
                   <p className="text-muted-foreground truncate text-sm">
-                    {partyNameById.get(transaction.partyId) ?? "—"}
+                    {partyById.get(transaction.partyId)?.name ?? "—"}
                   </p>
                   <p className="text-muted-foreground text-xs">
                     {transaction.reference ?? syncLabels.syncing} ·{" "}
@@ -180,45 +297,106 @@ export function TransactionsList({
                   {signedAmount.toLocaleString("fr-FR")} FCFA
                 </span>
               </Link>
-
-              {/* Actions directes desktop/tablette (cf. CLAUDE.md responsive
-                  desktop) : mobile garde tap → détail uniquement, actions
-                  secondaires dans le détail. */}
-              <div className="hidden shrink-0 items-center gap-1.5 lg:flex">
-                {transaction.paidAmount > 0 ? (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled
-                    title={paymentLabels.editDisabledTooltip}
-                  >
-                    {transactionLabels.editButtonLabel}
-                  </Button>
-                ) : (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    render={<Link href={`/transactions/${transaction.id}/modifier`} />}
-                    nativeButton={false}
-                  >
-                    {transactionLabels.editButtonLabel}
-                  </Button>
-                )}
-                {transaction.status !== "REGLEE" ? (
-                  <Button size="sm" onClick={() => setPaymentTarget(transaction)}>
-                    {paymentLabels.payButtonLabel(transaction.type)}
-                  </Button>
-                ) : null}
-              </div>
             </li>
           );
         })}
-        {transactions.length === 0 ? (
+        {filteredTransactions.length === 0 ? (
           <p className="text-muted-foreground text-sm">{transactionLabels.emptyStateList}</p>
         ) : null}
       </ul>
 
-      {visibleCount < transactions.length ? (
+      {/* Desktop/tablette (≥ md) : tableau avec actions par ligne. */}
+      <div className="border-border bg-card hidden overflow-x-auto rounded-xl border md:block">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-border text-muted-foreground border-b text-left text-xs">
+              <th className="px-3 py-2 font-medium">{transactionLabels.referenceLabel}</th>
+              <th className="px-3 py-2 font-medium">{transactionLabels.personColumnLabel}</th>
+              <th className="px-3 py-2 font-medium">{transactionLabels.totalAmountColumnLabel}</th>
+              <th className="px-3 py-2 font-medium">{transactionLabels.paidAmountColumnLabel}</th>
+              <th className="px-3 py-2 font-medium">{paymentLabels.methodField}</th>
+              <th className="px-3 py-2 font-medium">{transactionLabels.statusLabel}</th>
+              <th className="px-3 py-2 font-medium">{transactionLabels.dateColumnLabel}</th>
+              <th className="px-3 py-2 font-medium">{transactionLabels.actionsColumnLabel}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {visibleTransactions.map((transaction) => {
+              const party = partyById.get(transaction.partyId);
+              const lastMethod = lastPaymentMethodByTransactionId[transaction.id];
+              return (
+                <tr key={transaction.id} className="border-border border-b last:border-b-0">
+                  <td className="text-muted-foreground px-3 py-2 whitespace-nowrap">
+                    {transaction.reference ?? syncLabels.syncing}
+                  </td>
+                  <td className="px-3 py-2">
+                    <p className="text-foreground">{party?.name ?? "—"}</p>
+                    {party?.phone ? (
+                      <p className="text-muted-foreground text-xs">{party.phone}</p>
+                    ) : null}
+                  </td>
+                  <td className="px-3 py-2 whitespace-nowrap tabular-nums">
+                    {transaction.amount.toLocaleString("fr-FR")} FCFA
+                  </td>
+                  <td className="text-muted-foreground px-3 py-2 whitespace-nowrap tabular-nums">
+                    {transaction.paidAmount.toLocaleString("fr-FR")} FCFA
+                  </td>
+                  <td className="text-muted-foreground px-3 py-2 whitespace-nowrap">
+                    {lastMethod ? PAYMENT_METHOD_LABEL[lastMethod] : "—"}
+                  </td>
+                  <td className="px-3 py-2">
+                    <Badge variant={STATUS_BADGE_VARIANT[transaction.status]}>
+                      {STATUS_BADGE_LABEL[transaction.status]}
+                    </Badge>
+                  </td>
+                  <td className="text-muted-foreground px-3 py-2 whitespace-nowrap">
+                    {transaction.createdAt.toLocaleDateString("fr-FR")}
+                  </td>
+                  <td className="px-3 py-2">
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label={transactionLabels.viewActionLabel}
+                        render={<Link href={`/transactions/${transaction.id}`} />}
+                        nativeButton={false}
+                      >
+                        <Eye aria-hidden />
+                      </Button>
+                      {transaction.paidAmount === 0 ? (
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label={transactionLabels.editButtonLabel}
+                          render={<Link href={`/transactions/${transaction.id}/modifier`} />}
+                          nativeButton={false}
+                        >
+                          <Pencil aria-hidden />
+                        </Button>
+                      ) : null}
+                      {transaction.status !== "REGLEE" ? (
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label={paymentLabels.payButtonLabel(transaction.type)}
+                          onClick={() => setPaymentTarget(transaction)}
+                        >
+                          <Banknote aria-hidden />
+                        </Button>
+                      ) : null}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+        {filteredTransactions.length === 0 ? (
+          <p className="text-muted-foreground p-4 text-sm">{transactionLabels.emptyStateList}</p>
+        ) : null}
+      </div>
+
+      {visibleCount < filteredTransactions.length ? (
         <Button
           variant="outline"
           className="w-full"

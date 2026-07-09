@@ -42,6 +42,29 @@ export class PrismaPaymentRepository extends TenantScopedRepository implements P
   }
 
   /**
+   * Une seule requête triée `createdAt desc`, réduite en JS en ne gardant
+   * que la première occurrence par transaction (donc la plus récente) —
+   * même esprit que PrismaTransactionRepository.aggregateBalancesByParty
+   * (agrégation batchée plutôt qu'une requête par ligne affichée).
+   */
+  async findLatestByTransactionIds(transactionIds: string[]): Promise<Map<string, Payment>> {
+    const latest = new Map<string, Payment>();
+    if (transactionIds.length === 0) return latest;
+
+    const rows = await this.prisma.payment.findMany({
+      where: this.scoped({ transactionId: { in: transactionIds }, deletedAt: null }),
+      orderBy: { createdAt: "desc" },
+    });
+
+    for (const row of rows) {
+      if (!latest.has(row.transactionId)) {
+        latest.set(row.transactionId, toDomainPayment(row));
+      }
+    }
+    return latest;
+  }
+
+  /**
    * Réservé au PullHandler (infrastructure/payment/payment-pull-handler.ts)
    * — même contrat que PrismaTransactionRepository.findChangedSince (lignes
    * brutes, soft-deleted incluses, `toDomainPayment` appliqué par l'appelant).

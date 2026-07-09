@@ -37,4 +37,8 @@ export interface PaymentRepository {
     input: PaymentRegistrationInput,
     createdById: string,
   ): Promise<PaymentRegistrationResult>;
+  /** Dernier paiement de chaque transaction (colonne "Mode de paiement" de
+   * la liste unifiée) — une seule requête batchée plutôt qu'un
+   * `findByTransactionId` par ligne affichée. */
+  findLatestByTransactionIds(transactionIds: string[]): Promise<Map<string, Payment>>;
 }

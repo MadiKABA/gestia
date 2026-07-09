@@ -75,6 +75,10 @@ export const transactionLabels = {
   statusEnCours: "En cours",
   statusPartielle: "Partielle",
   statusReglee: "Réglée",
+  // "Impayée" plutôt que "En cours" : wording spécifique au badge d'alerte
+  // du tableau desktop/tablette (voir CLAUDE.md "Theming", rouge = alerte).
+  // La carte mobile garde "En cours" (statusEnCours), inchangée.
+  statusImpayee: "Impayée",
 
   listTitle: "Créances et dettes",
   newCreanceButtonLabel: "Nouvelle créance",
@@ -98,6 +102,17 @@ export const transactionLabels = {
   statusLabel: "Statut",
   quantityLabel: "Quantité",
   dueDateLabel: "Échéance",
+
+  // Tableau desktop/tablette de la liste unifiée (transactions-list.tsx).
+  personColumnLabel: "Personne",
+  totalAmountColumnLabel: "Montant total",
+  paidAmountColumnLabel: "Montant payé",
+  dateColumnLabel: "Date",
+  actionsColumnLabel: "Actions",
+  totalCountLabel: "Nombre d'opérations",
+  unpaidCountLabel: "Impayées",
+  searchPlaceholder: "Rechercher par référence, nom ou téléphone",
+  viewActionLabel: "Voir",
 
   descriptionRequiredError: "La description est obligatoire",
   amountInvalidError: "Le montant doit être supérieur à zéro",

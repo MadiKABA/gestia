@@ -42,6 +42,34 @@ export class PrismaPaymentRepository extends TenantScopedRepository implements P
   }
 
   /**
+   * Réservé au PullHandler (infrastructure/payment/payment-pull-handler.ts)
+   * — même contrat que PrismaTransactionRepository.findChangedSince (lignes
+   * brutes, soft-deleted incluses, `toDomainPayment` appliqué par l'appelant).
+   */
+  async findChangedSince(
+    since: Date,
+    queryStartedAt: Date,
+    cursor: { updatedAt: Date; id: string } | undefined,
+    take: number,
+  ) {
+    return this.prisma.payment.findMany({
+      where: this.scoped({
+        updatedAt: { gt: since, lte: queryStartedAt },
+        ...(cursor
+          ? {
+              OR: [
+                { updatedAt: { gt: cursor.updatedAt } },
+                { updatedAt: cursor.updatedAt, id: { gt: cursor.id } },
+              ],
+            }
+          : {}),
+      }),
+      orderBy: [{ updatedAt: "asc" }, { id: "asc" }],
+      take,
+    });
+  }
+
+  /**
    * Écrit Payment, la mise à jour de Transaction.paidAmount/status et le
    * CashMovement (si paiement CASH) dans une seule transaction Prisma —
    * même précédent que PrismaTransactionRepository.create() (Sequence +

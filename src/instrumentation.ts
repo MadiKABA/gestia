@@ -17,5 +17,7 @@ export async function register() {
     const { registerTransactionSync } =
       await import("@/infrastructure/transaction/register-transaction-sync");
     registerTransactionSync();
+    const { registerPaymentSync } = await import("@/infrastructure/payment/register-payment-sync");
+    registerPaymentSync();
   }
 }

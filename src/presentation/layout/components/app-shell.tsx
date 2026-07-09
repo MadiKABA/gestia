@@ -8,11 +8,8 @@ import { SidebarFixed } from "@/presentation/layout/components/sidebar-fixed";
 import { QuickActionSheet } from "@/presentation/layout/components/quick-action-sheet";
 import { StoragePersistenceWarning } from "@/presentation/shared/components/storage-persistence-warning";
 import { InstallPromptBanner } from "@/presentation/shared/components/install-prompt-banner";
-import { ResponsivePanel } from "@/presentation/shared/components/responsive-panel";
-import { TransactionWizard } from "@/presentation/transaction/components/transaction-wizard";
 import { ensureCacheMatchesAccount } from "@/infrastructure/offline/account-guard";
 import { registerPullableEntities } from "@/presentation/offline/register-pullable-entities";
-import { transactionLabels } from "@/presentation/shared/labels";
 import type { NavRole } from "@/presentation/layout/nav-config";
 import type { TenantBranding } from "@/application/tenant/tenant-branding.repository";
 
@@ -37,7 +34,6 @@ export function AppShell({
 }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [quickActionOpen, setQuickActionOpen] = useState(false);
-  const [newOperationOpen, setNewOperationOpen] = useState(false);
   // Toujours false au premier rendu (serveur ET client, avant hydratation) :
   // aucun risque de mismatch. Ne passe à true qu'une fois le garde-fou de
   // compte résolu (voir account-guard.ts) — dans le cas courant (pas de
@@ -86,24 +82,7 @@ export function AppShell({
       />
 
       <SidebarDrawer role={role} open={drawerOpen} onOpenChange={setDrawerOpen} />
-      <QuickActionSheet
-        role={role}
-        open={quickActionOpen}
-        onOpenChange={setQuickActionOpen}
-        onNewOperation={() => setNewOperationOpen(true)}
-      />
-
-      <ResponsivePanel
-        open={newOperationOpen}
-        onOpenChange={setNewOperationOpen}
-        title={transactionLabels.newOperationButtonLabel}
-      >
-        <TransactionWizard
-          tenantId={tenantId}
-          userId={userId}
-          onDone={() => setNewOperationOpen(false)}
-        />
-      </ResponsivePanel>
+      <QuickActionSheet role={role} open={quickActionOpen} onOpenChange={setQuickActionOpen} />
     </div>
   );
 }

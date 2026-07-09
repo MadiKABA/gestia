@@ -10,20 +10,16 @@ import {
 import { getQuickActionItems, type NavRole } from "@/presentation/layout/nav-config";
 
 /** Bottom sheet ouvert par le bouton "+" central de la bottom tab bar
- * (nouvelle opération / paiement / mouvement de caisse). L'item "Nouvelle
- * opération" (sans `href`, voir nav-config.ts) délègue à `onNewOperation`
- * (géré par AppShell, partagé avec le bouton équivalent du header desktop)
- * plutôt que de naviguer. */
+ * (nouvelle opération / paiement) — chaque item navigue vers sa page dédiée
+ * (voir nav-config.ts). */
 export function QuickActionSheet({
   role,
   open,
   onOpenChange,
-  onNewOperation,
 }: {
   role: NavRole;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onNewOperation: () => void;
 }) {
   const items = getQuickActionItems(role);
 
@@ -46,26 +42,13 @@ export function QuickActionSheet({
             );
             return (
               <li key={item.key}>
-                {item.href ? (
-                  <Link
-                    href={item.href}
-                    onClick={() => onOpenChange(false)}
-                    className="hover:bg-accent active:bg-accent flex flex-col items-center gap-2 rounded-xl px-3 py-4 text-center transition-colors"
-                  >
-                    {content}
-                  </Link>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onOpenChange(false);
-                      onNewOperation();
-                    }}
-                    className="hover:bg-accent active:bg-accent flex w-full flex-col items-center gap-2 rounded-xl px-3 py-4 text-center transition-colors"
-                  >
-                    {content}
-                  </button>
-                )}
+                <Link
+                  href={item.href}
+                  onClick={() => onOpenChange(false)}
+                  className="hover:bg-accent active:bg-accent flex flex-col items-center gap-2 rounded-xl px-3 py-4 text-center transition-colors"
+                >
+                  {content}
+                </Link>
               </li>
             );
           })}

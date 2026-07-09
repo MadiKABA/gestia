@@ -1,5 +1,4 @@
 import {
-  ArrowRightLeft,
   ClipboardList,
   HandCoins,
   Home,
@@ -153,14 +152,15 @@ export const BOTTOM_TAB_ITEMS: Record<NavRole, BottomTabItem[]> = {
 
 /**
  * Items du menu rapide ouvert par le bouton central "+" de la bottom tab
- * bar (bottom sheet / popover) — mêmes actions pour les deux rôles.
- * `href` absent : l'item ouvre le wizard de création d'opération sur place
- * plutôt que de naviguer vers une page dédiée (voir quick-action-sheet.tsx).
+ * bar (bottom sheet / popover) — mêmes actions pour les deux rôles, chacun
+ * navigue vers sa page dédiée (voir quick-action-sheet.tsx). "Mouvement de
+ * caisse" a été retiré : le module Caisse n'existe pas encore
+ * (page/use-case/repository à construire, chantier séparé).
  */
 export type QuickActionItem = {
   key: string;
   label: string;
-  href?: string;
+  href: string;
   icon: LucideIcon;
   roles: NavRole[];
 };
@@ -169,6 +169,7 @@ export const QUICK_ACTION_ITEMS: QuickActionItem[] = [
   {
     key: "nouvelle-operation",
     label: transactionLabels.newOperationButtonLabel,
+    href: "/transactions/nouvelle",
     icon: Receipt,
     roles: ["PATRON", "VENDEUR"],
   },
@@ -178,13 +179,6 @@ export const QUICK_ACTION_ITEMS: QuickActionItem[] = [
     href: "/paiements/nouveau",
     icon: Wallet,
     roles: ["PATRON", "VENDEUR"],
-  },
-  {
-    key: "mouvement-caisse",
-    label: "Mouvement de caisse",
-    href: "/caisse/mouvement",
-    icon: ArrowRightLeft,
-    roles: ["PATRON"],
   },
 ];
 

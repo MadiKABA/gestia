@@ -71,13 +71,29 @@ export function getSidebarNavItems(role: NavRole): SidebarNavItem[] {
   return SIDEBAR_NAV_ITEMS.filter((item) => item.roles.includes(role));
 }
 
+/**
+ * Titres de pages accessibles (ex: depuis la fiche client ou le bouton "+")
+ * mais qui n'ont pas encore leur propre entrée de navigation dédiée —
+ * "Créances"/"Dettes" pointent aujourd'hui vers des vues filtrées à venir,
+ * `/transactions` reste la liste combinée réelle en attendant. Distinct de
+ * SIDEBAR_NAV_ITEMS pour ne jamais faire apparaître ces routes dans le menu.
+ */
+const EXTRA_PAGE_TITLES: { href: string; label: string }[] = [
+  { href: "/transactions", label: transactionLabels.listTitle },
+];
+
 /** Titre de la page courante affiché dans le header, dérivé du pathname —
  * pas de breadcrumb, un seul titre clair. */
 export function getPageTitle(pathname: string): string {
   const match = SIDEBAR_NAV_ITEMS.find(
     (item) => pathname === item.href || pathname.startsWith(`${item.href}/`),
   );
-  return match?.label ?? "Gestia";
+  if (match) return match.label;
+
+  const extra = EXTRA_PAGE_TITLES.find(
+    (item) => pathname === item.href || pathname.startsWith(`${item.href}/`),
+  );
+  return extra?.label ?? "Gestia";
 }
 
 /**

@@ -29,7 +29,7 @@ export default async function ModifierTierPage({ params }: { params: Promise<{ i
   }
 
   return (
-    <div className="mx-auto max-w-md p-4">
+    <div className="mx-auto w-full max-w-md p-4 lg:max-w-lg">
       <h1 className="text-foreground mb-4 text-lg font-semibold">{partyLabels.editPageTitle}</h1>
       <PartyForm
         mode="edit"

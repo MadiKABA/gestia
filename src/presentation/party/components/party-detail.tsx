@@ -96,59 +96,133 @@ export function PartyDetail({
     party.balance > 0 ? "text-[#1B7A5A]" : party.balance < 0 ? "text-[#0F2A4A]" : "text-foreground";
 
   return (
-    <div className="mx-auto w-full max-w-md space-y-6 p-4 lg:max-w-2xl">
-      <div className="bg-card border-border flex items-start justify-between rounded-xl border p-4 shadow-xs">
-        <div>
-          <h1 className="text-foreground text-lg font-semibold">{party.name}</h1>
-          <p className="text-muted-foreground text-sm">{TYPE_LABELS[party.type]}</p>
-        </div>
-        <span className={`text-sm font-medium tabular-nums ${balanceColorClass}`}>
-          {party.balance.toLocaleString("fr-FR")} FCFA
-        </span>
-      </div>
+    <div className="mx-auto w-full max-w-md space-y-6 p-4 lg:max-w-5xl">
+      {/* Desktop/tablette : résumé + actions dans une colonne fixe à gauche,
+          historique dans la colonne principale — jamais une simple liste
+          verticale identique au mobile (cf. CLAUDE.md responsive desktop). */}
+      <div className="space-y-6 lg:grid lg:grid-cols-[320px_1fr] lg:items-start lg:gap-6 lg:space-y-0">
+        <div className="space-y-6">
+          <div className="bg-card border-border flex items-start justify-between rounded-xl border p-4 shadow-xs">
+            <div>
+              <h1 className="text-foreground text-lg font-semibold">{party.name}</h1>
+              <p className="text-muted-foreground text-sm">{TYPE_LABELS[party.type]}</p>
+            </div>
+            <span className={`text-sm font-medium tabular-nums ${balanceColorClass}`}>
+              {party.balance.toLocaleString("fr-FR")} FCFA
+            </span>
+          </div>
 
-      <div className="bg-card border-border space-y-2 rounded-xl border p-4 text-sm shadow-xs">
-        {party.phone ? (
-          <p>
-            <span className="text-muted-foreground">Téléphone : </span>
-            {party.phone}
-          </p>
-        ) : null}
-        {party.whatsappNumber ? (
-          <p>
-            <span className="text-muted-foreground">WhatsApp : </span>
-            {party.whatsappNumber}
-          </p>
-        ) : null}
-        {party.isCompany ? (
-          <>
-            <p>
-              <span className="text-muted-foreground">Société : </span>
-              {party.companyName ?? "—"}
-            </p>
-            {party.contactName ? (
+          <div className="bg-card border-border space-y-2 rounded-xl border p-4 text-sm shadow-xs">
+            {party.phone ? (
               <p>
-                <span className="text-muted-foreground">Contact : </span>
-                {party.contactName}
+                <span className="text-muted-foreground">Téléphone : </span>
+                {party.phone}
               </p>
             ) : null}
-          </>
-        ) : null}
-        {party.note ? (
-          <p>
-            <span className="text-muted-foreground">Note : </span>
-            {party.note}
-          </p>
-        ) : null}
-      </div>
+            {party.whatsappNumber ? (
+              <p>
+                <span className="text-muted-foreground">WhatsApp : </span>
+                {party.whatsappNumber}
+              </p>
+            ) : null}
+            {party.isCompany ? (
+              <>
+                <p>
+                  <span className="text-muted-foreground">Société : </span>
+                  {party.companyName ?? "—"}
+                </p>
+                {party.contactName ? (
+                  <p>
+                    <span className="text-muted-foreground">Contact : </span>
+                    {party.contactName}
+                  </p>
+                ) : null}
+              </>
+            ) : null}
+            {party.note ? (
+              <p>
+                <span className="text-muted-foreground">Note : </span>
+                {party.note}
+              </p>
+            ) : null}
+          </div>
 
-      <div className="flex gap-2">
-        <Button variant="outline" className="flex-1" onClick={() => setWizardType("CREANCE")}>
-          {transactionLabels.newCreanceButtonLabel}
-        </Button>
-        <Button variant="outline" className="flex-1" onClick={() => setWizardType("DETTE")}>
-          {transactionLabels.newDetteButtonLabel}
-        </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" className="flex-1" onClick={() => setWizardType("CREANCE")}>
+              {transactionLabels.newCreanceButtonLabel}
+            </Button>
+            <Button variant="outline" className="flex-1" onClick={() => setWizardType("DETTE")}>
+              {transactionLabels.newDetteButtonLabel}
+            </Button>
+          </div>
+
+          {error ? <p className="text-destructive text-sm">{error}</p> : null}
+
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              className="flex-1"
+              render={<Link href={`/tiers/${party.id}/modifier`} />}
+              nativeButton={false}
+            >
+              {partyLabels.editButtonLabel}
+            </Button>
+            {canDelete ? (
+              <Button
+                variant="destructive"
+                className="flex-1"
+                disabled={deleting || hasOpenTransactions}
+                onClick={() => setConfirmOpen(true)}
+              >
+                {commonLabels.delete}
+              </Button>
+            ) : null}
+          </div>
+          {canDelete && hasOpenTransactions ? (
+            <p className="text-muted-foreground text-sm">
+              Ce client a des créances ou dettes non soldées : la suppression n&apos;est pas
+              possible tant qu&apos;elles n&apos;ont pas été réglées.
+            </p>
+          ) : null}
+        </div>
+
+        <div>
+          <h2 className="text-foreground mb-2 text-sm font-semibold">{partyLabels.historyTitle}</h2>
+          {transactions.length === 0 ? (
+            <p className="text-muted-foreground text-sm">{partyLabels.emptyStateTransactions}</p>
+          ) : (
+            <ul className="grid grid-cols-1 gap-2 lg:grid-cols-2">
+              {transactions.slice(0, visibleCount).map((transaction) => {
+                const signedAmount =
+                  transaction.type === "CREANCE" ? transaction.amount : -transaction.amount;
+                const amountColorClass =
+                  transaction.type === "CREANCE" ? "text-[#1B7A5A]" : "text-[#0F2A4A]";
+                return (
+                  <li key={transaction.id}>
+                    <Link
+                      href={`/transactions/${transaction.id}`}
+                      className="bg-card border-border hover:bg-accent flex items-center justify-between rounded-lg border p-3 text-sm shadow-xs transition-colors"
+                    >
+                      <span className="text-foreground truncate">{transaction.description}</span>
+                      <span className={`shrink-0 font-medium tabular-nums ${amountColorClass}`}>
+                        {signedAmount.toLocaleString("fr-FR")} FCFA
+                      </span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+          {visibleCount < transactions.length ? (
+            <Button
+              variant="outline"
+              className="mt-2 w-full"
+              onClick={() => setVisibleCount((count) => count + PAGE_SIZE)}
+            >
+              {transactionLabels.showMoreLabel}
+            </Button>
+          ) : null}
+        </div>
       </div>
 
       <ResponsivePanel
@@ -174,73 +248,6 @@ export function PartyDetail({
           />
         ) : null}
       </ResponsivePanel>
-
-      <div>
-        <h2 className="text-foreground mb-2 text-sm font-semibold">{partyLabels.historyTitle}</h2>
-        {transactions.length === 0 ? (
-          <p className="text-muted-foreground text-sm">{partyLabels.emptyStateTransactions}</p>
-        ) : (
-          <ul className="space-y-2">
-            {transactions.slice(0, visibleCount).map((transaction) => {
-              const signedAmount =
-                transaction.type === "CREANCE" ? transaction.amount : -transaction.amount;
-              const amountColorClass =
-                transaction.type === "CREANCE" ? "text-[#1B7A5A]" : "text-[#0F2A4A]";
-              return (
-                <li key={transaction.id}>
-                  <Link
-                    href={`/transactions/${transaction.id}`}
-                    className="bg-card border-border hover:bg-accent flex items-center justify-between rounded-lg border p-3 text-sm shadow-xs transition-colors"
-                  >
-                    <span className="text-foreground truncate">{transaction.description}</span>
-                    <span className={`shrink-0 font-medium tabular-nums ${amountColorClass}`}>
-                      {signedAmount.toLocaleString("fr-FR")} FCFA
-                    </span>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-        {visibleCount < transactions.length ? (
-          <Button
-            variant="outline"
-            className="mt-2 w-full"
-            onClick={() => setVisibleCount((count) => count + PAGE_SIZE)}
-          >
-            {transactionLabels.showMoreLabel}
-          </Button>
-        ) : null}
-      </div>
-
-      {error ? <p className="text-destructive text-sm">{error}</p> : null}
-
-      <div className="flex gap-2">
-        <Button
-          variant="outline"
-          className="flex-1"
-          render={<Link href={`/tiers/${party.id}/modifier`} />}
-          nativeButton={false}
-        >
-          {partyLabels.editButtonLabel}
-        </Button>
-        {canDelete ? (
-          <Button
-            variant="destructive"
-            className="flex-1"
-            disabled={deleting || hasOpenTransactions}
-            onClick={() => setConfirmOpen(true)}
-          >
-            {commonLabels.delete}
-          </Button>
-        ) : null}
-      </div>
-      {canDelete && hasOpenTransactions ? (
-        <p className="text-muted-foreground text-sm">
-          Ce client a des créances ou dettes non soldées : la suppression n&apos;est pas possible
-          tant qu&apos;elles n&apos;ont pas été réglées.
-        </p>
-      ) : null}
 
       <ConfirmDialog
         open={confirmOpen}

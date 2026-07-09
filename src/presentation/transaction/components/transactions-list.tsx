@@ -99,14 +99,14 @@ export function TransactionsList({
   const visibleTransactions = transactions.slice(0, visibleCount);
 
   return (
-    <div className="mx-auto max-w-md space-y-4 p-4">
+    <div className="mx-auto w-full max-w-md space-y-4 p-4 lg:max-w-5xl">
       <h1 className="text-foreground text-lg font-semibold">{transactionLabels.listTitle}</h1>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-3 lg:max-w-md">
         <BalanceSummaryCards owedToMe={summary.owedToMe} owedByMe={summary.owedByMe} />
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex gap-2 lg:max-w-md">
         <Input
           placeholder="Rechercher par description"
           value={search}
@@ -129,7 +129,7 @@ export function TransactionsList({
         </Select>
       </div>
 
-      <ul className="space-y-2">
+      <ul className="grid grid-cols-1 gap-2 lg:grid-cols-2">
         {visibleTransactions.map((transaction) => {
           const signedAmount =
             transaction.type === "CREANCE" ? transaction.amount : -transaction.amount;

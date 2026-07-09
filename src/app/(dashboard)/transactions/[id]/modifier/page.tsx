@@ -36,7 +36,7 @@ export default async function ModifierTransactionPage({
   const parties = await searchPartiesAction();
 
   return (
-    <div className="mx-auto max-w-md p-4">
+    <div className="mx-auto w-full max-w-md p-4 lg:max-w-lg">
       <h1 className="text-foreground mb-4 text-lg font-semibold">
         {transactionLabels.editPageTitle}
       </h1>

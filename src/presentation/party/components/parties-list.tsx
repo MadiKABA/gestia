@@ -83,7 +83,7 @@ export function PartiesList({
   }, [search, type, repository]);
 
   return (
-    <div className="mx-auto max-w-md space-y-4 p-4">
+    <div className="mx-auto w-full max-w-md space-y-4 p-4 lg:max-w-5xl">
       <div className="flex items-center justify-between">
         <h1 className="text-foreground text-lg font-semibold">{partyLabels.listTitle}</h1>
         <Button render={<Link href="/tiers/nouveau" />} nativeButton={false} size="sm">
@@ -91,7 +91,7 @@ export function PartiesList({
         </Button>
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex gap-2 lg:max-w-md">
         <Input
           placeholder="Rechercher par nom ou téléphone"
           value={search}
@@ -114,7 +114,7 @@ export function PartiesList({
         </Select>
       </div>
 
-      <ul className="space-y-2">
+      <ul className="grid grid-cols-1 gap-2 lg:grid-cols-2 xl:grid-cols-3">
         {parties.map((party) => {
           const balanceColorClass =
             party.balance > 0
@@ -126,7 +126,7 @@ export function PartiesList({
             <li key={party.id}>
               <Link
                 href={`/tiers/${party.id}`}
-                className="bg-card border-border hover:bg-accent flex items-center justify-between rounded-lg border p-3 shadow-xs transition-colors"
+                className="bg-card border-border hover:bg-accent flex h-full items-center justify-between rounded-lg border p-3 shadow-xs transition-colors"
               >
                 <div>
                   <p className="text-foreground text-sm font-medium">{party.name}</p>

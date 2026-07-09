@@ -15,6 +15,7 @@ import {
   createTransactionOfflineRepository,
   seedTransactionCache,
 } from "@/presentation/transaction/offline-repository";
+import { BalanceSummaryCards } from "@/presentation/transaction/components/balance-summary-cards";
 import type { Transaction, TransactionType } from "@/domain/transaction/transaction.entity";
 import { transactionLabels, syncLabels } from "@/presentation/shared/labels";
 
@@ -47,11 +48,13 @@ export function TransactionsList({
   tenantId,
   userId,
   parties,
+  summary,
 }: {
   initialTransactions: Transaction[];
   tenantId: string;
   userId: string;
   parties: { id: string; name: string }[];
+  summary: { owedToMe: number; owedByMe: number };
 }) {
   const [transactions, setTransactions] = useState(initialTransactions);
   const [search, setSearch] = useState("");
@@ -98,6 +101,10 @@ export function TransactionsList({
   return (
     <div className="mx-auto max-w-md space-y-4 p-4">
       <h1 className="text-foreground text-lg font-semibold">{transactionLabels.listTitle}</h1>
+
+      <div className="grid grid-cols-2 gap-3">
+        <BalanceSummaryCards owedToMe={summary.owedToMe} owedByMe={summary.owedByMe} />
+      </div>
 
       <div className="flex gap-2">
         <Input

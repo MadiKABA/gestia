@@ -1,33 +1,42 @@
 import { redirect } from "next/navigation";
-import { requireTenantContext } from "@/infrastructure/auth/session";
+import { requirePatron } from "@/presentation/auth/require-role";
 import { ForbiddenError } from "@/domain/shared/errors";
+import { getTransactionBalanceSummaryAction } from "@/presentation/transaction/actions";
+import { BalanceSummaryCards } from "@/presentation/transaction/components/balance-summary-cards";
 
-/** Cards placeholder — contenu réel branché plus tard sur les vraies données
- * (solde caisse, créances/dettes, échéances). Identique PATRON/VENDEUR pour
- * l'instant ; `role` est déjà disponible ici pour différencier plus tard. */
-const PLACEHOLDER_CARDS = ["Solde caisse", "À recevoir", "À payer", "Échéances proches"] as const;
+/** "Solde caisse"/"Échéances proches" restent en attente de données réelles
+ * (modules Caisse et échéances hors périmètre de ce retrofit) — seules
+ * "On me doit"/"Je dois" sont câblées, dérivées du module Transaction déjà
+ * en place. Réservé au patron : jamais de trésorerie globale pour un
+ * vendeur (cf. CLAUDE.md "Rôles"). */
+const PLACEHOLDER_CARDS = ["Solde caisse", "Échéances proches"] as const;
 
 export default async function DashboardPage() {
   try {
-    await requireTenantContext();
+    await requirePatron();
   } catch (error) {
     if (error instanceof ForbiddenError) {
-      redirect("/login");
+      redirect("/");
     }
     throw error;
   }
 
+  const summary = await getTransactionBalanceSummaryAction();
+
   return (
-    <div className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2 sm:p-6 lg:grid-cols-4">
-      {PLACEHOLDER_CARDS.map((title) => (
-        <div
-          key={title}
-          className="border-border bg-card space-y-2 rounded-xl border p-4 shadow-xs"
-        >
-          <p className="text-muted-foreground text-sm">{title}</p>
-          <p className="text-foreground text-2xl font-semibold">—</p>
-        </div>
-      ))}
+    <div className="space-y-4 p-4 sm:p-6">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <BalanceSummaryCards owedToMe={summary.owedToMe} owedByMe={summary.owedByMe} />
+        {PLACEHOLDER_CARDS.map((title) => (
+          <div
+            key={title}
+            className="border-border bg-card space-y-2 rounded-xl border p-4 shadow-xs"
+          >
+            <p className="text-muted-foreground text-sm">{title}</p>
+            <p className="text-foreground text-2xl font-semibold">—</p>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

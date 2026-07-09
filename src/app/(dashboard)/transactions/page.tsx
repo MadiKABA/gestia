@@ -1,7 +1,10 @@
 import { redirect } from "next/navigation";
 import { requireTenantContext } from "@/infrastructure/auth/session";
 import { ForbiddenError } from "@/domain/shared/errors";
-import { searchTransactionsAction } from "@/presentation/transaction/actions";
+import {
+  searchTransactionsAction,
+  getTransactionBalanceSummaryAction,
+} from "@/presentation/transaction/actions";
 import { searchPartiesAction } from "@/presentation/party/actions";
 import { TransactionsList } from "@/presentation/transaction/components/transactions-list";
 
@@ -16,9 +19,10 @@ export default async function TransactionsPage() {
     throw error;
   }
 
-  const [transactions, parties] = await Promise.all([
+  const [transactions, parties, summary] = await Promise.all([
     searchTransactionsAction(),
     searchPartiesAction(),
+    getTransactionBalanceSummaryAction(),
   ]);
 
   return (
@@ -27,6 +31,7 @@ export default async function TransactionsPage() {
       tenantId={context.tenantId}
       userId={context.userId}
       parties={parties.map((party) => ({ id: party.id, name: party.name }))}
+      summary={summary}
     />
   );
 }

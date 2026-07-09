@@ -38,4 +38,13 @@ export interface TransactionRepository {
    * PARTIELLE) — utilisé par delete-party.use-case.ts pour bloquer la
    * suppression d'un client encore engagé. */
   hasOpenTransactionsForParty(partyId: string): Promise<boolean>;
+
+  /**
+   * Résumé agrégé "On me doit" / "Je dois" (cahier des charges — tableau de
+   * bord patron), tenant entier plutôt que par tiers — voir
+   * PrismaPartyRepository.aggregateBalancesByParty pour l'équivalent par
+   * tiers dont ce résumé partage le principe (agrégation SQL, signe du
+   * domain jamais dupliqué).
+   */
+  getBalanceSummary(): Promise<{ owedToMe: number; owedByMe: number }>;
 }

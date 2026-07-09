@@ -3,6 +3,7 @@
 import { requireTenantContext } from "@/infrastructure/auth/session";
 import { searchTransactions } from "@/application/transaction/search-transactions.use-case";
 import { getTransactionById } from "@/application/transaction/get-transaction-by-id.use-case";
+import { getTransactionBalanceSummary } from "@/application/transaction/get-transaction-balance-summary.use-case";
 import { PrismaTransactionRepository } from "@/infrastructure/transaction/transaction.repository";
 import { PrismaPartyRepository } from "@/infrastructure/party/party.repository";
 import {
@@ -31,4 +32,14 @@ export async function getTransactionByIdAction(id: string) {
   const partyRepository = new PrismaPartyRepository(context.tenantId);
 
   return getTransactionById({ repository, partyRepository }, id);
+}
+
+/** Résumé "On me doit"/"Je dois" — consommé par la liste des opérations
+ * (tous rôles, même accès que cette page aujourd'hui) et par le dashboard
+ * patron (protégé par requirePatron() au niveau de la page, pas ici). */
+export async function getTransactionBalanceSummaryAction() {
+  const context = await requireTenantContext();
+  const repository = new PrismaTransactionRepository(context.tenantId);
+
+  return getTransactionBalanceSummary({ repository });
 }

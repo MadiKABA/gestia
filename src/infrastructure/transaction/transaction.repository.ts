@@ -220,4 +220,32 @@ export class PrismaTransactionRepository
 
     return balances;
   }
+
+  /**
+   * Résumé "On me doit" / "Je dois" tenant entier — même principe
+   * d'agrégation SQL que aggregateBalancesByParty, mais un seul `groupBy`
+   * par `type` (pas par tiers) : la somme brute (montant - payé) par type
+   * est déjà le résultat attendu, le signe de transactionBalanceContribution
+   * ne change jamais rien à l'intérieur d'un même type (toujours positif),
+   * seule sa direction (CREANCE/DETTE) distingue les deux cases.
+   */
+  async getBalanceSummary(): Promise<{ owedToMe: number; owedByMe: number }> {
+    const groups = await this.prisma.transaction.groupBy({
+      by: ["type"],
+      where: this.scoped({ deletedAt: null }),
+      _sum: { amount: true, paidAmount: true },
+    });
+
+    let owedToMe = 0;
+    let owedByMe = 0;
+    for (const group of groups) {
+      const amount = group._sum.amount?.toNumber() ?? 0;
+      const paidAmount = group._sum.paidAmount?.toNumber() ?? 0;
+      const net = amount - paidAmount;
+      if (group.type === "CREANCE") owedToMe = net;
+      else owedByMe = net;
+    }
+
+    return { owedToMe, owedByMe };
+  }
 }

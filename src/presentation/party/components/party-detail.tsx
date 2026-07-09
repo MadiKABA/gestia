@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/presentation/shared/components/ui/button";
@@ -11,6 +11,10 @@ import {
   createPartyOfflineRepository,
   seedPartyCache,
 } from "@/presentation/party/offline-repository";
+import {
+  createTransactionOfflineRepository,
+  seedTransactionCache,
+} from "@/presentation/transaction/offline-repository";
 import { commonLabels, partyLabels, transactionLabels } from "@/presentation/shared/labels";
 import type { PartyWithBalance } from "@/application/party/party.repository";
 import type { Transaction, TransactionType } from "@/domain/transaction/transaction.entity";
@@ -21,9 +25,13 @@ const TYPE_LABELS: Record<PartyWithBalance["type"], string> = {
   BOTH: partyLabels.typeBoth,
 };
 
+/** Nombre d'opérations affichées par page dans l'historique — jamais toute
+ * la liste d'un coup (même règle que TransactionsList). */
+const PAGE_SIZE = 10;
+
 export function PartyDetail({
   party,
-  transactions,
+  transactions: initialTransactions,
   tenantId,
   userId,
   canDelete,
@@ -34,22 +42,41 @@ export function PartyDetail({
   userId: string;
   canDelete: boolean;
 }) {
-  // Même règle que delete-party.use-case.ts (hasOpenTransactions) : dérivée
-  // ici de la liste déjà chargée plutôt que d'une seconde requête
-  // d'agrégation — la page détail a déjà tout ce qu'il faut, pas de risque
-  // de divergence entre ce qui bloque le bouton et ce qui bloque le use case.
-  const hasOpenTransactions = transactions.some((t) => t.status !== "REGLEE");
+  const [transactions, setTransactions] = useState(initialTransactions);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleting, startDelete] = useTransition();
   const [wizardType, setWizardType] = useState<TransactionType | null>(null);
+  const transactionRepository = useMemo(
+    () => createTransactionOfflineRepository(tenantId, userId),
+    [tenantId, userId],
+  );
+
+  // Même règle que delete-party.use-case.ts (hasOpenTransactions) : dérivée
+  // de la liste déjà chargée plutôt que d'une seconde requête d'agrégation —
+  // reflète aussi bien l'historique initial (SSR) qu'une opération créée
+  // depuis cette page (voir refreshTransactions).
+  const hasOpenTransactions = transactions.some((t) => t.status !== "REGLEE");
 
   // Amorce le cache local avec les données serveur fraîches (SSR) — pour
   // qu'une prochaine visite hors ligne de ce tiers les retrouve déjà là.
   useEffect(() => {
     void seedPartyCache(tenantId, [party]);
   }, [tenantId, party]);
+
+  useEffect(() => {
+    void seedTransactionCache(tenantId, initialTransactions);
+  }, [tenantId, initialTransactions]);
+
+  // Relit le cache local après création d'une opération depuis cette page —
+  // évite un aller-retour serveur (router.refresh) juste pour afficher une
+  // écriture déjà connue localement (offline-first).
+  async function refreshTransactions() {
+    const results = await transactionRepository.list({ partyId: party.id });
+    setTransactions(results);
+  }
 
   function onDelete() {
     setError(null);
@@ -141,6 +168,7 @@ export function PartyDetail({
             initialType={wizardType}
             onDone={() => {
               setWizardType(null);
+              void refreshTransactions();
               router.refresh();
             }}
           />
@@ -153,7 +181,7 @@ export function PartyDetail({
           <p className="text-muted-foreground text-sm">{partyLabels.emptyStateTransactions}</p>
         ) : (
           <ul className="space-y-2">
-            {transactions.map((transaction) => {
+            {transactions.slice(0, visibleCount).map((transaction) => {
               const signedAmount =
                 transaction.type === "CREANCE" ? transaction.amount : -transaction.amount;
               const amountColorClass =
@@ -174,6 +202,15 @@ export function PartyDetail({
             })}
           </ul>
         )}
+        {visibleCount < transactions.length ? (
+          <Button
+            variant="outline"
+            className="mt-2 w-full"
+            onClick={() => setVisibleCount((count) => count + PAGE_SIZE)}
+          >
+            {transactionLabels.showMoreLabel}
+          </Button>
+        ) : null}
       </div>
 
       {error ? <p className="text-destructive text-sm">{error}</p> : null}

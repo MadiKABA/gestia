@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { Input } from "@/presentation/shared/components/ui/input";
+import { Button } from "@/presentation/shared/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -33,6 +34,10 @@ const STATUS_LABEL: Record<Transaction["status"], string> = {
   REGLEE: transactionLabels.statusReglee,
 };
 
+/** Nombre d'opérations affichées par page — jamais toute la liste d'un coup
+ * (cahier des charges : éviter une liste surchargée à l'écran). */
+const PAGE_SIZE = 20;
+
 /** Lit le cache local en priorité (affichage instantané, fonctionne hors
  * ligne) — même pattern que PartiesList. `parties` sert uniquement à
  * afficher un nom lisible (Transaction ne dénormalise jamais le nom du
@@ -51,6 +56,7 @@ export function TransactionsList({
   const [transactions, setTransactions] = useState(initialTransactions);
   const [search, setSearch] = useState("");
   const [type, setType] = useState<"ALL" | TransactionType>("ALL");
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [, startTransition] = useTransition();
   const repository = useMemo(
     () => createTransactionOfflineRepository(tenantId, userId),
@@ -81,10 +87,13 @@ export function TransactionsList({
           type: type === "ALL" ? undefined : type,
         });
         setTransactions(results);
+        setVisibleCount(PAGE_SIZE);
       });
     }, 250);
     return () => clearTimeout(timeout);
   }, [search, type, repository]);
+
+  const visibleTransactions = transactions.slice(0, visibleCount);
 
   return (
     <div className="mx-auto max-w-md space-y-4 p-4">
@@ -114,7 +123,7 @@ export function TransactionsList({
       </div>
 
       <ul className="space-y-2">
-        {transactions.map((transaction) => {
+        {visibleTransactions.map((transaction) => {
           const signedAmount =
             transaction.type === "CREANCE" ? transaction.amount : -transaction.amount;
           const amountColorClass =
@@ -154,6 +163,16 @@ export function TransactionsList({
           <p className="text-muted-foreground text-sm">{transactionLabels.emptyStateList}</p>
         ) : null}
       </ul>
+
+      {visibleCount < transactions.length ? (
+        <Button
+          variant="outline"
+          className="w-full"
+          onClick={() => setVisibleCount((count) => count + PAGE_SIZE)}
+        >
+          {transactionLabels.showMoreLabel}
+        </Button>
+      ) : null}
     </div>
   );
 }

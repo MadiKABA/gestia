@@ -5,8 +5,11 @@ import { PrismaPartyRepository } from "@/infrastructure/party/party.repository";
 import { PrismaTransactionRepository } from "@/infrastructure/transaction/transaction.repository";
 import { PrismaAuditLogger } from "@/infrastructure/audit-log/audit-log.repository";
 import { createTransaction } from "@/application/transaction/create-transaction.use-case";
+import { updateTransaction } from "@/application/transaction/update-transaction.use-case";
 import { deleteTransaction } from "@/application/transaction/delete-transaction.use-case";
-import { ForbiddenError, NotFoundError } from "@/domain/shared/errors";
+import { registerPayment } from "@/application/payment/register-payment.use-case";
+import { PrismaPaymentRepository } from "@/infrastructure/payment/payment.repository";
+import { ForbiddenError, NotFoundError, ValidationError } from "@/domain/shared/errors";
 import type { TenantContext } from "@/domain/shared/tenant-context";
 
 /**
@@ -117,5 +120,29 @@ describe("use cases transaction", () => {
     expect(log).not.toBeNull();
 
     await expect(repository.findById(transaction.id)).resolves.toBeNull();
+  });
+
+  it("updateTransaction refuse toute modification dès qu'un paiement existe", async () => {
+    const transaction = await createTransaction(
+      patronContext,
+      { repository, partyRepository, auditLogger },
+      createId(),
+      { partyId, type: "CREANCE", description: "Avec paiement", amount: 5000 },
+    );
+    const paymentRepository = new PrismaPaymentRepository(tenantId);
+    await registerPayment(
+      patronContext,
+      { transactionRepository: repository, paymentRepository, auditLogger },
+      createId(),
+      { transactionId: transaction.id, amount: 1000, method: "CASH" },
+    );
+
+    await expect(
+      updateTransaction(patronContext, { repository, auditLogger }, transaction.id, {
+        type: "CREANCE",
+        description: "Tentative de modification",
+        amount: 9000,
+      }),
+    ).rejects.toThrow(ValidationError);
   });
 });

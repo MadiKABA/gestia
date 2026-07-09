@@ -33,6 +33,11 @@ export default async function ModifierTransactionPage({
     throw error;
   }
 
+  if (transaction.paidAmount > 0) {
+    // Déjà réglée en partie — jamais modifiable (cf. update-transaction.use-case.ts).
+    redirect(`/transactions/${id}`);
+  }
+
   const parties = await searchPartiesAction();
 
   return (
@@ -41,7 +46,6 @@ export default async function ModifierTransactionPage({
         {transactionLabels.editPageTitle}
       </h1>
       <TransactionForm
-        mode="edit"
         transactionId={id}
         tenantId={context.tenantId}
         userId={context.userId}

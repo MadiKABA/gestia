@@ -66,12 +66,7 @@ export function AppShell({
   return (
     <div className="bg-background min-h-dvh">
       <SidebarFixed role={role} />
-      <AppHeader
-        branding={branding}
-        tenantId={tenantId}
-        onMenuClick={() => setDrawerOpen(true)}
-        onNewOperation={() => setNewOperationOpen(true)}
-      />
+      <AppHeader branding={branding} tenantId={tenantId} onMenuClick={() => setDrawerOpen(true)} />
 
       <main className="min-h-dvh pt-14 pb-16 lg:pb-0 lg:pl-64">
         <StoragePersistenceWarning />

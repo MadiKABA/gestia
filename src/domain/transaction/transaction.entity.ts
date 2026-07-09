@@ -58,9 +58,8 @@ export function validateTransactionInput(input: TransactionUpdateInput): void {
 
 /**
  * Statut dérivé, jamais saisi par l'utilisateur (cahier des charges §8).
- * `paidAmount` reste toujours à 0 tant que le module Payment n'existe pas
- * (hors périmètre de ce retrofit) — cette fonction est déjà prête pour le
- * jour où `registerPayment` la réutilisera pour recalculer le statut.
+ * Réutilisée par `registerPayment` (application/payment) pour recalculer
+ * le statut à chaque paiement enregistré.
  */
 export function deriveTransactionStatus(amount: number, paidAmount: number): TransactionStatus {
   if (paidAmount <= 0) return "EN_COURS";

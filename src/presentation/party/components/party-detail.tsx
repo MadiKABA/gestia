@@ -9,8 +9,9 @@ import {
   createPartyOfflineRepository,
   seedPartyCache,
 } from "@/presentation/party/offline-repository";
-import { commonLabels, partyLabels } from "@/presentation/shared/labels";
+import { commonLabels, partyLabels, transactionLabels } from "@/presentation/shared/labels";
 import type { PartyWithBalance } from "@/application/party/party.repository";
+import type { Transaction } from "@/domain/transaction/transaction.entity";
 
 const TYPE_LABELS: Record<PartyWithBalance["type"], string> = {
   CLIENT: partyLabels.typeClient,
@@ -20,15 +21,22 @@ const TYPE_LABELS: Record<PartyWithBalance["type"], string> = {
 
 export function PartyDetail({
   party,
+  transactions,
   tenantId,
   userId,
   canDelete,
 }: {
   party: PartyWithBalance;
+  transactions: Transaction[];
   tenantId: string;
   userId: string;
   canDelete: boolean;
 }) {
+  // Même règle que delete-party.use-case.ts (hasOpenTransactions) : dérivée
+  // ici de la liste déjà chargée plutôt que d'une seconde requête
+  // d'agrégation — la page détail a déjà tout ce qu'il faut, pas de risque
+  // de divergence entre ce qui bloque le bouton et ce qui bloque le use case.
+  const hasOpenTransactions = transactions.some((t) => t.status !== "REGLEE");
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -101,9 +109,50 @@ export function PartyDetail({
         ) : null}
       </div>
 
+      <div className="flex gap-2">
+        <Button
+          variant="outline"
+          className="flex-1"
+          render={<Link href={`/transactions/nouvelle?partyId=${party.id}&type=CREANCE`} />}
+          nativeButton={false}
+        >
+          {transactionLabels.newCreanceButtonLabel}
+        </Button>
+        <Button
+          variant="outline"
+          className="flex-1"
+          render={<Link href={`/transactions/nouvelle?partyId=${party.id}&type=DETTE`} />}
+          nativeButton={false}
+        >
+          {transactionLabels.newDetteButtonLabel}
+        </Button>
+      </div>
+
       <div>
         <h2 className="text-foreground mb-2 text-sm font-semibold">Historique des transactions</h2>
-        <p className="text-muted-foreground text-sm">{partyLabels.emptyStateTransactions}</p>
+        {transactions.length === 0 ? (
+          <p className="text-muted-foreground text-sm">{partyLabels.emptyStateTransactions}</p>
+        ) : (
+          <ul className="space-y-2">
+            {transactions.map((transaction) => {
+              const signedAmount =
+                transaction.type === "CREANCE" ? transaction.amount : -transaction.amount;
+              return (
+                <li key={transaction.id}>
+                  <Link
+                    href={`/transactions/${transaction.id}`}
+                    className="border-border hover:bg-accent flex items-center justify-between rounded-lg border p-3 text-sm transition-colors"
+                  >
+                    <span className="text-foreground truncate">{transaction.description}</span>
+                    <span className="text-foreground shrink-0 font-medium tabular-nums">
+                      {signedAmount.toLocaleString("fr-FR")} FCFA
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </div>
 
       {error ? <p className="text-destructive text-sm">{error}</p> : null}
@@ -121,13 +170,19 @@ export function PartyDetail({
           <Button
             variant="destructive"
             className="flex-1"
-            disabled={deleting}
+            disabled={deleting || hasOpenTransactions}
             onClick={() => setConfirmOpen(true)}
           >
             {commonLabels.delete}
           </Button>
         ) : null}
       </div>
+      {canDelete && hasOpenTransactions ? (
+        <p className="text-muted-foreground text-sm">
+          Ce client a des créances ou dettes non soldées : la suppression n&apos;est pas possible
+          tant qu&apos;elles n&apos;ont pas été réglées.
+        </p>
+      ) : null}
 
       <ConfirmDialog
         open={confirmOpen}

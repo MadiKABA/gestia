@@ -46,6 +46,45 @@ export const partyLabels = {
   notFoundMessage: "Ce client n'existe plus, il a peut-être déjà été supprimé.",
 };
 
+export const transactionLabels = {
+  typeCreance: "Créance",
+  typeDette: "Dette",
+  filterAll: "Toutes",
+  filterCreance: "Créances",
+  filterDette: "Dettes",
+
+  statusEnCours: "En cours",
+  statusPartielle: "Partielle",
+  statusReglee: "Réglée",
+
+  listTitle: "Créances et dettes",
+  newCreanceButtonLabel: "Nouvelle créance",
+  newDetteButtonLabel: "Nouvelle dette",
+  newPageTitleCreance: "Nouvelle créance",
+  newPageTitleDette: "Nouvelle dette",
+  editPageTitle: "Modifier la transaction",
+  createSubmitLabel: "Enregistrer",
+  editSubmitLabel: "Enregistrer les modifications",
+
+  emptyStateList: "Aucune créance ni dette pour le moment.",
+
+  partyField: "Client",
+  descriptionField: "Description",
+  amountField: "Montant (FCFA)",
+  quantityField: "Quantité (optionnel)",
+  dueDateField: "Échéance (optionnel)",
+
+  descriptionRequiredError: "La description est obligatoire",
+  amountInvalidError: "Le montant doit être supérieur à zéro",
+  partyRequiredError: "Le client est obligatoire",
+
+  deleteConfirmTitle: (reference: string) => `Supprimer ${reference} ?`,
+  deleteConfirmDescription:
+    "Cette transaction sera retirée de votre liste. Rien n'est perdu définitivement : elle pourra être restaurée si besoin.",
+
+  notFoundMessage: "Cette transaction n'existe plus, elle a peut-être déjà été supprimée.",
+};
+
 export const authLabels = {
   vendeurNotFoundMessage: "Ce vendeur n'existe plus.",
 };

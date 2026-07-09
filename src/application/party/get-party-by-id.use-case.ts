@@ -1,16 +1,24 @@
 import { NotFoundError } from "@/domain/shared/errors";
 import type { PartyRepository } from "@/application/party/party.repository";
+import type { TransactionRepository } from "@/application/transaction/transaction.repository";
+import { computePartyBalance } from "@/domain/transaction/transaction.entity";
 
 /**
- * Historique des transactions du tiers — vide tant que le module transaction
- * n'existe pas (page détail affiche un état vide, pas une erreur).
- * // TODO: brancher le calcul réel une fois le module Transaction implémenté
+ * Historique complet des transactions du tiers + solde net dérivé de cette
+ * même liste (jamais un second calcul d'agrégation séparé) : garantit que
+ * le solde affiché correspond exactement aux transactions listées juste en
+ * dessous, sans risque de divergence entre deux règles de calcul.
  */
-export async function getPartyById(deps: { repository: PartyRepository }, id: string) {
+export async function getPartyById(
+  deps: { repository: PartyRepository; transactionRepository: TransactionRepository },
+  id: string,
+) {
   const party = await deps.repository.findById(id);
   if (!party) {
     throw new NotFoundError("Party", id);
   }
 
-  return { party, balance: 0, transactions: [] as never[] };
+  const transactions = await deps.transactionRepository.findByParty(id);
+
+  return { party, balance: computePartyBalance(transactions), transactions };
 }

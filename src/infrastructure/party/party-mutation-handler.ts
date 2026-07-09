@@ -9,6 +9,7 @@ import { createParty } from "@/application/party/create-party.use-case";
 import { updateParty } from "@/application/party/update-party.use-case";
 import { deleteParty } from "@/application/party/delete-party.use-case";
 import { PrismaPartyRepository } from "@/infrastructure/party/party.repository";
+import { PrismaTransactionRepository } from "@/infrastructure/transaction/transaction.repository";
 import { PrismaAuditLogger } from "@/infrastructure/audit-log/audit-log.repository";
 import { PrismaClientKnownRequestError } from "@/generated/prisma/internal/prismaNamespace";
 
@@ -64,8 +65,18 @@ export const partyMutationHandler: MutationHandler<PartyInput> = {
   async delete(context, id, clientKnownUpdatedAt): Promise<MutationHandlerResult> {
     const repository = new PrismaPartyRepository(context.tenantId);
     const conflict = await detectPartyConflict(repository, id, clientKnownUpdatedAt);
+    const transactionRepository = new PrismaTransactionRepository(context.tenantId);
 
-    const deleted = await deleteParty(context, { repository, auditLogger }, id);
+    const deleted = await deleteParty(
+      context,
+      {
+        repository,
+        auditLogger,
+        hasOpenTransactions: (partyId) =>
+          transactionRepository.hasOpenTransactionsForParty(partyId),
+      },
+      id,
+    );
     return { updatedAt: deleted.updatedAt.toISOString(), conflict };
   },
 };

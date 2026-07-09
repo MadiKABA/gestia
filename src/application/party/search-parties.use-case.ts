@@ -1,10 +1,10 @@
 import type { PartyRepository, PartySearchQuery } from "@/application/party/party.repository";
 
 /**
- * Le solde de chaque tiers dépend de l'agrégation des Transaction liées ; le
- * repository le retourne à 0 pour l'instant (TODO branché au module
- * transaction). Le tri par solde décroissant est déjà appliqué ici pour ne
- * pas avoir à retoucher ce use case une fois le calcul réel disponible.
+ * `repository.findMany` retourne déjà le solde réel de chaque tiers
+ * (PrismaPartyRepository compose PrismaTransactionRepository en interne,
+ * voir infrastructure/party/party.repository.ts) — tri par solde
+ * décroissant appliqué ici (cahier des charges §7).
  */
 export async function searchParties(
   deps: { repository: PartyRepository },

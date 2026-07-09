@@ -4,6 +4,7 @@ import { requireTenantContext } from "@/infrastructure/auth/session";
 import { searchParties } from "@/application/party/search-parties.use-case";
 import { getPartyById } from "@/application/party/get-party-by-id.use-case";
 import { PrismaPartyRepository } from "@/infrastructure/party/party.repository";
+import { PrismaTransactionRepository } from "@/infrastructure/transaction/transaction.repository";
 import { partySearchSchema, type PartySearchInput } from "@/presentation/party/schemas";
 
 /**
@@ -28,6 +29,7 @@ export async function searchPartiesAction(input: PartySearchInput = {}) {
 export async function getPartyByIdAction(id: string) {
   const context = await requireTenantContext();
   const repository = new PrismaPartyRepository(context.tenantId);
+  const transactionRepository = new PrismaTransactionRepository(context.tenantId);
 
-  return getPartyById({ repository }, id);
+  return getPartyById({ repository, transactionRepository }, id);
 }

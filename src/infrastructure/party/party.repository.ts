@@ -5,6 +5,7 @@ import type {
 } from "@/application/party/party.repository";
 import type { Party, PartyInput } from "@/domain/party/party.entity";
 import { TenantScopedRepository } from "@/infrastructure/prisma/tenant-scoped-repository";
+import { PrismaTransactionRepository } from "@/infrastructure/transaction/transaction.repository";
 
 export class PrismaPartyRepository extends TenantScopedRepository implements PartyRepository {
   async findById(id: string): Promise<Party | null> {
@@ -28,9 +29,13 @@ export class PrismaPartyRepository extends TenantScopedRepository implements Par
       orderBy: { createdAt: "desc" },
     });
 
-    // TODO: brancher le calcul réel une fois le module Transaction implémenté
-    // (agrégation amount - paidAmount des Transaction liées à ce Party).
-    return parties.map((party) => ({ ...party, balance: 0 }));
+    // Composition infra-à-infra (Party dépend de Transaction, jamais
+    // l'inverse) : un seul groupBy pour tous les tiers de cette page plutôt
+    // qu'une requête d'agrégation par tiers.
+    const balances = await new PrismaTransactionRepository(this.tenantId).aggregateBalancesByParty(
+      parties.map((party) => party.id),
+    );
+    return parties.map((party) => ({ ...party, balance: balances.get(party.id) ?? 0 }));
   }
 
   /**

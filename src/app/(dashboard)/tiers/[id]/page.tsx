@@ -30,6 +30,7 @@ export default async function TierDetailPage({ params }: { params: Promise<{ id:
   return (
     <PartyDetail
       party={{ ...detail.party, balance: detail.balance }}
+      transactions={detail.transactions}
       tenantId={context.tenantId}
       userId={context.userId}
       canDelete={context.role === "PATRON"}

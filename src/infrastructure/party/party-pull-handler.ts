@@ -5,6 +5,7 @@ import {
 } from "@/application/offline/pull-handler";
 import type { PartyWithBalance } from "@/application/party/party.repository";
 import { PrismaPartyRepository } from "@/infrastructure/party/party.repository";
+import { PrismaTransactionRepository } from "@/infrastructure/transaction/transaction.repository";
 
 type Cursor = { updatedAt: string; id: string };
 
@@ -18,9 +19,9 @@ function encodeCursor(cursor: Cursor): string {
 
 /**
  * Gestionnaire de pull de production pour Party (retrofit du module sur la
- * couche de synchronisation descendante générique, cf. CLAUDE.md). Même
- * limitation assumée que `PrismaPartyRepository.findMany` : `balance` reste
- * à 0 tant que le module Transaction n'existe pas.
+ * couche de synchronisation descendante générique, cf. CLAUDE.md). `balance`
+ * reflète le vrai solde agrégé (même règle que `PrismaPartyRepository.findMany`,
+ * voir `PrismaTransactionRepository.aggregateBalancesByParty`).
  */
 export const partyPullHandler: PullHandler<PartyWithBalance> = {
   async findChangedSince(context, since, queryStartedAt, pageCursor) {
@@ -37,13 +38,15 @@ export const partyPullHandler: PullHandler<PartyWithBalance> = {
     const hasMore = rows.length > PULL_PAGE_SIZE;
     const page = hasMore ? rows.slice(0, PULL_PAGE_SIZE) : rows;
 
+    const balances = await new PrismaTransactionRepository(
+      context.tenantId,
+    ).aggregateBalancesByParty(page.map((party) => party.id));
+
     const records: PulledRecord<PartyWithBalance>[] = page.map((party) => ({
       id: party.id,
       updatedAt: party.updatedAt.toISOString(),
       deletedAt: party.deletedAt?.toISOString() ?? null,
-      // TODO: brancher le calcul réel une fois le module Transaction
-      // implémenté (même limitation que PrismaPartyRepository.findMany).
-      data: { ...party, balance: 0 },
+      data: { ...party, balance: balances.get(party.id) ?? 0 },
     }));
 
     const last = page.at(-1);

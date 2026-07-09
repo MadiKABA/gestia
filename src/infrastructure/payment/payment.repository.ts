@@ -1,0 +1,107 @@
+import type { Payment as PaymentRow } from "@/generated/prisma/client";
+import { Decimal } from "@/generated/prisma/internal/prismaNamespace";
+import type { Payment } from "@/domain/payment/payment.entity";
+import type {
+  PaymentRegistrationInput,
+  PaymentRegistrationResult,
+  PaymentRepository,
+} from "@/application/payment/payment.repository";
+import { toDomainTransaction } from "@/infrastructure/transaction/transaction.repository";
+import { TenantScopedRepository } from "@/infrastructure/prisma/tenant-scoped-repository";
+
+/** Conversion Decimal → number, seule frontière du repository — voir
+ * infrastructure/transaction/transaction.repository.ts:toDomainTransaction. */
+export function toDomainPayment(row: PaymentRow): Payment {
+  return {
+    id: row.id,
+    tenantId: row.tenantId,
+    transactionId: row.transactionId,
+    amount: row.amount.toNumber(),
+    method: row.method,
+    direction: row.direction,
+    note: row.note,
+    createdById: row.createdById,
+    createdAt: row.createdAt,
+  };
+}
+
+export class PrismaPaymentRepository extends TenantScopedRepository implements PaymentRepository {
+  async findById(id: string): Promise<Payment | null> {
+    const row = await this.prisma.payment.findFirst({
+      where: this.scoped({ id, deletedAt: null }),
+    });
+    return row ? toDomainPayment(row) : null;
+  }
+
+  async findByTransactionId(transactionId: string): Promise<Payment[]> {
+    const rows = await this.prisma.payment.findMany({
+      where: this.scoped({ transactionId, deletedAt: null }),
+      orderBy: { createdAt: "asc" },
+    });
+    return rows.map(toDomainPayment);
+  }
+
+  /**
+   * Écrit Payment, la mise à jour de Transaction.paidAmount/status et le
+   * CashMovement (si paiement CASH) dans une seule transaction Prisma —
+   * même précédent que PrismaTransactionRepository.create() (Sequence +
+   * Transaction atomiques). Pas de module application/cash-movement séparé
+   * pour ce retrofit : aucune page "Caisse" ne consomme encore de
+   * mouvements manuels, seules les règles pures de
+   * domain/cash-movement/cash-movement.entity.ts sont posées pour ce futur
+   * chantier, qui devra alors extraire un vrai repository dédié.
+   */
+  async register(
+    id: string,
+    input: PaymentRegistrationInput,
+    createdById: string,
+  ): Promise<PaymentRegistrationResult> {
+    const { paymentRow, transactionRow, cashMovementId } = await this.prisma.$transaction(
+      async (tx) => {
+        const paymentRow = await tx.payment.create({
+          data: {
+            id,
+            tenantId: this.tenantId,
+            transactionId: input.transactionId,
+            amount: new Decimal(input.amount),
+            method: input.method,
+            direction: input.direction,
+            note: input.note,
+            createdById,
+          },
+        });
+
+        const transactionRow = await tx.transaction.update({
+          where: this.scoped({ id: input.transactionId }),
+          data: {
+            paidAmount: new Decimal(input.newPaidAmount),
+            status: input.newStatus,
+          },
+        });
+
+        let cashMovementId: string | null = null;
+        if (input.cashMovement) {
+          const cashMovementRow = await tx.cashMovement.create({
+            data: {
+              tenantId: this.tenantId,
+              type: input.cashMovement.type,
+              amount: new Decimal(input.amount),
+              reason: input.cashMovement.reason,
+              linkedPaymentId: paymentRow.id,
+              createdById,
+            },
+          });
+          cashMovementId = cashMovementRow.id;
+        }
+
+        return { paymentRow, transactionRow, cashMovementId };
+      },
+    );
+
+    return {
+      payment: toDomainPayment(paymentRow),
+      transaction: toDomainTransaction(transactionRow),
+      cashMovementId,
+    };
+  }
+}

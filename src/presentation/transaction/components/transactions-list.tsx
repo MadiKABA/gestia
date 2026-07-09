@@ -49,16 +49,20 @@ export function TransactionsList({
   userId,
   parties,
   summary,
+  initialType,
 }: {
   initialTransactions: Transaction[];
   tenantId: string;
   userId: string;
   parties: { id: string; name: string }[];
   summary: { owedToMe: number; owedByMe: number };
+  /** Filtre initial ("Créances"/"Dettes" du menu, voir nav-config.ts) — la
+   * page a déjà rendu la liste filtrée côté serveur avec cette même valeur. */
+  initialType?: TransactionType;
 }) {
   const [transactions, setTransactions] = useState(initialTransactions);
   const [search, setSearch] = useState("");
-  const [type, setType] = useState<"ALL" | TransactionType>("ALL");
+  const [type, setType] = useState<"ALL" | TransactionType>(initialType ?? "ALL");
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [, startTransition] = useTransition();
   const repository = useMemo(

@@ -8,7 +8,11 @@ import {
 import { searchPartiesAction } from "@/presentation/party/actions";
 import { TransactionsList } from "@/presentation/transaction/components/transactions-list";
 
-export default async function TransactionsPage() {
+export default async function TransactionsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ type?: string }>;
+}) {
   let context;
   try {
     context = await requireTenantContext();
@@ -19,8 +23,14 @@ export default async function TransactionsPage() {
     throw error;
   }
 
+  const { type } = await searchParams;
+  // Cases "Créances"/"Dettes" du menu (nav-config.ts) : même page, filtrée
+  // dès le rendu serveur pour éviter un flash de la liste complète avant
+  // que le filtre client ne s'applique.
+  const initialType = type === "CREANCE" || type === "DETTE" ? type : undefined;
+
   const [transactions, parties, summary] = await Promise.all([
-    searchTransactionsAction(),
+    searchTransactionsAction({ type: initialType }),
     searchPartiesAction(),
     getTransactionBalanceSummaryAction(),
   ]);
@@ -32,6 +42,7 @@ export default async function TransactionsPage() {
       userId={context.userId}
       parties={parties.map((party) => ({ id: party.id, name: party.name }))}
       summary={summary}
+      initialType={initialType}
     />
   );
 }

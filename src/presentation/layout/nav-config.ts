@@ -39,8 +39,20 @@ export const SIDEBAR_NAV_ITEMS: SidebarNavItem[] = [
     icon: Users,
     roles: ["PATRON", "VENDEUR"],
   },
-  { key: "creances", label: "Créances", href: "/creances", icon: Receipt, roles: ["PATRON"] },
-  { key: "dettes", label: "Dettes", href: "/dettes", icon: HandCoins, roles: ["PATRON"] },
+  {
+    key: "creances",
+    label: "Créances",
+    href: "/transactions?type=CREANCE",
+    icon: Receipt,
+    roles: ["PATRON"],
+  },
+  {
+    key: "dettes",
+    label: "Dettes",
+    href: "/transactions?type=DETTE",
+    icon: HandCoins,
+    roles: ["PATRON"],
+  },
   { key: "caisse", label: "Caisse", href: "/caisse", icon: Wallet, roles: ["PATRON"] },
   {
     key: "mes-operations",
@@ -73,10 +85,12 @@ export function getSidebarNavItems(role: NavRole): SidebarNavItem[] {
 
 /**
  * Titres de pages accessibles (ex: depuis la fiche client ou le bouton "+")
- * mais qui n'ont pas encore leur propre entrée de navigation dédiée —
- * "Créances"/"Dettes" pointent aujourd'hui vers des vues filtrées à venir,
- * `/transactions` reste la liste combinée réelle en attendant. Distinct de
- * SIDEBAR_NAV_ITEMS pour ne jamais faire apparaître ces routes dans le menu.
+ * mais qui n'ont pas leur propre entrée de navigation dédiée. Sert aussi de
+ * secours pour "Créances"/"Dettes" (SIDEBAR_NAV_ITEMS) : leur `href` inclut
+ * une query string (`/transactions?type=...`), jamais égale à `pathname`
+ * (qui ne la contient pas) — ce mapping matche sur le pathname seul, peu
+ * importe le filtre choisi. Distinct de SIDEBAR_NAV_ITEMS pour ne jamais
+ * faire apparaître cette entrée générique dans le menu.
  */
 const EXTRA_PAGE_TITLES: { href: string; label: string }[] = [
   { href: "/transactions", label: transactionLabels.listTitle },

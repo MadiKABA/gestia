@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, IBM_Plex_Mono } from "next/font/google";
 import { PwaProvider } from "@/presentation/shared/components/pwa-provider";
-import { InstallPromptBanner } from "@/presentation/shared/components/install-prompt-banner";
 import "./globals.css";
 
 const inter = Inter({
@@ -54,10 +53,7 @@ export default function RootLayout({
   return (
     <html lang="fr" className={`${inter.variable} ${ibmPlexMono.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col">
-        <PwaProvider>
-          <InstallPromptBanner />
-          {children}
-        </PwaProvider>
+        <PwaProvider>{children}</PwaProvider>
       </body>
     </html>
   );

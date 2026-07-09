@@ -7,6 +7,7 @@ import { SidebarDrawer } from "@/presentation/layout/components/sidebar-drawer";
 import { SidebarFixed } from "@/presentation/layout/components/sidebar-fixed";
 import { QuickActionSheet } from "@/presentation/layout/components/quick-action-sheet";
 import { StoragePersistenceWarning } from "@/presentation/shared/components/storage-persistence-warning";
+import { InstallPromptBanner } from "@/presentation/shared/components/install-prompt-banner";
 import { ResponsivePanel } from "@/presentation/shared/components/responsive-panel";
 import { TransactionWizard } from "@/presentation/transaction/components/transaction-wizard";
 import { ensureCacheMatchesAccount } from "@/infrastructure/offline/account-guard";
@@ -69,6 +70,11 @@ export function AppShell({
       <AppHeader branding={branding} tenantId={tenantId} onMenuClick={() => setDrawerOpen(true)} />
 
       <main className="min-h-dvh pt-14 pb-16 lg:pb-0 lg:pl-64">
+        {/* Juste sous le header, visible sans scroll sur toutes les tailles
+            d'écran (cf. plan de refonte PWA) — en flux normal ici, pas de
+            recouvrement à calculer avec le header `fixed` (déjà compensé par
+            `pt-14` ci-dessus). */}
+        <InstallPromptBanner />
         <StoragePersistenceWarning />
         {cacheReady ? children : null}
       </main>

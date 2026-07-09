@@ -1,0 +1,231 @@
+"use client";
+
+import { useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { Controller, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Button } from "@/presentation/shared/components/ui/button";
+import { Input } from "@/presentation/shared/components/ui/input";
+import { Label } from "@/presentation/shared/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/presentation/shared/components/ui/select";
+import {
+  transactionInputSchema,
+  toTransactionInput,
+  type TransactionFormInput,
+} from "@/presentation/transaction/schemas";
+import { commonLabels, transactionLabels } from "@/presentation/shared/labels";
+import { createTransactionOfflineRepository } from "@/presentation/transaction/offline-repository";
+
+const TYPE_OPTIONS = [
+  { value: "CREANCE", label: transactionLabels.typeCreance },
+  { value: "DETTE", label: transactionLabels.typeDette },
+] as const;
+
+const TYPE_LABEL_BY_VALUE: Record<string, string> = Object.fromEntries(
+  TYPE_OPTIONS.map((option) => [option.value, option.label]),
+);
+
+const DEFAULT_VALUES: TransactionFormInput = {
+  partyId: "",
+  type: "CREANCE",
+  description: "",
+  quantity: null,
+  amount: 0,
+  dueDate: "",
+};
+
+export function TransactionForm({
+  mode,
+  transactionId,
+  tenantId,
+  userId,
+  parties,
+  defaultValues,
+  submitLabel,
+}: {
+  mode: "create" | "edit";
+  /** Requis en mode "edit". */
+  transactionId?: string;
+  tenantId: string;
+  userId: string;
+  /** Tiers du tenant, pour le sélecteur — `partyId` est immuable après
+   * création (voir domain/transaction/transaction.entity.ts), le sélecteur
+   * est donc désactivé en mode "edit". */
+  parties: { id: string; name: string }[];
+  defaultValues?: Partial<TransactionFormInput>;
+  submitLabel: string;
+}) {
+  const router = useRouter();
+  const repository = useMemo(
+    () => createTransactionOfflineRepository(tenantId, userId),
+    [tenantId, userId],
+  );
+  const [pending, startTransition] = useTransition();
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<TransactionFormInput>({
+    resolver: zodResolver(transactionInputSchema),
+    defaultValues: { ...DEFAULT_VALUES, ...defaultValues },
+  });
+
+  function submit(values: TransactionFormInput) {
+    setSubmitError(null);
+    startTransition(async () => {
+      try {
+        const input = toTransactionInput(values);
+        if (mode === "create") {
+          await repository.create(input);
+        } else {
+          await repository.update(transactionId!, input);
+        }
+        // Retour à la liste plutôt qu'à la page détail — même raison que
+        // party-form.tsx : indisponible juste après une création hors ligne.
+        router.push("/transactions");
+      } catch (err) {
+        setSubmitError(err instanceof Error ? err.message : commonLabels.genericError);
+      }
+    });
+  }
+
+  return (
+    <form onSubmit={handleSubmit(submit)} className="space-y-4">
+      <div className="space-y-1.5">
+        <Label htmlFor="partyId">{transactionLabels.partyField}</Label>
+        <Controller
+          control={control}
+          name="partyId"
+          render={({ field }) => (
+            <Select
+              value={field.value}
+              onValueChange={(value) => field.onChange(value)}
+              disabled={mode === "edit"}
+            >
+              <SelectTrigger id="partyId" className="w-full" aria-invalid={!!errors.partyId}>
+                <SelectValue placeholder="Choisir un client">
+                  {(value: string) => parties.find((party) => party.id === value)?.name ?? value}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {parties.map((party) => (
+                  <SelectItem key={party.id} value={party.id}>
+                    {party.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        />
+        {errors.partyId ? (
+          <p className="text-destructive text-sm">{errors.partyId.message}</p>
+        ) : null}
+      </div>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="type">Type</Label>
+        <Controller
+          control={control}
+          name="type"
+          render={({ field }) => (
+            <Select value={field.value} onValueChange={(value) => field.onChange(value)}>
+              <SelectTrigger id="type" className="w-full">
+                <SelectValue placeholder="Choisir un type">
+                  {(value: string) => TYPE_LABEL_BY_VALUE[value] ?? value}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {TYPE_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        />
+      </div>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="description">{transactionLabels.descriptionField}</Label>
+        <Controller
+          control={control}
+          name="description"
+          render={({ field }) => (
+            <Input
+              id="description"
+              value={field.value}
+              onValueChange={field.onChange}
+              autoFocus
+              aria-invalid={!!errors.description}
+            />
+          )}
+        />
+        {errors.description ? (
+          <p className="text-destructive text-sm">{errors.description.message}</p>
+        ) : null}
+      </div>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="amount">{transactionLabels.amountField}</Label>
+        <Controller
+          control={control}
+          name="amount"
+          render={({ field }) => (
+            <Input
+              id="amount"
+              type="number"
+              inputMode="decimal"
+              min={0}
+              value={field.value === 0 ? "" : String(field.value)}
+              onValueChange={(value) => field.onChange(value === "" ? 0 : Number(value))}
+              aria-invalid={!!errors.amount}
+            />
+          )}
+        />
+        {errors.amount ? <p className="text-destructive text-sm">{errors.amount.message}</p> : null}
+      </div>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="quantity">{transactionLabels.quantityField}</Label>
+        <Controller
+          control={control}
+          name="quantity"
+          render={({ field }) => (
+            <Input
+              id="quantity"
+              type="number"
+              inputMode="decimal"
+              min={0}
+              value={field.value == null ? "" : String(field.value)}
+              onValueChange={(value) => field.onChange(value === "" ? null : Number(value))}
+            />
+          )}
+        />
+      </div>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="dueDate">{transactionLabels.dueDateField}</Label>
+        <Controller
+          control={control}
+          name="dueDate"
+          render={({ field }) => (
+            <Input id="dueDate" type="date" value={field.value} onValueChange={field.onChange} />
+          )}
+        />
+      </div>
+
+      {submitError ? <p className="text-destructive text-sm">{submitError}</p> : null}
+      <Button type="submit" className="w-full" disabled={pending}>
+        {pending ? "Enregistrement..." : submitLabel}
+      </Button>
+    </form>
+  );
+}

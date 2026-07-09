@@ -14,7 +14,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
  * production.
  */
 
-const SYNCED_ENTITIES = ["party", "transaction", "payment"];
+const SYNCED_ENTITIES = ["party", "transaction", "payment", "cashMovement"];
 
 async function assertAllEntitiesRegistered() {
   const { getMutationHandler } = await import("@/application/offline/mutation-handler-registry");
@@ -33,12 +33,12 @@ describe("Câblage des registres génériques de sync dans les modules réelleme
     vi.resetModules();
   });
 
-  it("importer presentation/offline/actions.ts enregistre les 3 registres pour party/transaction/payment", async () => {
+  it("importer presentation/offline/actions.ts enregistre les 3 registres pour party/transaction/payment/cashMovement", async () => {
     await import("@/presentation/offline/actions");
     await assertAllEntitiesRegistered();
   });
 
-  it("importer app/api/sync/route.ts enregistre les 3 registres pour party/transaction/payment", async () => {
+  it("importer app/api/sync/route.ts enregistre les 3 registres pour party/transaction/payment/cashMovement", async () => {
     await import("@/app/api/sync/route");
     await assertAllEntitiesRegistered();
   });

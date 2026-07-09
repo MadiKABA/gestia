@@ -1,4 +1,5 @@
 import type { PaymentDirection } from "@/domain/payment/payment.entity";
+import { ValidationError } from "@/domain/shared/errors";
 
 export type CashMovementType = "ENTREE" | "SORTIE";
 
@@ -12,6 +13,32 @@ export type CashMovement = {
   createdById: string;
   date: Date;
 };
+
+/**
+ * Entrée manuelle uniquement (cahier des charges §7) : un mouvement issu
+ * d'un paiement CASH est généré automatiquement par
+ * register-payment.use-case.ts, jamais via ce type d'entrée — `reason` y est
+ * imposé par `buildAutoReason`, jamais saisi.
+ */
+export type CashMovementInput = {
+  type: CashMovementType;
+  amount: number;
+  reason: string;
+};
+
+/**
+ * Règles métier pures (cahier des charges §7) : montant strictement positif,
+ * motif obligatoire — mêmes règles que validateTransactionInput/
+ * validatePaymentAmount, jamais dupliquées différemment.
+ */
+export function validateCashMovementInput(input: CashMovementInput): void {
+  if (!(input.amount > 0)) {
+    throw new ValidationError("Le montant doit être supérieur à zéro");
+  }
+  if (!input.reason.trim()) {
+    throw new ValidationError("Le motif est obligatoire");
+  }
+}
 
 /**
  * Un paiement CASH encaissé (créance) fait entrer de l'argent en caisse ;

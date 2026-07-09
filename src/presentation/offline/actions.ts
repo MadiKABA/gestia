@@ -12,6 +12,7 @@ import { PrismaAuditLogger } from "@/infrastructure/audit-log/audit-log.reposito
 import { registerPartySync } from "@/infrastructure/party/register-party-sync";
 import { registerTransactionSync } from "@/infrastructure/transaction/register-transaction-sync";
 import { registerPaymentSync } from "@/infrastructure/payment/register-payment-sync";
+import { registerCashMovementSync } from "@/infrastructure/cash-movement/register-cash-movement-sync";
 import { checkRateLimit, SYNC_RATE_LIMIT } from "@/infrastructure/shared/rate-limiter";
 import { pullChangesInputSchema, queuedMutationInputSchema } from "@/presentation/offline/schemas";
 import { ForbiddenError } from "@/domain/shared/errors";
@@ -31,6 +32,7 @@ const auditLogger = new PrismaAuditLogger();
 registerPartySync();
 registerTransactionSync();
 registerPaymentSync();
+registerCashMovementSync();
 
 function checkSyncRateLimit(
   context: TenantContext,

@@ -12,6 +12,10 @@ export const commonLabels = {
   delete: "Supprimer",
   deleting: "Suppression...",
   genericError: "Une erreur est survenue",
+  // Lien de retour explicite sur les pages de création/édition (mobile-first
+  // : chaque écran doit avoir une sortie claire, jamais dépendre du seul
+  // bouton retour du navigateur). Même libellé partout, voir back-link.tsx.
+  back: "Retour",
 };
 
 export const partyLabels = {
@@ -159,6 +163,30 @@ export const paymentLabels = {
   amountInvalidError: "Le montant doit être supérieur à zéro",
 
   editDisabledTooltip: "Déjà réglée en partie, modification impossible",
+};
+
+export const cashMovementLabels = {
+  typeEntree: "Entrée",
+  typeSortie: "Sortie",
+
+  listTitle: "Caisse",
+  newButtonLabel: "Nouveau mouvement",
+  newPageTitle: "Nouveau mouvement",
+  createSubmitLabel: "Enregistrer",
+
+  balanceLabel: "Solde de caisse",
+  totalEntreeLabel: "Total entrées",
+  totalSortieLabel: "Total sorties",
+
+  typeField: "Type",
+  amountField: "Montant (FCFA)",
+  reasonField: "Motif",
+
+  emptyStateList: "Aucun mouvement de caisse pour le moment.",
+  showMoreLabel: "Voir plus",
+
+  amountInvalidError: "Le montant doit être supérieur à zéro",
+  reasonRequiredError: "Le motif est obligatoire",
 };
 
 export const authLabels = {

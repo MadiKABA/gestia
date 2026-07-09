@@ -60,7 +60,7 @@ export const partyLabels = {
   pickerSearchPlaceholder: "Rechercher un client par nom ou téléphone",
   pickerCreateNewLabel: "Créer une nouvelle personne",
   pickerCreateNewNameField: "Nom",
-  pickerCreateNewPhoneField: "Téléphone (optionnel)",
+  pickerCreateNewPhoneField: "Téléphone",
   pickerTypeQuestion: "Client ou fournisseur ?",
   pickerContinueLabel: "Continuer",
 };
@@ -122,6 +122,7 @@ export const transactionLabels = {
   stepAmountTitle: "Montant et description",
   stepSituationTitle: "Situation",
   backLabel: "Retour",
+  continueLabel: "Continuer",
   saveLabel: "Enregistrer",
 
   showMoreLabel: "Voir plus",

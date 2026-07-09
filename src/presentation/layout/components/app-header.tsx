@@ -2,23 +2,30 @@
 
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Bell, Menu } from "lucide-react";
+import { Bell, Menu, Plus } from "lucide-react";
 import { Button } from "@/presentation/shared/components/ui/button";
 import { NetworkStatusIndicator } from "@/presentation/shared/components/network-status-indicator";
 import { getPageTitle } from "@/presentation/layout/nav-config";
+import { transactionLabels } from "@/presentation/shared/labels";
 import type { TenantBranding } from "@/application/tenant/tenant-branding.repository";
 
 /** Header fixe : titre de la page courante, logo boutique (dashboard
  * uniquement), burger mobile (ouvre le drawer), emplacement notifications,
- * indicateur réseau/sync (masqué en ligne sans mutation en attente). */
+ * indicateur réseau/sync (masqué en ligne sans mutation en attente). Le
+ * bouton central "+" mobile disparaît au breakpoint lg (bottom tab bar
+ * cachée) : `onNewOperation` lui sert d'équivalent desktop, seul jamais
+ * masqué par la sidebar contrairement au reste du menu rapide mobile
+ * (paiement/caisse, hors périmètre tant que ces modules n'existent pas). */
 export function AppHeader({
   branding,
   tenantId,
   onMenuClick,
+  onNewOperation,
 }: {
   branding: TenantBranding;
   tenantId: string;
   onMenuClick: () => void;
+  onNewOperation: () => void;
 }) {
   const pathname = usePathname();
   const title = getPageTitle(pathname);
@@ -41,6 +48,10 @@ export function AppHeader({
       </div>
 
       <div className="flex items-center gap-1">
+        <Button size="sm" onClick={onNewOperation} className="hidden lg:inline-flex">
+          <Plus className="size-4" aria-hidden />
+          {transactionLabels.newOperationButtonLabel}
+        </Button>
         <Button variant="ghost" size="icon-sm" aria-label="Notifications" disabled>
           <Bell className="size-5" aria-hidden />
         </Button>

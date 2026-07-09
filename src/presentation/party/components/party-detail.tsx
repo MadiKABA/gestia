@@ -5,13 +5,15 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/presentation/shared/components/ui/button";
 import { ConfirmDialog } from "@/presentation/shared/components/confirm-dialog";
+import { ResponsivePanel } from "@/presentation/shared/components/responsive-panel";
+import { TransactionWizard } from "@/presentation/transaction/components/transaction-wizard";
 import {
   createPartyOfflineRepository,
   seedPartyCache,
 } from "@/presentation/party/offline-repository";
 import { commonLabels, partyLabels, transactionLabels } from "@/presentation/shared/labels";
 import type { PartyWithBalance } from "@/application/party/party.repository";
-import type { Transaction } from "@/domain/transaction/transaction.entity";
+import type { Transaction, TransactionType } from "@/domain/transaction/transaction.entity";
 
 const TYPE_LABELS: Record<PartyWithBalance["type"], string> = {
   CLIENT: partyLabels.typeClient,
@@ -41,6 +43,7 @@ export function PartyDetail({
   const [error, setError] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleting, startDelete] = useTransition();
+  const [wizardType, setWizardType] = useState<TransactionType | null>(null);
 
   // Amorce le cache local avec les données serveur fraîches (SSR) — pour
   // qu'une prochaine visite hors ligne de ce tiers les retrouve déjà là.
@@ -113,23 +116,36 @@ export function PartyDetail({
       </div>
 
       <div className="flex gap-2">
-        <Button
-          variant="outline"
-          className="flex-1"
-          render={<Link href={`/transactions/nouvelle?partyId=${party.id}&type=CREANCE`} />}
-          nativeButton={false}
-        >
+        <Button variant="outline" className="flex-1" onClick={() => setWizardType("CREANCE")}>
           {transactionLabels.newCreanceButtonLabel}
         </Button>
-        <Button
-          variant="outline"
-          className="flex-1"
-          render={<Link href={`/transactions/nouvelle?partyId=${party.id}&type=DETTE`} />}
-          nativeButton={false}
-        >
+        <Button variant="outline" className="flex-1" onClick={() => setWizardType("DETTE")}>
           {transactionLabels.newDetteButtonLabel}
         </Button>
       </div>
+
+      <ResponsivePanel
+        open={wizardType !== null}
+        onOpenChange={(open) => setWizardType(open ? wizardType : null)}
+        title={
+          wizardType === "DETTE"
+            ? transactionLabels.newPageTitleDette
+            : transactionLabels.newPageTitleCreance
+        }
+      >
+        {wizardType ? (
+          <TransactionWizard
+            tenantId={tenantId}
+            userId={userId}
+            initialParty={{ id: party.id, name: party.name }}
+            initialType={wizardType}
+            onDone={() => {
+              setWizardType(null);
+              router.refresh();
+            }}
+          />
+        ) : null}
+      </ResponsivePanel>
 
       <div>
         <h2 className="text-foreground mb-2 text-sm font-semibold">{partyLabels.historyTitle}</h2>

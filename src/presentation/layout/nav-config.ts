@@ -13,7 +13,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import type { TenantContext } from "@/domain/shared/tenant-context";
-import { partyLabels } from "@/presentation/shared/labels";
+import { partyLabels, transactionLabels } from "@/presentation/shared/labels";
 
 export type NavRole = TenantContext["role"];
 
@@ -116,28 +116,22 @@ export const BOTTOM_TAB_ITEMS: Record<NavRole, BottomTabItem[]> = {
 /**
  * Items du menu rapide ouvert par le bouton central "+" de la bottom tab
  * bar (bottom sheet / popover) — mêmes actions pour les deux rôles.
+ * `href` absent : l'item ouvre le wizard de création d'opération sur place
+ * plutôt que de naviguer vers une page dédiée (voir quick-action-sheet.tsx).
  */
 export type QuickActionItem = {
   key: string;
   label: string;
-  href: string;
+  href?: string;
   icon: LucideIcon;
   roles: NavRole[];
 };
 
 export const QUICK_ACTION_ITEMS: QuickActionItem[] = [
   {
-    key: "nouvelle-creance",
-    label: "Nouvelle créance",
-    href: "/creances/nouvelle",
+    key: "nouvelle-operation",
+    label: transactionLabels.newOperationButtonLabel,
     icon: Receipt,
-    roles: ["PATRON", "VENDEUR"],
-  },
-  {
-    key: "nouvelle-dette",
-    label: "Nouvelle dette",
-    href: "/dettes/nouvelle",
-    icon: HandCoins,
     roles: ["PATRON", "VENDEUR"],
   },
   {

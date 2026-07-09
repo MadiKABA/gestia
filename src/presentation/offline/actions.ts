@@ -10,6 +10,7 @@ import type { SyncActionResult } from "@/application/offline/sync-result";
 import type { QueuedMutation } from "@/application/offline/mutation-handler";
 import { PrismaAuditLogger } from "@/infrastructure/audit-log/audit-log.repository";
 import { registerPartySync } from "@/infrastructure/party/register-party-sync";
+import { registerTransactionSync } from "@/infrastructure/transaction/register-transaction-sync";
 import { checkRateLimit, SYNC_RATE_LIMIT } from "@/infrastructure/shared/rate-limiter";
 import { pullChangesInputSchema, queuedMutationInputSchema } from "@/presentation/offline/schemas";
 import { ForbiddenError } from "@/domain/shared/errors";
@@ -27,6 +28,7 @@ const auditLogger = new PrismaAuditLogger();
 // registerMutationHandler est idempotent (Map.set), donc sans risque même si
 // instrumentation.ts l'appelle aussi de son côté.
 registerPartySync();
+registerTransactionSync();
 
 function checkSyncRateLimit(
   context: TenantContext,

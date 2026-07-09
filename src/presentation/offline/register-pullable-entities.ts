@@ -1,4 +1,5 @@
 import { registerPartyPullable } from "@/infrastructure/party/register-party-pullable";
+import { registerTransactionPullable } from "@/infrastructure/transaction/register-transaction-pullable";
 
 /**
  * Orchestrateur client des entities à rafraîchir par pull — symétrique à
@@ -10,4 +11,5 @@ import { registerPartyPullable } from "@/infrastructure/party/register-party-pul
  */
 export function registerPullableEntities(): void {
   registerPartyPullable();
+  registerTransactionPullable();
 }

@@ -4,6 +4,7 @@ import { syncMutation } from "@/application/offline/sync-mutation.use-case";
 import { pullChanges } from "@/application/offline/pull-changes.use-case";
 import { PrismaAuditLogger } from "@/infrastructure/audit-log/audit-log.repository";
 import { registerPartySync } from "@/infrastructure/party/register-party-sync";
+import { registerTransactionSync } from "@/infrastructure/transaction/register-transaction-sync";
 import { pullChangesInputSchema, queuedMutationInputSchema } from "@/presentation/offline/schemas";
 import { ForbiddenError } from "@/domain/shared/errors";
 import { checkRateLimit, SYNC_RATE_LIMIT } from "@/infrastructure/shared/rate-limiter";
@@ -12,6 +13,7 @@ import { checkRateLimit, SYNC_RATE_LIMIT } from "@/infrastructure/shared/rate-li
 // module précisément (pas seulement instrumentation.ts), qui bundle dans un
 // graphe séparé en production — voir le commentaire détaillé là-bas.
 registerPartySync();
+registerTransactionSync();
 
 const auditLogger = new PrismaAuditLogger();
 

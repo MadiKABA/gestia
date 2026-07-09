@@ -14,5 +14,8 @@ export async function register() {
     // démarrage du serveur.
     const { registerPartySync } = await import("@/infrastructure/party/register-party-sync");
     registerPartySync();
+    const { registerTransactionSync } =
+      await import("@/infrastructure/transaction/register-transaction-sync");
+    registerTransactionSync();
   }
 }

@@ -16,8 +16,9 @@ import {
   seedTransactionCache,
 } from "@/presentation/transaction/offline-repository";
 import { BalanceSummaryCards } from "@/presentation/transaction/components/balance-summary-cards";
+import { PaymentModal } from "@/presentation/payment/components/payment-modal";
 import type { Transaction, TransactionType } from "@/domain/transaction/transaction.entity";
-import { transactionLabels, syncLabels } from "@/presentation/shared/labels";
+import { paymentLabels, transactionLabels, syncLabels } from "@/presentation/shared/labels";
 
 const TYPE_FILTERS = [
   { value: "ALL", label: transactionLabels.filterAll },
@@ -64,6 +65,7 @@ export function TransactionsList({
   const [search, setSearch] = useState("");
   const [type, setType] = useState<"ALL" | TransactionType>(initialType ?? "ALL");
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [paymentTarget, setPaymentTarget] = useState<Transaction | null>(null);
   const [, startTransition] = useTransition();
   const repository = useMemo(
     () => createTransactionOfflineRepository(tenantId, userId),
@@ -101,6 +103,14 @@ export function TransactionsList({
   }, [search, type, repository]);
 
   const visibleTransactions = transactions.slice(0, visibleCount);
+
+  async function refresh() {
+    const results = await repository.list({
+      search: search || undefined,
+      type: type === "ALL" ? undefined : type,
+    });
+    setTransactions(results);
+  }
 
   return (
     <div className="mx-auto w-full max-w-md space-y-4 p-4 lg:max-w-5xl">
@@ -140,10 +150,13 @@ export function TransactionsList({
           const amountColorClass =
             transaction.type === "CREANCE" ? "text-[#1B7A5A]" : "text-[#0F2A4A]";
           return (
-            <li key={transaction.id}>
+            <li
+              key={transaction.id}
+              className="bg-card border-border flex items-center gap-2 rounded-lg border p-3 shadow-xs"
+            >
               <Link
                 href={`/transactions/${transaction.id}`}
-                className="bg-card border-border hover:bg-accent flex items-center justify-between rounded-lg border p-3 shadow-xs transition-colors"
+                className="hover:text-accent-foreground flex min-w-0 flex-1 items-center justify-between gap-2 transition-colors"
               >
                 <div className="min-w-0">
                   <p className="text-foreground truncate text-sm font-medium">
@@ -167,6 +180,36 @@ export function TransactionsList({
                   {signedAmount.toLocaleString("fr-FR")} FCFA
                 </span>
               </Link>
+
+              {/* Actions directes desktop/tablette (cf. CLAUDE.md responsive
+                  desktop) : mobile garde tap → détail uniquement, actions
+                  secondaires dans le détail. */}
+              <div className="hidden shrink-0 items-center gap-1.5 lg:flex">
+                {transaction.paidAmount > 0 ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled
+                    title={paymentLabels.editDisabledTooltip}
+                  >
+                    {transactionLabels.editButtonLabel}
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    render={<Link href={`/transactions/${transaction.id}/modifier`} />}
+                    nativeButton={false}
+                  >
+                    {transactionLabels.editButtonLabel}
+                  </Button>
+                )}
+                {transaction.status !== "REGLEE" ? (
+                  <Button size="sm" onClick={() => setPaymentTarget(transaction)}>
+                    {paymentLabels.payButtonLabel(transaction.type)}
+                  </Button>
+                ) : null}
+              </div>
             </li>
           );
         })}
@@ -183,6 +226,20 @@ export function TransactionsList({
         >
           {transactionLabels.showMoreLabel}
         </Button>
+      ) : null}
+
+      {paymentTarget ? (
+        <PaymentModal
+          transaction={paymentTarget}
+          tenantId={tenantId}
+          userId={userId}
+          open={paymentTarget !== null}
+          onOpenChange={(open) => setPaymentTarget(open ? paymentTarget : null)}
+          onSuccess={() => {
+            setPaymentTarget(null);
+            void refresh();
+          }}
+        />
       ) : null}
     </div>
   );

@@ -128,6 +128,22 @@ export const transactionLabels = {
   showMoreLabel: "Voir plus",
 };
 
+export const paymentLabels = {
+  payButtonLabel: (type: "CREANCE" | "DETTE") => (type === "CREANCE" ? "Encaisser" : "Rembourser"),
+  methodField: "Mode de paiement",
+  methodCash: "Espèces",
+  methodWave: "Wave",
+  methodOrangeMoney: "Orange Money",
+  methodOther: "Autre",
+  amountRemainingHint: (remaining: number) =>
+    `Solde restant : ${remaining.toLocaleString("fr-FR")} FCFA`,
+  historyTitle: "Historique des paiements",
+  amountExceedsRemainingError: "Le montant ne peut pas dépasser le solde restant",
+  amountInvalidError: "Le montant doit être supérieur à zéro",
+
+  editDisabledTooltip: "Déjà réglée en partie, modification impossible",
+};
+
 export const authLabels = {
   vendeurNotFoundMessage: "Ce vendeur n'existe plus.",
 };

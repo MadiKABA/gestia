@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { requireTenantContext } from "@/infrastructure/auth/session";
 import { ForbiddenError, NotFoundError } from "@/domain/shared/errors";
 import { getTransactionByIdAction } from "@/presentation/transaction/actions";
+import { listPaymentsByTransactionAction } from "@/presentation/payment/actions";
 import { TransactionDetail } from "@/presentation/transaction/components/transaction-detail";
 
 export default async function TransactionDetailPage({
@@ -31,6 +32,8 @@ export default async function TransactionDetailPage({
     throw error;
   }
 
+  const payments = await listPaymentsByTransactionAction(id);
+
   return (
     <TransactionDetail
       transaction={detail.transaction}
@@ -38,6 +41,7 @@ export default async function TransactionDetailPage({
       tenantId={context.tenantId}
       userId={context.userId}
       canDelete={context.role === "PATRON"}
+      initialPayments={payments}
     />
   );
 }

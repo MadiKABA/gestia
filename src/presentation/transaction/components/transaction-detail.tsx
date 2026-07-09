@@ -9,8 +9,17 @@ import {
   createTransactionOfflineRepository,
   seedTransactionCache,
 } from "@/presentation/transaction/offline-repository";
-import { commonLabels, transactionLabels, syncLabels } from "@/presentation/shared/labels";
+import { PaymentModal } from "@/presentation/payment/components/payment-modal";
+import { PaymentHistory } from "@/presentation/payment/components/payment-history";
+import { seedPaymentCache } from "@/presentation/payment/offline-repository";
+import {
+  commonLabels,
+  paymentLabels,
+  transactionLabels,
+  syncLabels,
+} from "@/presentation/shared/labels";
 import type { Transaction } from "@/domain/transaction/transaction.entity";
+import type { Payment } from "@/domain/payment/payment.entity";
 
 const TYPE_LABELS: Record<Transaction["type"], string> = {
   CREANCE: transactionLabels.typeCreance,
@@ -24,26 +33,43 @@ const STATUS_LABEL: Record<Transaction["status"], string> = {
 };
 
 export function TransactionDetail({
-  transaction,
+  transaction: initialTransaction,
   partyName,
   tenantId,
   userId,
   canDelete,
+  initialPayments,
 }: {
   transaction: Transaction;
   partyName: string | null;
   tenantId: string;
   userId: string;
   canDelete: boolean;
+  initialPayments: Payment[];
 }) {
   const router = useRouter();
+  const [transaction, setTransaction] = useState(initialTransaction);
+  const [payments, setPayments] = useState(initialPayments);
   const [error, setError] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [paymentOpen, setPaymentOpen] = useState(false);
   const [deleting, startDelete] = useTransition();
 
   useEffect(() => {
     void seedTransactionCache(tenantId, [transaction]);
   }, [tenantId, transaction]);
+
+  useEffect(() => {
+    void seedPaymentCache(tenantId, initialPayments);
+  }, [tenantId, initialPayments]);
+
+  async function onPaymentSuccess(payment: Payment) {
+    setPayments((current) => [...current, payment]);
+    const repository = createTransactionOfflineRepository(tenantId, userId);
+    const updated = await repository.getById(transaction.id);
+    if (updated) setTransaction(updated);
+    router.refresh();
+  }
 
   function onDelete() {
     setError(null);
@@ -103,15 +129,34 @@ export function TransactionDetail({
 
       {error ? <p className="text-destructive text-sm">{error}</p> : null}
 
-      <div className="flex gap-2">
-        <Button
-          variant="outline"
-          className="flex-1"
-          render={<Link href={`/transactions/${transaction.id}/modifier`} />}
-          nativeButton={false}
-        >
-          {transactionLabels.editButtonLabel}
+      {transaction.status !== "REGLEE" ? (
+        <Button className="w-full" onClick={() => setPaymentOpen(true)}>
+          {paymentLabels.payButtonLabel(transaction.type)}
         </Button>
+      ) : null}
+
+      {payments.length > 1 ? <PaymentHistory payments={payments} /> : null}
+
+      <div className="flex gap-2">
+        {transaction.paidAmount > 0 ? (
+          <Button
+            variant="outline"
+            className="flex-1"
+            disabled
+            title={paymentLabels.editDisabledTooltip}
+          >
+            {transactionLabels.editButtonLabel}
+          </Button>
+        ) : (
+          <Button
+            variant="outline"
+            className="flex-1"
+            render={<Link href={`/transactions/${transaction.id}/modifier`} />}
+            nativeButton={false}
+          >
+            {transactionLabels.editButtonLabel}
+          </Button>
+        )}
         {canDelete ? (
           <Button
             variant="destructive"
@@ -123,6 +168,15 @@ export function TransactionDetail({
           </Button>
         ) : null}
       </div>
+
+      <PaymentModal
+        transaction={transaction}
+        tenantId={tenantId}
+        userId={userId}
+        open={paymentOpen}
+        onOpenChange={setPaymentOpen}
+        onSuccess={(payment) => void onPaymentSuccess(payment)}
+      />
 
       <ConfirmDialog
         open={confirmOpen}

@@ -6,6 +6,7 @@ import { Button } from "@/presentation/shared/components/ui/button";
 import { Input } from "@/presentation/shared/components/ui/input";
 import { Label } from "@/presentation/shared/components/ui/label";
 import { createCashMovementOfflineRepository } from "@/presentation/cash-movement/offline-repository";
+import { BackLink } from "@/presentation/shared/components/back-link";
 import { commonLabels, cashMovementLabels } from "@/presentation/shared/labels";
 import { cn } from "@/lib/utils";
 import type { CashMovementType } from "@/domain/cash-movement/cash-movement.entity";
@@ -51,6 +52,7 @@ export function CashMovementCreateForm({ tenantId, userId }: { tenantId: string;
 
   return (
     <div className="mx-auto w-full max-w-md space-y-6 p-4">
+      <BackLink href="/caisse" />
       <h1 className="text-foreground text-lg font-semibold">{cashMovementLabels.newPageTitle}</h1>
 
       <div className="space-y-1.5">

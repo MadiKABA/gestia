@@ -4,6 +4,7 @@ import { ForbiddenError, NotFoundError } from "@/domain/shared/errors";
 import { getTransactionByIdAction } from "@/presentation/transaction/actions";
 import { searchPartiesAction } from "@/presentation/party/actions";
 import { TransactionForm } from "@/presentation/transaction/components/transaction-form";
+import { BackLink } from "@/presentation/shared/components/back-link";
 import { transactionLabels } from "@/presentation/shared/labels";
 
 export default async function ModifierTransactionPage({
@@ -42,7 +43,8 @@ export default async function ModifierTransactionPage({
 
   return (
     <div className="mx-auto w-full max-w-md p-4 lg:max-w-lg">
-      <h1 className="text-foreground mb-4 text-lg font-semibold">
+      <BackLink href={`/transactions/${id}`} />
+      <h1 className="text-foreground mt-3 mb-4 text-lg font-semibold">
         {transactionLabels.editPageTitle}
       </h1>
       <TransactionForm

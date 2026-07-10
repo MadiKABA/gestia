@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { TransactionCreateForm } from "@/presentation/transaction/components/transaction-create-form";
-import { transactionLabels } from "@/presentation/shared/labels";
+import { commonLabels, transactionLabels } from "@/presentation/shared/labels";
 import type { Transaction } from "@/domain/transaction/transaction.entity";
 
 const createMock = vi.fn<(input: unknown) => Promise<Transaction>>();
@@ -45,6 +45,15 @@ describe("TransactionCreateForm", () => {
     expect(screen.getByRole("button", { name: transactionLabels.owedToMeLabel })).toHaveAttribute(
       "aria-pressed",
       "true",
+    );
+  });
+
+  it("propose un lien de retour explicite vers la liste des opérations", () => {
+    render(<TransactionCreateForm tenantId="tenant-1" userId="user-1" />);
+
+    expect(screen.getByRole("link", { name: commonLabels.back })).toHaveAttribute(
+      "href",
+      "/transactions",
     );
   });
 

@@ -10,6 +10,7 @@ import {
   type PickedParty,
 } from "@/presentation/transaction/components/party-picker-step";
 import { createTransactionOfflineRepository } from "@/presentation/transaction/offline-repository";
+import { BackLink } from "@/presentation/shared/components/back-link";
 import { commonLabels, transactionLabels } from "@/presentation/shared/labels";
 import { cn } from "@/lib/utils";
 import type { TransactionType } from "@/domain/transaction/transaction.entity";
@@ -84,6 +85,7 @@ export function TransactionCreateForm({ tenantId, userId }: { tenantId: string; 
 
   return (
     <div className="mx-auto w-full max-w-md space-y-6 p-4 lg:max-w-4xl">
+      <BackLink href="/transactions" />
       <h1 className="text-foreground text-lg font-semibold">
         {type === "DETTE"
           ? transactionLabels.newPageTitleDette

@@ -3,6 +3,7 @@ import { requireTenantContext } from "@/infrastructure/auth/session";
 import { ForbiddenError, NotFoundError } from "@/domain/shared/errors";
 import { getPartyByIdAction } from "@/presentation/party/actions";
 import { PartyForm } from "@/presentation/party/components/party-form";
+import { BackLink } from "@/presentation/shared/components/back-link";
 import { partyLabels } from "@/presentation/shared/labels";
 
 export default async function ModifierTierPage({ params }: { params: Promise<{ id: string }> }) {
@@ -30,7 +31,10 @@ export default async function ModifierTierPage({ params }: { params: Promise<{ i
 
   return (
     <div className="mx-auto w-full max-w-md p-4 lg:max-w-lg">
-      <h1 className="text-foreground mb-4 text-lg font-semibold">{partyLabels.editPageTitle}</h1>
+      <BackLink href={`/tiers/${id}`} />
+      <h1 className="text-foreground mt-3 mb-4 text-lg font-semibold">
+        {partyLabels.editPageTitle}
+      </h1>
       <PartyForm
         mode="edit"
         partyId={id}

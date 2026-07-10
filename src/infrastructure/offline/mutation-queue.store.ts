@@ -1,4 +1,5 @@
 import { getDb, type MutationQueueRecord } from "@/infrastructure/offline/db";
+import { removeCachedEntity } from "@/infrastructure/offline/local-cache.store";
 
 export type NewMutationQueueEntry = Pick<
   MutationQueueRecord,
@@ -30,12 +31,18 @@ export async function enqueueMutation(entry: NewMutationQueueEntry): Promise<Mut
   return record;
 }
 
-/** Mutations non synchronisées, dans l'ordre chronologique de création. */
+/**
+ * Mutations non synchronisées, dans l'ordre chronologique de création —
+ * exclut les échecs définitifs (`permanentlyFailed: true`, voir
+ * `markMutationPermanentlyFailed`) : celles-ci ne sont plus jamais
+ * retentées automatiquement, seulement listées via `listFailedMutations`
+ * pour résolution manuelle.
+ */
 export async function listPendingMutations(tenantId: string): Promise<MutationQueueRecord[]> {
   const db = await getDb();
   const all = await db.getAll("mutationQueue");
   return all
-    .filter((m) => m.tenantId === tenantId && !m.synced)
+    .filter((m) => m.tenantId === tenantId && !m.synced && !m.permanentlyFailed)
     .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 }
 
@@ -65,6 +72,58 @@ export async function markMutationFailed(
 export async function getMutation(id: string): Promise<MutationQueueRecord | undefined> {
   const db = await getDb();
   return db.get("mutationQueue", id);
+}
+
+/**
+ * Marque une mutation comme échec définitif (erreur de validation métier —
+ * voir sync-engine.ts, qui distingue ce cas d'un échec transitoire) :
+ * `retryCount` n'est volontairement pas incrémenté, ce n'est plus un compteur
+ * pertinent pour une mutation qui ne sera plus jamais retentée
+ * automatiquement. Reste en base (jamais supprimée ici) pour résolution
+ * manuelle via `listFailedMutations`/`discardMutation`.
+ */
+export async function markMutationPermanentlyFailed(
+  id: string,
+  error: string,
+): Promise<MutationQueueRecord | undefined> {
+  const db = await getDb();
+  const record = await db.get("mutationQueue", id);
+  if (!record) return undefined;
+  const updated: MutationQueueRecord = { ...record, syncError: error, permanentlyFailed: true };
+  await db.put("mutationQueue", updated);
+  return updated;
+}
+
+/** Mutations en échec définitif d'un tenant — source de l'interface de
+ * résolution (presentation/offline/components/sync-failures-panel.tsx). */
+export async function listFailedMutations(tenantId: string): Promise<MutationQueueRecord[]> {
+  const db = await getDb();
+  const all = await db.getAll("mutationQueue");
+  return all
+    .filter((m) => m.tenantId === tenantId && m.permanentlyFailed)
+    .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+}
+
+/**
+ * "Ignorer cette action" (interface de résolution) : retire définitivement
+ * une mutation en échec de la queue. Pour un `create`, l'entité fantôme
+ * correspondante n'a jamais existé côté serveur — aucun pull ne la
+ * nettoiera jamais de lui-même (il n'y a rien à réconcilier), donc son
+ * entrée de cache local est retirée ici explicitement. Pour un
+ * `update`/`delete` abandonné, le cache local garde l'édition optimiste
+ * jusqu'au prochain pull, qui la corrigera avec la vraie valeur serveur
+ * (plus aucune mutation en attente ne le bloque une fois cette ligne
+ * supprimée) — l'appelant doit donc déclencher une synchronisation après
+ * cet appel (voir triggerBackgroundSync).
+ */
+export async function discardMutation(id: string): Promise<void> {
+  const db = await getDb();
+  const record = await db.get("mutationQueue", id);
+  if (!record) return;
+  if (record.action === "create") {
+    await removeCachedEntity(record.tenantId, record.entity, record.clientGeneratedId);
+  }
+  await db.delete("mutationQueue", id);
 }
 
 /**

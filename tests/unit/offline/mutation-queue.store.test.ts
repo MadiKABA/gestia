@@ -1,14 +1,18 @@
 import "fake-indexeddb/auto";
 import { describe, expect, it } from "vitest";
 import {
+  discardMutation,
   enqueueMutation,
   getMutation,
   hasPendingMutationFor,
+  listFailedMutations,
   listPendingMutations,
   markMutationFailed,
+  markMutationPermanentlyFailed,
   markMutationSynced,
   purgeSyncedMutations,
 } from "@/infrastructure/offline/mutation-queue.store";
+import { getCachedEntity, setCachedEntity } from "@/infrastructure/offline/local-cache.store";
 import { generateClientId } from "@/infrastructure/offline/id-generator";
 
 /** tenantId unique par test : évite d'avoir à réinitialiser la base fake-indexeddb entre les tests. */
@@ -166,6 +170,110 @@ describe("mutation-queue.store", () => {
       });
 
       expect(await hasPendingMutationFor(tenantId, "transaction", clientGeneratedId)).toBe(false);
+    });
+  });
+
+  describe("markMutationPermanentlyFailed / listFailedMutations", () => {
+    it("sort une mutation de listPendingMutations et la fait apparaître dans listFailedMutations", async () => {
+      const tenantId = tenant();
+      const record = await enqueueMutation({
+        id: generateClientId(),
+        tenantId,
+        entity: "payment",
+        action: "create",
+        payload: { amount: 5000 },
+        clientGeneratedId: generateClientId(),
+        createdById: "user-1",
+      });
+
+      await markMutationPermanentlyFailed(
+        record.id,
+        "Le montant ne peut pas dépasser le solde restant",
+      );
+
+      expect(await listPendingMutations(tenantId)).toHaveLength(0);
+      const failed = await listFailedMutations(tenantId);
+      expect(failed).toHaveLength(1);
+      expect(failed[0].id).toBe(record.id);
+      expect(failed[0].syncError).toBe("Le montant ne peut pas dépasser le solde restant");
+      expect(failed[0].synced).toBe(false);
+    });
+
+    it("isole les échecs définitifs par tenant", async () => {
+      const tenantA = tenant();
+      const tenantB = tenant();
+      const record = await enqueueMutation({
+        id: generateClientId(),
+        tenantId: tenantA,
+        entity: "payment",
+        action: "create",
+        payload: {},
+        clientGeneratedId: generateClientId(),
+        createdById: "user-1",
+      });
+      await markMutationPermanentlyFailed(record.id, "Erreur");
+
+      expect(await listFailedMutations(tenantB)).toHaveLength(0);
+    });
+  });
+
+  describe("discardMutation", () => {
+    it("supprime une mutation create en échec ET l'entité fantôme correspondante du cache", async () => {
+      const tenantId = tenant();
+      const clientGeneratedId = generateClientId();
+      const record = await enqueueMutation({
+        id: generateClientId(),
+        tenantId,
+        entity: "payment",
+        action: "create",
+        payload: { amount: 5000 },
+        clientGeneratedId,
+        createdById: "user-1",
+      });
+      await setCachedEntity(
+        tenantId,
+        "payment",
+        clientGeneratedId,
+        { amount: 5000 },
+        new Date().toISOString(),
+      );
+      await markMutationPermanentlyFailed(record.id, "Erreur définitive");
+
+      await discardMutation(record.id);
+
+      expect(await getMutation(record.id)).toBeUndefined();
+      expect(await getCachedEntity(tenantId, "payment", clientGeneratedId)).toBeUndefined();
+    });
+
+    it("supprime une mutation update/delete en échec sans toucher au cache (corrigé par le prochain pull)", async () => {
+      const tenantId = tenant();
+      const clientGeneratedId = generateClientId();
+      const record = await enqueueMutation({
+        id: generateClientId(),
+        tenantId,
+        entity: "party",
+        action: "update",
+        payload: { name: "Modifié hors ligne" },
+        clientGeneratedId,
+        createdById: "user-1",
+      });
+      await setCachedEntity(
+        tenantId,
+        "party",
+        clientGeneratedId,
+        { name: "Modifié hors ligne" },
+        new Date().toISOString(),
+      );
+      await markMutationPermanentlyFailed(record.id, "Erreur définitive");
+
+      await discardMutation(record.id);
+
+      expect(await getMutation(record.id)).toBeUndefined();
+      expect(await getCachedEntity(tenantId, "party", clientGeneratedId)).toBeDefined();
+    });
+
+    it("ne fait rien pour un id inconnu", async () => {
+      await expect(discardMutation(generateClientId())).resolves.toBeUndefined();
     });
   });
 

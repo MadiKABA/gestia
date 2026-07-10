@@ -25,6 +25,16 @@ export type MutationQueueRecord = {
   syncedAt?: string;
   syncError?: string;
   retryCount: number;
+  /**
+   * Vrai pour une erreur de validation métier définitive (le payload ne
+   * deviendra jamais valide en le renvoyant tel quel, ex: montant supérieur
+   * au solde réel) — distincte d'un simple échec transitoire (réseau,
+   * serveur indisponible). Exclut la mutation de `listPendingMutations`
+   * (plus jamais retentée automatiquement), tout en la gardant visible via
+   * `listFailedMutations` pour résolution manuelle (voir
+   * mutation-queue.store.ts, sync-engine.ts).
+   */
+  permanentlyFailed?: boolean;
 };
 
 /** Cache local générique — affichage instantané même hors ligne. */

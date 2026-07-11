@@ -3,7 +3,10 @@
 import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { Button } from "@/presentation/shared/components/ui/button";
-import { seedCashMovementCache } from "@/presentation/cash-movement/offline-repository";
+import {
+  seedCashMovementCache,
+  seedOrReadCashBalanceCache,
+} from "@/presentation/cash-movement/offline-repository";
 import { listCashMovementsAction } from "@/presentation/cash-movement/actions";
 import { cashMovementLabels } from "@/presentation/shared/labels";
 import { cn } from "@/lib/utils";
@@ -16,11 +19,15 @@ const PAGE_SIZE = 20;
  * Page Caisse : solde en temps réel (entrée/sortie/net) + liste paginée des
  * mouvements + bouton "Nouveau mouvement" en tête de page (résolution du
  * point resté en suspens après la fusion du menu sidebar — pas de bouton
- * dédié dans la nav, il vit ici). Solde affiché tel que rendu par le serveur
- * à l'ouverture ; un mouvement fraîchement créé n'ajuste pas ce total en
- * optimiste ici (contrairement au patch de TransactionDetail), la page est
- * quittée après création (redirection vers /caisse, qui refait un rendu
- * serveur frais) — pas besoin de double mécanisme.
+ * dédié dans la nav, il vit ici). Le solde initial vient du rendu serveur
+ * (`initialBalance`), mais n'est jamais affiché tel quel : `cashBalance`
+ * (état local) est réconcilié au montage via `seedOrReadCashBalanceCache`
+ * (presentation/cash-movement/offline-repository.ts), qui lit le cache
+ * local patché en optimiste par CashMovementOfflineRepository à chaque
+ * création — nécessaire pour un mouvement créé hors ligne juste avant la
+ * redirection vers cette page : hors ligne, la redirection peut servir un
+ * rendu serveur périmé via le cache du service worker (NetworkFirst, voir
+ * sw.ts), qui ne connaît pas encore ce mouvement.
  */
 export function CaissePage({
   tenantId,
@@ -37,10 +44,15 @@ export function CaissePage({
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(initialMovements.length < initialTotal);
   const [loadingMore, startLoadMore] = useTransition();
+  const [cashBalance, setCashBalance] = useState(initialBalance);
 
   useEffect(() => {
     void seedCashMovementCache(tenantId, initialMovements);
   }, [tenantId, initialMovements]);
+
+  useEffect(() => {
+    void seedOrReadCashBalanceCache(tenantId, initialBalance).then(setCashBalance);
+  }, [tenantId, initialBalance]);
 
   function loadMore() {
     startLoadMore(async () => {
@@ -53,7 +65,7 @@ export function CaissePage({
     });
   }
 
-  const balance = initialBalance.totalEntree - initialBalance.totalSortie;
+  const balance = cashBalance.totalEntree - cashBalance.totalSortie;
 
   return (
     <div className="mx-auto w-full max-w-md space-y-6 p-4 lg:max-w-2xl">
@@ -74,13 +86,13 @@ export function CaissePage({
         <div className="bg-card border-border rounded-xl border p-4 shadow-xs">
           <p className="text-muted-foreground text-sm">{cashMovementLabels.totalEntreeLabel}</p>
           <p className="mt-1 text-xl font-semibold text-[#1B7A5A] tabular-nums">
-            {initialBalance.totalEntree.toLocaleString("fr-FR")} FCFA
+            {cashBalance.totalEntree.toLocaleString("fr-FR")} FCFA
           </p>
         </div>
         <div className="bg-card border-border rounded-xl border p-4 shadow-xs">
           <p className="text-muted-foreground text-sm">{cashMovementLabels.totalSortieLabel}</p>
           <p className="mt-1 text-xl font-semibold text-[#C0392B] tabular-nums">
-            {initialBalance.totalSortie.toLocaleString("fr-FR")} FCFA
+            {cashBalance.totalSortie.toLocaleString("fr-FR")} FCFA
           </p>
         </div>
       </div>

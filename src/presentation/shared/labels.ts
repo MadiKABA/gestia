@@ -192,6 +192,15 @@ export const cashMovementLabels = {
 export const authLabels = {
   vendeurNotFoundMessage: "Ce vendeur n'existe plus.",
 
+  vendeurInvitedTitle: "Invitation envoyée",
+  vendeurInvitedDescription:
+    "Un SMS avec le lien de première connexion vient d'être envoyé. Vous pouvez aussi le transmettre vous-même (WhatsApp, etc.) :",
+  copyLinkButton: "Copier le lien",
+  linkCopiedButton: "Lien copié !",
+  dismissVendeurInvitedLabel: "Fermer",
+
+  premiereConnexionExpiredLinkLabel: "Code expiré ? Recevoir un nouveau code",
+
   viewProfileLabel: "Voir mon profil",
   signOutLabel: "Se déconnecter",
   signingOutLabel: "Déconnexion...",

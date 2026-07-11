@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { computeBackoffDelayMs, syncQueue } from "@/infrastructure/offline/sync-engine";
 import {
   enqueueMutation,
+  listFailedMutations,
   listPendingMutations,
 } from "@/infrastructure/offline/mutation-queue.store";
 import { getCachedEntity, setCachedEntity } from "@/infrastructure/offline/local-cache.store";
@@ -168,6 +169,64 @@ describe("syncQueue", () => {
 
     expect(receivedUpdatedAt).toBe("2026-01-01T00:00:00.000Z");
     expect(result.failed).toBe(false);
+  });
+
+  it("erreur de validation définitive : sort de la queue de retry sans stopper les mutations suivantes", async () => {
+    const tenantId = tenant();
+    const calls: string[] = [];
+    const invalidId = generateClientId();
+    await enqueueMutation({
+      id: generateClientId(),
+      tenantId,
+      entity: "payment",
+      action: "create",
+      payload: { amount: 999999 },
+      clientGeneratedId: invalidId,
+      createdById: "user-1",
+    });
+    await enqueueMutation({
+      id: generateClientId(),
+      tenantId,
+      entity: "party",
+      action: "create",
+      payload: { name: "B" },
+      clientGeneratedId: generateClientId(),
+      createdById: "user-1",
+    });
+
+    const result = await syncQueue({
+      tenantId,
+      syncTransport: async (mutation) => {
+        calls.push(mutation.entity);
+        if (mutation.entity === "payment") {
+          return {
+            ok: false,
+            reason: "validation_error",
+            message: "Le montant ne peut pas dépasser le solde restant",
+          };
+        }
+        return { ok: true, data: { updatedAt: new Date().toISOString(), conflict: false } };
+      },
+    });
+
+    // Les deux mutations sont traitées dans le même passage : la seconde
+    // n'attend pas un futur cycle pour être tentée, contrairement à une
+    // erreur transitoire (voir le test "s'arrête à la première erreur") —
+    // l'ordre entre les deux n'est pas garanti ici (deux entités sans lien,
+    // `createdAt` à la même milliseconde), seul le fait qu'aucune des deux
+    // ne soit sautée compte.
+    expect(calls).toHaveLength(2);
+    expect(calls).toContain("payment");
+    expect(calls).toContain("party");
+    expect(result.succeeded).toBe(1);
+    expect(result.failed).toBe(false);
+
+    expect(await listPendingMutations(tenantId)).toHaveLength(0);
+    const failed = await listFailedMutations(tenantId);
+    expect(failed).toHaveLength(1);
+    expect(failed[0].clientGeneratedId).toBe(invalidId);
+    expect(failed[0].syncError).toBe("Le montant ne peut pas dépasser le solde restant");
+    expect(failed[0].retryCount).toBe(0);
   });
 
   it("session expirée (ok:false) : mutation ni synchronisée ni marquée échouée, pas de backoff", async () => {

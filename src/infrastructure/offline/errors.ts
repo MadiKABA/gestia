@@ -13,3 +13,19 @@ export class AuthRequiredError extends Error {
     this.name = "AuthRequiredError";
   }
 }
+
+/**
+ * Erreur de validation métier définitive rencontrée pendant une
+ * synchronisation (reason "validation_error" de SyncActionResult, voir
+ * application/offline/sync-result.ts) — jamais traitée comme un échec
+ * transitoire ordinaire par sync-engine.ts : pas de backoff, la mutation
+ * est retirée de la boucle de retry via `markMutationPermanentlyFailed`
+ * (mutation-queue.store.ts) dès qu'elle est rencontrée, plutôt que
+ * retentée indéfiniment à chaque cycle.
+ */
+export class PermanentValidationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "PermanentValidationError";
+  }
+}

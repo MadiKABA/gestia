@@ -15,7 +15,7 @@ import { registerPaymentSync } from "@/infrastructure/payment/register-payment-s
 import { registerCashMovementSync } from "@/infrastructure/cash-movement/register-cash-movement-sync";
 import { checkRateLimit, SYNC_RATE_LIMIT } from "@/infrastructure/shared/rate-limiter";
 import { pullChangesInputSchema, queuedMutationInputSchema } from "@/presentation/offline/schemas";
-import { ForbiddenError } from "@/domain/shared/errors";
+import { ForbiddenError, ValidationError } from "@/domain/shared/errors";
 import type { TenantContext } from "@/domain/shared/tenant-context";
 
 const auditLogger = new PrismaAuditLogger();
@@ -54,12 +54,15 @@ function checkSyncRateLimit(
  * l'app — voir ARCHITECTURE.md "Isolation multi-tenant".
  *
  * Retourne une enveloppe {ok,reason} plutôt que de laisser échapper
- * l'erreur pour les cas "session expirée/absente" et "trop d'appels" : les
- * classes d'erreur custom ne survivent pas à la sérialisation d'une Server
- * Action (seul `message` traverse), donc un `instanceof` côté client ne
- * fonctionnerait pas — voir infrastructure/offline/sync-engine.ts. Toute
- * autre erreur (validation, bug serveur, réseau) continue de rejeter
- * normalement, gérée par le backoff générique déjà en place.
+ * l'erreur pour les cas "session expirée/absente", "trop d'appels" et
+ * "validation métier définitive" : les classes d'erreur custom ne
+ * survivent pas à la sérialisation d'une Server Action (seul `message`
+ * traverse), donc un `instanceof` côté client ne fonctionnerait pas — voir
+ * infrastructure/offline/sync-engine.ts, qui distingue ce dernier cas d'un
+ * échec transitoire pour sortir la mutation de la boucle de retry au lieu
+ * de la retenter indéfiniment. Toute autre erreur (bug serveur, réseau)
+ * continue de rejeter normalement, gérée par le backoff générique déjà en
+ * place.
  */
 export async function syncMutationAction(
   mutation: Omit<QueuedMutation, "tenantId">,
@@ -77,12 +80,19 @@ export async function syncMutationAction(
   const limited = checkSyncRateLimit(context);
   if (limited) return limited;
 
-  const data = await syncMutation(
-    context,
-    { auditLogger },
-    { ...parsed, tenantId: context.tenantId },
-  );
-  return { ok: true, data };
+  try {
+    const data = await syncMutation(
+      context,
+      { auditLogger },
+      { ...parsed, tenantId: context.tenantId },
+    );
+    return { ok: true, data };
+  } catch (error) {
+    if (error instanceof ValidationError) {
+      return { ok: false, reason: "validation_error", message: error.message };
+    }
+    throw error;
+  }
 }
 
 /**

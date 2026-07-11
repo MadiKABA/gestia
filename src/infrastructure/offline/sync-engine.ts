@@ -4,10 +4,11 @@ import type { SyncActionResult, SyncFailureReason } from "@/application/offline/
 import {
   listPendingMutations,
   markMutationFailed,
+  markMutationPermanentlyFailed,
   markMutationSynced,
 } from "@/infrastructure/offline/mutation-queue.store";
 import { getCachedEntity, setCachedEntity } from "@/infrastructure/offline/local-cache.store";
-import { AuthRequiredError } from "@/infrastructure/offline/errors";
+import { AuthRequiredError, PermanentValidationError } from "@/infrastructure/offline/errors";
 
 /**
  * Appel réseau réel vers le serveur pour une mutation — injecté plutôt
@@ -44,12 +45,20 @@ export function computeBackoffDelayMs(retryCount: number): number {
 /**
  * Rejoue les mutations en attente d'un tenant, dans l'ordre chronologique,
  * une par une (jamais en parallèle — l'ordre doit être respecté). S'arrête
- * à la première erreur plutôt que de sauter la mutation en échec : sauter
- * casserait l'ordre pour les mutations suivantes sur la même entité.
+ * à la première erreur *transitoire* (réseau, serveur indisponible,
+ * session expirée) plutôt que de la sauter : sauter casserait l'ordre pour
+ * les mutations suivantes sur la même entité, alors qu'un prochain cycle
+ * peut la faire réussir.
  *
- * TODO: une erreur de validation métier permanente (payload invalide) est
- * aujourd'hui retentée indéfiniment comme une simple coupure réseau — pas de
- * distinction pour l'instant entre échec transitoire et définitif.
+ * Une erreur de validation métier *définitive* (`PermanentValidationError`,
+ * ex. "montant supérieur au solde restant") suit une règle différente : ce
+ * payload ne deviendra jamais valide en le renvoyant tel quel, donc son
+ * sort ne dépend plus d'aucune tentative future — elle est retirée de la
+ * queue de retry (`markMutationPermanentlyFailed`, voir
+ * mutation-queue.store.ts) et la boucle continue avec les mutations
+ * suivantes dans le même passage, sans casser leur ordre (voir
+ * presentation/offline/components/sync-failures-panel.tsx pour la
+ * résolution manuelle qui en découle).
  */
 export async function syncQueue(deps: {
   tenantId: string;
@@ -91,11 +100,13 @@ export async function syncQueue(deps: {
       const outcome = await deps.syncTransport(mutation);
       if (!outcome.ok) {
         // "rate_limited" tombe dans le catch générique ci-dessous (backoff
-        // exponentiel classique, comme une coupure réseau) — seul
-        // "auth_required" a un traitement dédié, sans backoff.
+        // exponentiel classique, comme une coupure réseau) — "auth_required"
+        // et "validation_error" ont chacun un traitement dédié, voir plus bas.
         throw outcome.reason === "auth_required"
           ? new AuthRequiredError()
-          : new Error("Trop de synchronisations récentes, nouvelle tentative différée");
+          : outcome.reason === "validation_error"
+            ? new PermanentValidationError(outcome.message)
+            : new Error("Trop de synchronisations récentes, nouvelle tentative différée");
       }
       const result = outcome.data;
 
@@ -119,6 +130,16 @@ export async function syncQueue(deps: {
         }
       }
     } catch (error) {
+      if (error instanceof PermanentValidationError) {
+        // Définitif : plus jamais retentée automatiquement (voir
+        // markMutationPermanentlyFailed, qui l'exclut de
+        // listPendingMutations), mais son sort est scellé — contrairement à
+        // une erreur transitoire, rien n'empêche de continuer avec les
+        // mutations suivantes dans ce même passage.
+        await markMutationPermanentlyFailed(record.id, error.message);
+        continue;
+      }
+
       const remaining = (await listPendingMutations(deps.tenantId)).length;
 
       if (error instanceof AuthRequiredError) {

@@ -200,6 +200,57 @@ passage le payload avec le schéma Zod enregistré pour l'entity
 (`mutation-schema-registry.ts`, ex. `partySyncPayloadSchema`) avant tout
 appel au handler.
 
+### Trois catégories d'erreur pendant le push
+
+`sync-engine.ts:syncQueue` distingue trois catégories d'erreur renvoyées par
+le serveur, chacune avec une conséquence différente sur la boucle de retry —
+tout futur module qui ajoute une vérification de dépendance référentielle
+(ex. `findById` d'une entité référencée avant écriture, comme
+`create-transaction.use-case.ts` pour `Party` ou
+`register-payment.use-case.ts` pour `Transaction`) doit lever la bonne
+catégorie plutôt qu'un `Error` générique, pour hériter automatiquement du
+bon comportement :
+
+1. **Transitoire** (réseau, serveur indisponible, `rate_limited`) — un
+   `Error` générique (ou tout rejet non classifié) : arrête tout le cycle en
+   cours (`return` immédiat), backoff exponentiel (`computeBackoffDelayMs`),
+   jamais de perte — la mutation reste intacte pour le prochain cycle.
+2. **Définitive** (`ValidationError`, ex. "montant supérieur au solde
+   restant") — ce payload ne deviendra jamais valide en le renvoyant tel
+   quel : `markMutationPermanentlyFailed` immédiatement, la boucle continue
+   avec les mutations suivantes du même passage, visible dans l'interface de
+   résolution (`sync-failures-panel.tsx`) pour une action manuelle
+   (`discardMutation`).
+3. **Dépendance introuvable** (`DependencyNotFoundError`, distincte de
+   `ValidationError` bien qu'elle hérite de `NotFoundError` — ex. `partyId`
+   d'une Transaction créée hors ligne dans la même session, pas encore
+   synchronisée elle-même) — ni transitoire ni définitive : la mutation
+   référencée peut très bien être plus loin dans la même queue, pas encore
+   traitée à ce rang à cause d'une collision de `createdAt` à la
+   milliseconde près (`listPendingMutations` retombe alors sur l'ordre
+   IndexedDB — id de mutation, essentiellement aléatoire — jamais l'ordre
+   d'insertion réel). `syncQueue` reporte cette mutation en fin de passage
+   courant (au lieu d'arrêter tout le cycle comme une erreur transitoire, ce
+   qui empêcherait la dépendance elle-même d'être atteinte) et la retente une
+   fois en fin de passage. Si elle échoue encore,
+   `dependencyDeferredCycles` (`MutationQueueRecord`, `db.ts`) est
+   incrémenté ; en dessous de `MAX_DEPENDENCY_DEFER_CYCLES` (5), elle reste
+   en attente pour le prochain cycle complet ; au seuil, elle bascule comme
+   une erreur définitive vers l'interface de résolution, avec un message
+   dédié ("En attente d'une autre donnée non encore synchronisée") qui la
+   distingue d'une erreur de validation classique.
+
+Propagation de bout en bout : `DependencyNotFoundError` (use case
+applicatif) → `{ok:false, reason:"dependency_not_found", message}`
+(`SyncActionResult`, `syncMutationAction`/`/api/sync`, statut HTTP 409) →
+`DependencyPendingError` (`infrastructure/offline/errors.ts`, classification
+interne au client) → traitement décrit ci-dessus dans `syncQueue`. Le
+chemin online-first (`attemptOnlineMutation`) reçoit la même distinction
+mais la traite comme une erreur de validation (rejet immédiat, jamais mise
+en queue) : une tentative en ligne directe est déjà séquentielle et complète
+avant la suivante, il n'y a pas de "mutation encore en attente plus loin"
+qui pourrait résoudre la dépendance entre-temps.
+
 **Purge des mutations synced** : `purgeSyncedMutations`
 (`infrastructure/offline/mutation-queue.store.ts`) supprime les entrées
 `synced: true` dont `syncedAt` dépasse une rétention de 7 jours

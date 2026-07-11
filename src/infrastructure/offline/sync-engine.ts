@@ -2,6 +2,7 @@ import type { QueuedMutation } from "@/application/offline/mutation-handler";
 import type { SyncMutationResult } from "@/application/offline/sync-mutation.use-case";
 import type { SyncActionResult, SyncFailureReason } from "@/application/offline/sync-result";
 import {
+  incrementDependencyDeferral,
   listPendingMutations,
   markMutationFailed,
   markMutationPermanentlyFailed,
@@ -39,6 +40,20 @@ export type SyncQueueResult = {
 
 const BASE_RETRY_DELAY_MS = 2_000;
 const MAX_RETRY_DELAY_MS = 60_000;
+
+/**
+ * Nombre de cycles complets consécutifs où une mutation peut être reportée
+ * pour dépendance introuvable (`DependencyPendingError`) avant de basculer
+ * en échec définitif vers l'interface de résolution
+ * (sync-failures-panel.tsx). Chaque cycle laisse déjà une chance
+ * supplémentaire à la dépendance via le second passage de `syncQueue`
+ * ci-dessous — 5 cycles complets (déclenchés par reconnexion,
+ * visibilitychange, ou le backoff automatique en cas d'échec) laissent
+ * largement le temps à une dépendance légitimement en cours de
+ * synchronisation d'arriver, tout en bornant à quelques minutes un vrai
+ * blocage (ex. Party supprimé avant d'avoir pu être synchronisé).
+ */
+const MAX_DEPENDENCY_DEFER_CYCLES = 5;
 
 /** Backoff simple, plafonné — pas de plafond de tentatives : une mutation
  * n'est jamais abandonnée (cahier des charges §9), seulement retentée de
@@ -175,9 +190,14 @@ async function handleBlockingFailure(
  * loin dans `pending`, si l'ordre s'est mal résolu en cas de collision de
  * `createdAt`, voir ARCHITECTURE.md) d'être traitée avant elle. Un second
  * passage retente ensuite chaque mutation reportée une seule fois. Si elle
- * échoue encore, elle reste simplement en attente pour le prochain cycle
- * complet (`syncQueue` rappelé plus tard) — voir mutation-queue.store.ts
- * pour la limite au-delà de laquelle elle bascule en échec définitif.
+ * échoue encore, `dependencyDeferredCycles` est incrémenté
+ * (`incrementDependencyDeferral`, mutation-queue.store.ts) : en dessous de
+ * `MAX_DEPENDENCY_DEFER_CYCLES`, elle reste simplement en attente pour le
+ * prochain cycle complet (`syncQueue` rappelé plus tard, retentée depuis le
+ * début) ; au seuil, elle bascule en échec définitif
+ * (`markMutationPermanentlyFailed`) vers l'interface de résolution, exactement
+ * comme `PermanentValidationError`, avec un message qui la distingue
+ * explicitement d'une erreur de validation.
  */
 export async function syncQueue(deps: {
   tenantId: string;
@@ -213,9 +233,17 @@ export async function syncQueue(deps: {
     } catch (error) {
       if (error instanceof DependencyPendingError) {
         // Toujours introuvable après avoir laissé sa chance au reste du
-        // cycle : reste simplement en attente pour le prochain cycle
-        // complet, retentée depuis le début au prochain appel de
-        // syncQueue().
+        // cycle : incrémente le compteur de cycles consécutifs. En dessous
+        // du seuil, reste simplement en attente pour le prochain cycle
+        // complet ; au seuil, bascule en échec définitif vers l'interface
+        // de résolution (sync-failures-panel.tsx lit `syncError` tel quel).
+        const updated = await incrementDependencyDeferral(record.id, error.message);
+        if ((updated?.dependencyDeferredCycles ?? 0) >= MAX_DEPENDENCY_DEFER_CYCLES) {
+          await markMutationPermanentlyFailed(
+            record.id,
+            "En attente d'une autre donnée non encore synchronisée",
+          );
+        }
         continue;
       }
       if (error instanceof PermanentValidationError) {

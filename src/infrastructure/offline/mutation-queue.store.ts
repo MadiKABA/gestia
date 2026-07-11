@@ -75,6 +75,32 @@ export async function getMutation(id: string): Promise<MutationQueueRecord | und
 }
 
 /**
+ * Incrémente `dependencyDeferredCycles` d'une mutation reportée pour
+ * dépendance introuvable (`DependencyPendingError`, voir sync-engine.ts) qui
+ * a échoué même après avoir laissé sa chance au reste du cycle courant. La
+ * mutation reste `synced: false` et hors de `permanentlyFailed` — elle
+ * continue d'apparaître dans `listPendingMutations` et sera retentée depuis
+ * le début au prochain cycle complet, tant que le seuil n'est pas atteint
+ * (voir MAX_DEPENDENCY_DEFER_CYCLES, sync-engine.ts, qui bascule alors vers
+ * `markMutationPermanentlyFailed`).
+ */
+export async function incrementDependencyDeferral(
+  id: string,
+  message: string,
+): Promise<MutationQueueRecord | undefined> {
+  const db = await getDb();
+  const record = await db.get("mutationQueue", id);
+  if (!record) return undefined;
+  const updated: MutationQueueRecord = {
+    ...record,
+    syncError: message,
+    dependencyDeferredCycles: (record.dependencyDeferredCycles ?? 0) + 1,
+  };
+  await db.put("mutationQueue", updated);
+  return updated;
+}
+
+/**
  * Marque une mutation comme échec définitif (erreur de validation métier —
  * voir sync-engine.ts, qui distingue ce cas d'un échec transitoire) :
  * `retryCount` n'est volontairement pas incrémenté, ce n'est plus un compteur

@@ -35,6 +35,17 @@ export type MutationQueueRecord = {
    * mutation-queue.store.ts, sync-engine.ts).
    */
   permanentlyFailed?: boolean;
+  /**
+   * Nombre de cycles complets consécutifs où cette mutation a été reportée
+   * pour dépendance introuvable (`DependencyPendingError`, voir
+   * sync-engine.ts) sans jamais réussir, même après avoir laissé sa chance
+   * au reste du cycle. Distinct de `retryCount` (échecs transitoires
+   * réseau) : une dépendance introuvable n'est jamais un problème de
+   * réseau, ce compteur borne combien de temps on attend qu'elle apparaisse
+   * d'elle-même avant de considérer que ça n'arrivera pas (voir
+   * MAX_DEPENDENCY_DEFER_CYCLES, sync-engine.ts).
+   */
+  dependencyDeferredCycles?: number;
 };
 
 /** Cache local générique — affichage instantané même hors ligne. */

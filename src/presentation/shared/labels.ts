@@ -231,4 +231,34 @@ export const syncLabels = {
   error: "Échec de la synchronisation, nouvelle tentative en cours",
   authRequired: "Session expirée — reconnexion nécessaire",
   syncNow: "Synchroniser maintenant",
+  failuresLinkLabel: (count: number) => `${count} action${count > 1 ? "s" : ""} en erreur`,
+};
+
+/**
+ * Résolution des mutations en échec définitif (voir
+ * presentation/offline/components/sync-failures-panel.tsx) — un
+ * commerçant n'y voit jamais "payment"/"party" bruts ni "sync_conflict",
+ * seulement le vocabulaire déjà utilisé ailleurs dans l'app pour cette
+ * entité (cf. section Vocabulaire, CLAUDE.md).
+ */
+export const syncFailuresLabels = {
+  pageTitle: "Actions en attente",
+  pageDescription:
+    "Ces actions n'ont pas pu être enregistrées côté serveur. Vérifiez le motif ci-dessous, puis recréez l'action si elle est toujours nécessaire.",
+  emptyState: "Aucune action en attente de résolution.",
+  entityLabel: {
+    party: "Client",
+    transaction: "Opération",
+    payment: "Paiement",
+    cashMovement: "Mouvement de caisse",
+  } as Record<string, string>,
+  actionLabel: {
+    create: "Création",
+    update: "Modification",
+    delete: "Suppression",
+  } as Record<string, string>,
+  discardButton: "Ignorer cette action",
+  discardConfirmTitle: "Ignorer cette action ?",
+  discardConfirmDescription:
+    "Cette action ne sera plus jamais synchronisée. Si elle était toujours nécessaire, vous devrez la recréer une fois reconnecté.",
 };

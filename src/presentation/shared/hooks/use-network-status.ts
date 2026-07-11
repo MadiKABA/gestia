@@ -15,6 +15,9 @@ export type NetworkStatus = {
   online: boolean;
   syncState: SyncState;
   pendingCount: number;
+  /** Mutations en échec définitif — voir network-status-store.ts et
+   * presentation/offline/components/sync-failures-panel.tsx. */
+  failedCount: number;
   /** Déclenche une synchronisation immédiate (ex: bouton "Synchroniser maintenant"). */
   triggerSync: () => void;
 };

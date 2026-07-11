@@ -1,14 +1,15 @@
 "use client";
 
+import Link from "next/link";
 import { CircleAlert, RefreshCw, WifiOff } from "lucide-react";
 import { useNetworkStatus } from "@/presentation/shared/hooks/use-network-status";
 import { syncLabels } from "@/presentation/shared/labels";
 import { cn } from "@/lib/utils";
 
 /**
- * Badge d'état réseau/sync — masqué en ligne sans mutation en attente (pas
- * de bruit visuel quand tout va bien). Cliquable pour forcer une
- * synchronisation manuelle quand des mutations sont en attente.
+ * Badge d'état réseau/sync — masqué en ligne sans mutation en attente ni
+ * échec définitif (pas de bruit visuel quand tout va bien). Cliquable pour
+ * forcer une synchronisation manuelle quand des mutations sont en attente.
  */
 export function NetworkStatusIndicator({
   tenantId,
@@ -17,7 +18,22 @@ export function NetworkStatusIndicator({
   tenantId: string;
   className?: string;
 }) {
-  const { online, syncState, pendingCount, triggerSync } = useNetworkStatus(tenantId);
+  const { online, syncState, pendingCount, failedCount, triggerSync } = useNetworkStatus(tenantId);
+
+  if (failedCount > 0) {
+    return (
+      <Link
+        href="/synchronisation"
+        className={cn(
+          "bg-destructive/10 text-destructive flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium",
+          className,
+        )}
+      >
+        <CircleAlert className="size-3.5 shrink-0" aria-hidden />
+        <span>{syncLabels.failuresLinkLabel(failedCount)}</span>
+      </Link>
+    );
+  }
 
   if (online && syncState === "idle" && pendingCount === 0) {
     return null;

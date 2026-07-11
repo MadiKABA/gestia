@@ -6,6 +6,7 @@ import {
 import { pullEntity, type PullTransport } from "@/infrastructure/offline/pull-engine";
 import { listPullableEntities } from "@/infrastructure/offline/pull-registry";
 import {
+  listFailedMutations,
   listPendingMutations,
   purgeSyncedMutations,
 } from "@/infrastructure/offline/mutation-queue.store";
@@ -18,9 +19,19 @@ export type NetworkStatusSnapshot = {
   online: boolean;
   syncState: SyncState;
   pendingCount: number;
+  /** Mutations en échec définitif (voir markMutationPermanentlyFailed) —
+   * jamais comptées dans `pendingCount` (déjà exclues de
+   * listPendingMutations), résolues via /synchronisation
+   * (sync-failures-panel.tsx), pas par la boucle de retry. */
+  failedCount: number;
 };
 
-const SERVER_SNAPSHOT: NetworkStatusSnapshot = { online: true, syncState: "idle", pendingCount: 0 };
+const SERVER_SNAPSHOT: NetworkStatusSnapshot = {
+  online: true,
+  syncState: "idle",
+  pendingCount: 0,
+  failedCount: 0,
+};
 const PERIODIC_SYNC_INTERVAL_MS = 30_000;
 
 /**
@@ -96,6 +107,7 @@ export class NetworkStatusStore {
     void this.refreshPendingCount().then((count) => {
       if (count > 0 && navigator.onLine) void this.runSync();
     });
+    void this.refreshFailedCount();
 
     window.addEventListener("online", () => {
       this.publish({ online: true });
@@ -124,6 +136,11 @@ export class NetworkStatusStore {
     const pending = await listPendingMutations(this.tenantId);
     this.publish({ pendingCount: pending.length });
     return pending.length;
+  }
+
+  private async refreshFailedCount(): Promise<void> {
+    const failed = await listFailedMutations(this.tenantId);
+    this.publish({ failedCount: failed.length });
   }
 
   /**
@@ -164,6 +181,7 @@ export class NetworkStatusStore {
       }
 
       const count = await this.refreshPendingCount();
+      void this.refreshFailedCount();
 
       let pullFailed = false;
       for (const entity of listPullableEntities()) {

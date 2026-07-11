@@ -20,15 +20,21 @@ export function RequestOtpForm({
   nextPathBase,
   submitLabel,
   allowEmail = false,
+  initialIdentifier = "",
 }: {
   action: (input: { channel: Channel; identifier: string }) => Promise<RequestOtpResult>;
   nextPathBase: string;
   submitLabel: string;
   allowEmail?: boolean;
+  /** Pré-rempli quand on arrive ici depuis un lien qui connaît déjà
+   * l'identifiant (ex. /premiere-connexion en cas de code expiré, voir
+   * app/(auth)/reset-pin/page.tsx) — évite au vendeur de ressaisir son
+   * numéro qu'il vient déjà de fournir une fois. */
+  initialIdentifier?: string;
 }) {
   const router = useRouter();
   const [channel, setChannel] = useState<Channel>("PHONE");
-  const [identifier, setIdentifier] = useState("");
+  const [identifier, setIdentifier] = useState(initialIdentifier);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -66,7 +72,7 @@ export function RequestOtpForm({
             value={identifier}
             onValueChange={setIdentifier}
             required
-            autoFocus
+            autoFocus={!initialIdentifier}
           />
         ) : (
           <Input

@@ -2,7 +2,16 @@ import { AuthLayout } from "@/presentation/auth/components/auth-layout";
 import { RequestOtpForm } from "@/presentation/auth/components/request-otp-form";
 import { requestPinResetAction } from "@/presentation/auth/actions";
 
-export default function ResetPinPage() {
+export default async function ResetPinPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ phone?: string }>;
+}) {
+  // `phone` : arrivée possible depuis /premiere-connexion en cas de code
+  // expiré (voir le lien "Code expiré ?" de cette page) — évite au vendeur
+  // de ressaisir un numéro déjà fourni une fois.
+  const { phone } = await searchParams;
+
   return (
     <AuthLayout
       heading="PIN oublié"
@@ -13,6 +22,7 @@ export default function ResetPinPage() {
         nextPathBase="/reset-pin/confirm"
         submitLabel="Recevoir le code"
         allowEmail
+        initialIdentifier={phone ?? ""}
       />
     </AuthLayout>
   );

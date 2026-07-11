@@ -93,7 +93,11 @@ serwist.addEventListeners();
  * (voir /api/sync route.ts) — traduit en `{ ok: false, reason:
  * "validation_error" }` pour que syncQueue la sorte de la boucle de retry
  * (markMutationPermanentlyFailed) plutôt que de la traiter comme un échec
- * transitoire, exactement comme le fait syncMutationAction côté page.
+ * transitoire, exactement comme le fait syncMutationAction côté page. Un 409
+ * signale à l'identique une dépendance introuvable *pour l'instant* (ex.
+ * Party pas encore synchronisé pour une Transaction) — traduit en `{ ok:
+ * false, reason: "dependency_not_found" }`, que syncQueue reporte en fin de
+ * cycle plutôt que de la traiter comme définitive.
  */
 const pushMutationFromServiceWorker: SyncTransport = async (mutation) => {
   const response = await fetch("/api/sync", {
@@ -108,6 +112,10 @@ const pushMutationFromServiceWorker: SyncTransport = async (mutation) => {
   if (response.status === 422) {
     const body = (await response.json()) as { error: string };
     return { ok: false, reason: "validation_error", message: body.error };
+  }
+  if (response.status === 409) {
+    const body = (await response.json()) as { error: string };
+    return { ok: false, reason: "dependency_not_found", message: body.error };
   }
   if (!response.ok) {
     throw new Error(`Échec de la synchronisation en arrière-plan (${response.status})`);

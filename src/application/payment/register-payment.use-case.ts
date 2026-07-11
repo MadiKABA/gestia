@@ -6,7 +6,7 @@ import {
   buildAutoReason,
   deriveCashMovementTypeFromPaymentDirection,
 } from "@/domain/cash-movement/cash-movement.entity";
-import { NotFoundError } from "@/domain/shared/errors";
+import { DependencyNotFoundError } from "@/domain/shared/errors";
 import type { TransactionRepository } from "@/application/transaction/transaction.repository";
 import type { PaymentRepository } from "@/application/payment/payment.repository";
 import type { AuditLogger } from "@/application/shared/audit-logger";
@@ -28,7 +28,11 @@ export async function registerPayment(
 ) {
   const transaction = await deps.transactionRepository.findById(input.transactionId);
   if (!transaction) {
-    throw new NotFoundError("Transaction", input.transactionId);
+    // Distinct d'un NotFoundError ordinaire : `transactionId` peut référencer
+    // une Transaction créée hors ligne dans la même session, pas encore
+    // synchronisée — voir DependencyNotFoundError et
+    // infrastructure/offline/sync-engine.ts.
+    throw new DependencyNotFoundError("Transaction", input.transactionId);
   }
 
   const remainingBalance = transaction.amount - transaction.paidAmount;

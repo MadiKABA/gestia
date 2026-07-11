@@ -8,7 +8,7 @@ import { registerTransactionSync } from "@/infrastructure/transaction/register-t
 import { registerPaymentSync } from "@/infrastructure/payment/register-payment-sync";
 import { registerCashMovementSync } from "@/infrastructure/cash-movement/register-cash-movement-sync";
 import { pullChangesInputSchema, queuedMutationInputSchema } from "@/presentation/offline/schemas";
-import { ForbiddenError, ValidationError } from "@/domain/shared/errors";
+import { DependencyNotFoundError, ForbiddenError, ValidationError } from "@/domain/shared/errors";
 import { checkRateLimit, SYNC_RATE_LIMIT } from "@/infrastructure/shared/rate-limiter";
 
 // Même précaution que presentation/offline/actions.ts : enregistré dans ce
@@ -85,6 +85,15 @@ export async function POST(request: Request): Promise<Response> {
       // sans quoi une mutation invalide rejouée via Background Sync
       // retenterait indéfiniment, exactement le bug corrigé côté Server
       // Action.
+      // DependencyNotFoundError hérite de NotFoundError, pas de
+      // ValidationError — vérifiée en premier, statut HTTP dédié (409, pas
+      // 422) pour que sw.ts la distingue sans ambiguïté.
+      if (error instanceof DependencyNotFoundError) {
+        return Response.json(
+          { error: error.message, reason: "dependency_not_found" },
+          { status: 409 },
+        );
+      }
       if (error instanceof ValidationError) {
         return Response.json({ error: error.message, reason: "validation_error" }, { status: 422 });
       }

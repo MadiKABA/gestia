@@ -29,3 +29,20 @@ export class PermanentValidationError extends Error {
     this.name = "PermanentValidationError";
   }
 }
+
+/**
+ * Dépendance introuvable rencontrée pendant une synchronisation (reason
+ * "dependency_not_found" de SyncActionResult) — ni transitoire (le réseau
+ * fonctionne, le serveur a bien répondu) ni définitive comme
+ * `PermanentValidationError` (la dépendance peut très bien exister déjà
+ * ailleurs dans la queue, pas encore traitée à ce rang). sync-engine.ts la
+ * reporte en fin de cycle plutôt que d'arrêter tout le passage ou de la
+ * classer immédiatement en échec : voir ARCHITECTURE.md "Trois catégories
+ * d'erreur pendant le push".
+ */
+export class DependencyPendingError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "DependencyPendingError";
+  }
+}

@@ -1,7 +1,7 @@
 import type { TenantContext } from "@/domain/shared/tenant-context";
 import type { TransactionInput } from "@/domain/transaction/transaction.entity";
 import { validateTransactionInput } from "@/domain/transaction/transaction.entity";
-import { NotFoundError } from "@/domain/shared/errors";
+import { DependencyNotFoundError } from "@/domain/shared/errors";
 import type { TransactionRepository } from "@/application/transaction/transaction.repository";
 import type { PartyRepository } from "@/application/party/party.repository";
 import type { AuditLogger } from "@/application/shared/audit-logger";
@@ -25,7 +25,10 @@ export async function createTransaction(
 
   const party = await deps.partyRepository.findById(input.partyId);
   if (!party) {
-    throw new NotFoundError("Party", input.partyId);
+    // Distinct d'un NotFoundError ordinaire : `partyId` peut référencer un
+    // Party créé hors ligne dans la même session, pas encore synchronisé —
+    // voir DependencyNotFoundError et infrastructure/offline/sync-engine.ts.
+    throw new DependencyNotFoundError("Party", input.partyId);
   }
 
   const transaction = await deps.repository.create(id, input, context.userId);

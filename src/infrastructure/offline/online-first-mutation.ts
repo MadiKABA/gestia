@@ -4,6 +4,7 @@ import type { SyncTransport } from "@/infrastructure/offline/sync-engine";
 export type OnlineAttemptResult =
   | { status: "success"; updatedAt: string }
   | { status: "validation_error"; message: string }
+  | { status: "dependency_not_found"; message: string }
   | { status: "transient_error" };
 
 /**
@@ -24,12 +25,20 @@ export type OnlineAttemptResult =
  *   faisant foi côté serveur contre l'état réel, pas un cache local
  *   potentiellement périmé) — à remonter immédiatement au formulaire
  *   appelant, jamais mise en queue ni retentée.
+ * - "dependency_not_found" : la mutation référence une autre entité
+ *   introuvable côté serveur (ex. `partyId`). Contrairement au moteur de
+ *   sync différée (sync-engine.ts, qui peut reporter en fin de cycle pour
+ *   laisser la dépendance se synchroniser elle-même), une tentative en
+ *   ligne directe est déjà séquentielle et complète avant la suivante : il
+ *   n'y a pas d'autre mutation "juste avant" qui pourrait encore résoudre
+ *   cette dépendance. Traité comme "validation_error" par l'appelant
+ *   (rejet immédiat, jamais mis en queue) — voir *-offline.repository.ts.
  * - "transient_error" : tout le reste (réseau, session expirée, rate
  *   limit, bug serveur — un rejet de promesse comme un `{ok:false}` non
- *   "validation_error") — l'appelant doit se replier sur le chemin hors
- *   ligne déjà existant (écriture optimiste + enqueueMutation) pour ne
- *   jamais perdre la saisie, exactement comme si l'app avait été hors
- *   ligne dès le départ.
+ *   "validation_error"/"dependency_not_found") — l'appelant doit se replier
+ *   sur le chemin hors ligne déjà existant (écriture optimiste +
+ *   enqueueMutation) pour ne jamais perdre la saisie, exactement comme si
+ *   l'app avait été hors ligne dès le départ.
  */
 export async function attemptOnlineMutation(
   syncTransport: SyncTransport,
@@ -38,9 +47,13 @@ export async function attemptOnlineMutation(
   try {
     const outcome = await syncTransport(mutation);
     if (!outcome.ok) {
-      return outcome.reason === "validation_error"
-        ? { status: "validation_error", message: outcome.message }
-        : { status: "transient_error" };
+      if (outcome.reason === "validation_error") {
+        return { status: "validation_error", message: outcome.message };
+      }
+      if (outcome.reason === "dependency_not_found") {
+        return { status: "dependency_not_found", message: outcome.message };
+      }
+      return { status: "transient_error" };
     }
     return { status: "success", updatedAt: outcome.data.updatedAt };
   } catch {

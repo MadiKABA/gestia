@@ -103,7 +103,11 @@ export class TransactionOfflineRepository implements OfflineFirstRepository<
         createdById: this.deps.userId,
       };
       const result = await attemptOnlineMutation(this.deps.syncTransport, mutation);
-      if (result.status === "validation_error") {
+      if (result.status === "validation_error" || result.status === "dependency_not_found") {
+        // Une tentative en ligne est déjà séquentielle et complète : pas de
+        // "prochaine mutation en queue" qui pourrait encore résoudre la
+        // dépendance manquante, contrairement à sync-engine.ts — voir
+        // online-first-mutation.ts.
         throw new ValidationError(result.message);
       }
       if (result.status === "success") {

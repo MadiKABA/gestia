@@ -98,7 +98,10 @@ export class PaymentOfflineRepository {
         createdById: this.deps.userId,
       };
       const result = await attemptOnlineMutation(this.deps.syncTransport, mutation);
-      if (result.status === "validation_error") {
+      if (result.status === "validation_error" || result.status === "dependency_not_found") {
+        // Même rationale que TransactionOfflineRepository : une tentative en
+        // ligne directe n'a pas de "prochaine mutation en queue" qui
+        // pourrait encore résoudre la dépendance manquante.
         throw new ValidationError(result.message);
       }
       if (result.status === "success") {

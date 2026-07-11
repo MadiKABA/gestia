@@ -20,10 +20,22 @@
  *   survit pas à la sérialisation d'une Server Action (seul `message`
  *   traverse) — voir infrastructure/offline/sync-engine.ts, qui distingue
  *   ce cas d'un échec transitoire au lieu de retenter indéfiniment.
+ * - "dependency_not_found" : `DependencyNotFoundError` — la mutation
+ *   référence une autre entité (ex. `partyId` d'une Transaction) introuvable
+ *   en base *pour l'instant*, typiquement parce qu'elle a été créée hors
+ *   ligne dans la même session et n'a pas encore été synchronisée elle-même.
+ *   Contrairement à "validation_error", ce n'est pas définitif : voir
+ *   infrastructure/offline/sync-engine.ts, qui reporte cette mutation en fin
+ *   de cycle plutôt que de la rejeter immédiatement.
  */
-export type SyncFailureReason = "auth_required" | "rate_limited" | "validation_error";
+export type SyncFailureReason =
+  "auth_required" | "rate_limited" | "validation_error" | "dependency_not_found";
 
 export type SyncActionResult<TData> =
   | { ok: true; data: TData }
   | { ok: false; reason: "validation_error"; message: string }
-  | { ok: false; reason: Exclude<SyncFailureReason, "validation_error"> };
+  | { ok: false; reason: "dependency_not_found"; message: string }
+  | {
+      ok: false;
+      reason: Exclude<SyncFailureReason, "validation_error" | "dependency_not_found">;
+    };

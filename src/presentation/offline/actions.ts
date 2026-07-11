@@ -15,7 +15,7 @@ import { registerPaymentSync } from "@/infrastructure/payment/register-payment-s
 import { registerCashMovementSync } from "@/infrastructure/cash-movement/register-cash-movement-sync";
 import { checkRateLimit, SYNC_RATE_LIMIT } from "@/infrastructure/shared/rate-limiter";
 import { pullChangesInputSchema, queuedMutationInputSchema } from "@/presentation/offline/schemas";
-import { ForbiddenError, ValidationError } from "@/domain/shared/errors";
+import { DependencyNotFoundError, ForbiddenError, ValidationError } from "@/domain/shared/errors";
 import type { TenantContext } from "@/domain/shared/tenant-context";
 
 const auditLogger = new PrismaAuditLogger();
@@ -88,6 +88,12 @@ export async function syncMutationAction(
     );
     return { ok: true, data };
   } catch (error) {
+    // DependencyNotFoundError hérite de NotFoundError, pas de ValidationError
+    // — vérifiée en premier pour son propre `reason` dédié (voir
+    // sync-result.ts), distinct d'une erreur de validation définitive.
+    if (error instanceof DependencyNotFoundError) {
+      return { ok: false, reason: "dependency_not_found", message: error.message };
+    }
     if (error instanceof ValidationError) {
       return { ok: false, reason: "validation_error", message: error.message };
     }

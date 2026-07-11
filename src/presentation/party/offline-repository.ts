@@ -1,7 +1,10 @@
 import { PartyOfflineRepository } from "@/infrastructure/party/party-offline.repository";
 import { setCachedEntity } from "@/infrastructure/offline/local-cache.store";
 import type { PartyWithBalance } from "@/application/party/party.repository";
-import { triggerBackgroundSync } from "@/presentation/shared/hooks/use-network-status";
+import {
+  syncTransport,
+  triggerBackgroundSync,
+} from "@/presentation/shared/hooks/use-network-status";
 
 const ENTITY = "party";
 
@@ -22,6 +25,7 @@ export function createPartyOfflineRepository(
   return new PartyOfflineRepository({
     tenantId,
     userId,
+    syncTransport,
     onSyncNeeded: () => triggerBackgroundSync(tenantId),
   });
 }

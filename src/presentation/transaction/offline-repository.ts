@@ -1,7 +1,10 @@
 import { TransactionOfflineRepository } from "@/infrastructure/transaction/transaction-offline.repository";
 import { setCachedEntity } from "@/infrastructure/offline/local-cache.store";
 import type { Transaction } from "@/domain/transaction/transaction.entity";
-import { triggerBackgroundSync } from "@/presentation/shared/hooks/use-network-status";
+import {
+  syncTransport,
+  triggerBackgroundSync,
+} from "@/presentation/shared/hooks/use-network-status";
 
 const ENTITY = "transaction";
 
@@ -14,6 +17,7 @@ export function createTransactionOfflineRepository(
   return new TransactionOfflineRepository({
     tenantId,
     userId,
+    syncTransport,
     onSyncNeeded: () => triggerBackgroundSync(tenantId),
   });
 }

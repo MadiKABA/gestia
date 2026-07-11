@@ -1,6 +1,10 @@
 import type { OfflineFirstRepository } from "@/application/offline/offline-first-repository";
 import { validatePartyInput, type PartyInput } from "@/domain/party/party.entity";
+import { ValidationError } from "@/domain/shared/errors";
 import type { PartySearchQuery, PartyWithBalance } from "@/application/party/party.repository";
+import type { QueuedMutation } from "@/application/offline/mutation-handler";
+import type { SyncTransport } from "@/infrastructure/offline/sync-engine";
+import { attemptOnlineMutation } from "@/infrastructure/offline/online-first-mutation";
 import { generateClientId } from "@/infrastructure/offline/id-generator";
 import {
   getCachedEntity,
@@ -9,12 +13,21 @@ import {
   setCachedEntity,
 } from "@/infrastructure/offline/local-cache.store";
 import { enqueueMutation } from "@/infrastructure/offline/mutation-queue.store";
+import { isOnline } from "@/infrastructure/offline/platform";
 
 const ENTITY = "party";
 
 export type PartyOfflineDeps = {
   tenantId: string;
   userId: string;
+  /** Même transport que la sync différée (sync-engine.ts) — tenté en
+   * premier si l'app est en ligne au moment de l'action, avant tout repli
+   * sur le cache local + la queue (voir attemptOnlineMutation). Optionnel :
+   * absent, la tentative directe est simplement sautée (repli offline
+   * immédiat) — utilisé par les tests d'intégration qui pilotent la queue
+   * explicitement via `syncQueue`, sans jamais passer par un vrai
+   * navigateur. */
+  syncTransport?: SyncTransport;
   /** Nudge non bloquant, jamais attendu par l'appelant — déclenche plus tôt
    * un cycle de sync (push puis pull générique, cf. party-pull-handler.ts)
    * déjà prévu par ailleurs (online/visibilitychange/polling), aussi bien
@@ -26,13 +39,18 @@ export type PartyOfflineDeps = {
 };
 
 /**
- * Repository offline-first du module Party (cahier des charges §9) : lit et
- * écrit le cache local IndexedDB en priorité, enfile les mutations dans la
- * queue de sync générique plutôt que d'appeler Prisma ou une Server Action
- * de mutation directement. La cible serveur réelle (appelée uniquement à la
- * synchronisation) vit dans party-mutation-handler.ts.
+ * Repository "online-first, repli offline" du module Party (cahier des
+ * charges §9) : si l'app est en ligne au moment de l'action, tente
+ * d'abord une écriture directe contre le serveur réel (mêmes règles
+ * métier que la sync différée — voir attemptOnlineMutation, qui appelle le
+ * même transport que sync-engine.ts) et ne retombe sur le cache local +
+ * mutationQueue que si cette tentative échoue pour une raison transitoire
+ * (réseau, session expirée...). Hors ligne, comportement inchangé : cache
+ * optimiste + enfilement + sync différée. La cible serveur réelle (appelée
+ * à la fois par une tentative directe et par la sync différée) vit dans
+ * party-mutation-handler.ts.
  *
- * Le rafraîchissement des lectures (`getById`/`list`) ne fait plus l'objet
+ * Le rafraîchissement des lectures (`getById`/`list`) ne fait pas l'objet
  * d'un refetch ad hoc propre à Party : il passe par le même cycle de pull
  * générique que tout autre module retrofité sur cette couche (curseur
  * incrémental, pagination, soft-delete — party-pull-handler.ts), déjà
@@ -72,6 +90,31 @@ export class PartyOfflineRepository implements OfflineFirstRepository<
       balance: 0,
     };
 
+    if (isOnline() && this.deps.syncTransport) {
+      const mutation: QueuedMutation = {
+        id: generateClientId(),
+        tenantId: this.deps.tenantId,
+        entity: ENTITY,
+        action: "create",
+        payload: input,
+        clientGeneratedId: id,
+        createdAt: now.toISOString(),
+        createdById: this.deps.userId,
+      };
+      const result = await attemptOnlineMutation(this.deps.syncTransport, mutation);
+      if (result.status === "validation_error") {
+        throw new ValidationError(result.message);
+      }
+      if (result.status === "success") {
+        const confirmed = { ...party, updatedAt: new Date(result.updatedAt) };
+        await setCachedEntity(this.deps.tenantId, ENTITY, id, confirmed, result.updatedAt);
+        this.deps.onSyncNeeded?.();
+        return confirmed;
+      }
+      // "transient_error" : repli sur le chemin hors ligne ci-dessous, comme
+      // si l'app avait été hors ligne dès le départ — aucune saisie perdue.
+    }
+
     await setCachedEntity(this.deps.tenantId, ENTITY, id, party, now.toISOString());
     await enqueueMutation({
       id: generateClientId(),
@@ -107,6 +150,35 @@ export class PartyOfflineRepository implements OfflineFirstRepository<
       note: input.note ?? null,
       updatedAt: now,
     };
+    // Dernier `updatedAt` confirmé par le serveur connu du client — lu une
+    // seule fois ici, utilisé à la fois pour la tentative directe en ligne
+    // (clientKnownUpdatedAt, détection de conflit générique côté serveur,
+    // voir sync-mutation.use-case.ts) et pour l'enfilement de repli.
+    const knownServerUpdatedAt = cached?.updatedAt ?? now.toISOString();
+
+    if (isOnline() && this.deps.syncTransport) {
+      const mutation: QueuedMutation = {
+        id: generateClientId(),
+        tenantId: this.deps.tenantId,
+        entity: ENTITY,
+        action: "update",
+        payload: input,
+        clientGeneratedId: id,
+        clientKnownUpdatedAt: knownServerUpdatedAt,
+        createdAt: now.toISOString(),
+        createdById: this.deps.userId,
+      };
+      const result = await attemptOnlineMutation(this.deps.syncTransport, mutation);
+      if (result.status === "validation_error") {
+        throw new ValidationError(result.message);
+      }
+      if (result.status === "success") {
+        const confirmed = { ...updated, updatedAt: new Date(result.updatedAt) };
+        await setCachedEntity(this.deps.tenantId, ENTITY, id, confirmed, result.updatedAt);
+        this.deps.onSyncNeeded?.();
+        return confirmed;
+      }
+    }
 
     // Le `updatedAt` du RECORD de cache (dernier paramètre) doit rester la
     // dernière valeur confirmée par le serveur, jamais celle de cette
@@ -114,7 +186,6 @@ export class PartyOfflineRepository implements OfflineFirstRepository<
     // compare à elle-même au lieu de comparer au dernier état serveur
     // réellement connu. `updated.updatedAt` (le champ de l'entité, affiché)
     // peut lui refléter l'édition locale sans problème.
-    const knownServerUpdatedAt = cached?.updatedAt ?? now.toISOString();
     await setCachedEntity(this.deps.tenantId, ENTITY, id, updated, knownServerUpdatedAt);
     await enqueueMutation({
       id: generateClientId(),
@@ -131,11 +202,36 @@ export class PartyOfflineRepository implements OfflineFirstRepository<
   }
 
   async delete(id: string): Promise<void> {
-    // Le cache local est retiré tout de suite (affichage instantané), mais
-    // son `updatedAt` doit être capturé AVANT — le moteur de sync en a besoin
-    // pour la détection de conflit et ne pourra plus le relire une fois le
-    // cache vidé (voir MutationQueueRecord.clientKnownUpdatedAt).
+    // Le cache local et son `updatedAt` doivent être capturés AVANT toute
+    // action — nécessaire à la fois pour la tentative directe en ligne
+    // (clientKnownUpdatedAt) et, en repli, pour la mutation enfilée (le
+    // moteur de sync différée ne pourra plus le relire une fois le cache
+    // vidé, voir MutationQueueRecord.clientKnownUpdatedAt).
     const cached = await getCachedEntity<PartyWithBalance>(this.deps.tenantId, ENTITY, id);
+
+    if (isOnline() && this.deps.syncTransport) {
+      const mutation: QueuedMutation = {
+        id: generateClientId(),
+        tenantId: this.deps.tenantId,
+        entity: ENTITY,
+        action: "delete",
+        payload: {},
+        clientGeneratedId: id,
+        clientKnownUpdatedAt: cached?.updatedAt,
+        createdAt: new Date().toISOString(),
+        createdById: this.deps.userId,
+      };
+      const result = await attemptOnlineMutation(this.deps.syncTransport, mutation);
+      if (result.status === "validation_error") {
+        throw new ValidationError(result.message);
+      }
+      if (result.status === "success") {
+        await removeCachedEntity(this.deps.tenantId, ENTITY, id);
+        this.deps.onSyncNeeded?.();
+        return;
+      }
+    }
+
     await removeCachedEntity(this.deps.tenantId, ENTITY, id);
     await enqueueMutation({
       id: generateClientId(),
@@ -167,10 +263,6 @@ export class PartyOfflineRepository implements OfflineFirstRepository<
 
     return filtered.sort((a, b) => b.balance - a.balance);
   }
-}
-
-function isOnline(): boolean {
-  return typeof navigator === "undefined" || navigator.onLine;
 }
 
 function applyLocalFilters(

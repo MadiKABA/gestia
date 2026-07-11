@@ -19,10 +19,16 @@ export type NetworkStatus = {
   triggerSync: () => void;
 };
 
-/** Seul endroit qui enveloppe les Server Actions génériques en SyncTransport/
+/**
+ * Seul endroit qui enveloppe les Server Actions génériques en SyncTransport/
  * PullTransport — infrastructure/offline/ ne connaît que ces interfaces,
- * jamais Next.js. */
-const syncTransport: SyncTransport = (mutation) => syncMutationAction(mutation);
+ * jamais Next.js. `syncTransport` est exporté (pas seulement utilisé en
+ * interne) pour être injecté tel quel dans les repositories offline-first
+ * de module métier (ex: presentation/payment/offline-repository.ts) — même
+ * transport que celui utilisé par la sync différée, jamais un deuxième
+ * wrapping de syncMutationAction.
+ */
+export const syncTransport: SyncTransport = (mutation) => syncMutationAction(mutation);
 const pullTransport: PullTransport = (input) => pullChangesAction(input);
 
 export function useNetworkStatus(tenantId: string): NetworkStatus {

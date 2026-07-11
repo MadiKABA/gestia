@@ -28,3 +28,21 @@ export function isIosSafari(): boolean {
 export function supportsBackgroundSync(): boolean {
   return typeof window !== "undefined" && "serviceWorker" in navigator && "SyncManager" in window;
 }
+
+/**
+ * État réseau au moment précis de l'appel — jamais mis en cache, relu à
+ * chaque fois (voir *-offline.repository.ts:create/update/delete, qui
+ * doivent décider en ligne/hors ligne juste avant d'agir, pas au chargement
+ * de la page). Les repositories offline-first qui l'appellent ne sont
+ * jamais exécutés côté serveur en usage réel (composants "use client"
+ * uniquement) — `navigator` y est donc toujours défini. Un `navigator`
+ * absent (Node, tests d'intégration qui pilotent la queue explicitement
+ * via `syncQueue` sans jamais passer par un vrai navigateur) est traité
+ * comme hors ligne plutôt qu'en ligne : en l'absence de toute information
+ * réseau fiable, l'hypothèse la plus sûre pour "aucune saisie perdue" est
+ * de passer par le cache + la queue, jamais de tenter un appel réseau
+ * halluciné.
+ */
+export function isOnline(): boolean {
+  return typeof navigator !== "undefined" && navigator.onLine;
+}

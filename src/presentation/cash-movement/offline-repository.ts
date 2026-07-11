@@ -1,7 +1,10 @@
 import { CashMovementOfflineRepository } from "@/infrastructure/cash-movement/cash-movement-offline.repository";
 import { setCachedEntity } from "@/infrastructure/offline/local-cache.store";
 import type { CashMovement } from "@/domain/cash-movement/cash-movement.entity";
-import { triggerBackgroundSync } from "@/presentation/shared/hooks/use-network-status";
+import {
+  syncTransport,
+  triggerBackgroundSync,
+} from "@/presentation/shared/hooks/use-network-status";
 
 const ENTITY = "cashMovement";
 
@@ -14,6 +17,7 @@ export function createCashMovementOfflineRepository(
   return new CashMovementOfflineRepository({
     tenantId,
     userId,
+    syncTransport,
     onSyncNeeded: () => triggerBackgroundSync(tenantId),
   });
 }

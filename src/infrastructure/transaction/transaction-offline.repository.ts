@@ -6,6 +6,10 @@ import {
   type Transaction,
   type TransactionInput,
 } from "@/domain/transaction/transaction.entity";
+import { ValidationError } from "@/domain/shared/errors";
+import type { QueuedMutation } from "@/application/offline/mutation-handler";
+import type { SyncTransport } from "@/infrastructure/offline/sync-engine";
+import { attemptOnlineMutation } from "@/infrastructure/offline/online-first-mutation";
 import { generateClientId } from "@/infrastructure/offline/id-generator";
 import {
   getCachedEntity,
@@ -14,28 +18,34 @@ import {
   setCachedEntity,
 } from "@/infrastructure/offline/local-cache.store";
 import { enqueueMutation } from "@/infrastructure/offline/mutation-queue.store";
+import { isOnline } from "@/infrastructure/offline/platform";
 
 const ENTITY = "transaction";
 
 export type TransactionOfflineDeps = {
   tenantId: string;
   userId: string;
+  /** Même transport que la sync différée — voir PartyOfflineRepository
+   * (optionnel : absent, la tentative directe est simplement sautée). */
+  syncTransport?: SyncTransport;
   /** Non bloquant, jamais attendu par l'appelant — voir PartyOfflineRepository. */
   onSyncNeeded?: () => void;
 };
 
 /**
- * Repository offline-first du module Transaction (créances/dettes, cahier
- * des charges §8), même pattern que PartyOfflineRepository. Deux écarts
- * assumés par rapport à Party :
+ * Repository "online-first, repli offline" du module Transaction
+ * (créances/dettes, cahier des charges §8), même pattern que
+ * PartyOfflineRepository (tentative directe contre le serveur si en ligne,
+ * repli sur cache + mutationQueue seulement en cas d'échec transitoire —
+ * voir attemptOnlineMutation). Deux écarts assumés par rapport à Party :
  *
  * - `reference` (CR-2026-XXXXX / DT-2026-XXXXX) ne peut jamais être générée
  *   hors ligne (compteur atomique par tenant/année, voir
  *   infrastructure/transaction/transaction.repository.ts) : l'objet
- *   optimiste local la pose à `null`. Le cycle de sync enchaîne toujours
- *   push puis pull dans la même passe (network-status-store.ts:runSync) —
- *   la vraie référence arrive donc via le pull générique existant, sans
- *   mécanisme spécial, dès que la mutation de création est synchronisée.
+ *   optimiste local la pose à `null`, y compris pour une tentative directe
+ *   en ligne réussie — le cycle de sync enchaîne toujours push puis pull
+ *   dans la même passe (network-status-store.ts:runSync), donc la vraie
+ *   référence arrive via le pull générique existant juste après.
  * - `status`/`paidAmount` sont dérivés, jamais des entrées utilisateur :
  *   posés en dur ici (paidAmount toujours 0, module Payment hors périmètre
  *   de ce retrofit) plutôt que lus depuis TransactionInput.
@@ -81,6 +91,30 @@ export class TransactionOfflineRepository implements OfflineFirstRepository<
       updatedAt: now,
     };
 
+    if (isOnline() && this.deps.syncTransport) {
+      const mutation: QueuedMutation = {
+        id: generateClientId(),
+        tenantId: this.deps.tenantId,
+        entity: ENTITY,
+        action: "create",
+        payload: input,
+        clientGeneratedId: id,
+        createdAt: now.toISOString(),
+        createdById: this.deps.userId,
+      };
+      const result = await attemptOnlineMutation(this.deps.syncTransport, mutation);
+      if (result.status === "validation_error") {
+        throw new ValidationError(result.message);
+      }
+      if (result.status === "success") {
+        const confirmed = { ...transaction, updatedAt: new Date(result.updatedAt) };
+        await setCachedEntity(this.deps.tenantId, ENTITY, id, confirmed, result.updatedAt);
+        this.deps.onSyncNeeded?.(); // reference réelle (CR-/DT-) rapatriée par le pull qui suit
+        return confirmed;
+      }
+      // "transient_error" : repli sur le chemin hors ligne ci-dessous.
+    }
+
     await setCachedEntity(this.deps.tenantId, ENTITY, id, transaction, now.toISOString());
     await enqueueMutation({
       id: generateClientId(),
@@ -121,18 +155,43 @@ export class TransactionOfflineRepository implements OfflineFirstRepository<
       status: deriveTransactionStatus(input.amount, cached?.data.paidAmount ?? 0),
       updatedAt: now,
     };
+    const knownServerUpdatedAt = cached?.updatedAt ?? now.toISOString();
+    const payload = { ...input, partyId };
+
+    if (isOnline() && this.deps.syncTransport) {
+      const mutation: QueuedMutation = {
+        id: generateClientId(),
+        tenantId: this.deps.tenantId,
+        entity: ENTITY,
+        action: "update",
+        payload,
+        clientGeneratedId: id,
+        clientKnownUpdatedAt: knownServerUpdatedAt,
+        createdAt: now.toISOString(),
+        createdById: this.deps.userId,
+      };
+      const result = await attemptOnlineMutation(this.deps.syncTransport, mutation);
+      if (result.status === "validation_error") {
+        throw new ValidationError(result.message);
+      }
+      if (result.status === "success") {
+        const confirmed = { ...updated, updatedAt: new Date(result.updatedAt) };
+        await setCachedEntity(this.deps.tenantId, ENTITY, id, confirmed, result.updatedAt);
+        this.deps.onSyncNeeded?.();
+        return confirmed;
+      }
+    }
 
     // Même règle que PartyOfflineRepository.update : le `updatedAt` du
     // RECORD de cache reste le dernier `updatedAt` confirmé par le
     // serveur, jamais celui de cette édition locale optimiste.
-    const knownServerUpdatedAt = cached?.updatedAt ?? now.toISOString();
     await setCachedEntity(this.deps.tenantId, ENTITY, id, updated, knownServerUpdatedAt);
     await enqueueMutation({
       id: generateClientId(),
       tenantId: this.deps.tenantId,
       entity: ENTITY,
       action: "update",
-      payload: { ...input, partyId },
+      payload,
       clientGeneratedId: id,
       createdById: this.deps.userId,
     });
@@ -143,6 +202,30 @@ export class TransactionOfflineRepository implements OfflineFirstRepository<
 
   async delete(id: string): Promise<void> {
     const cached = await getCachedEntity<Transaction>(this.deps.tenantId, ENTITY, id);
+
+    if (isOnline() && this.deps.syncTransport) {
+      const mutation: QueuedMutation = {
+        id: generateClientId(),
+        tenantId: this.deps.tenantId,
+        entity: ENTITY,
+        action: "delete",
+        payload: {},
+        clientGeneratedId: id,
+        clientKnownUpdatedAt: cached?.updatedAt,
+        createdAt: new Date().toISOString(),
+        createdById: this.deps.userId,
+      };
+      const result = await attemptOnlineMutation(this.deps.syncTransport, mutation);
+      if (result.status === "validation_error") {
+        throw new ValidationError(result.message);
+      }
+      if (result.status === "success") {
+        await removeCachedEntity(this.deps.tenantId, ENTITY, id);
+        this.deps.onSyncNeeded?.();
+        return;
+      }
+    }
+
     await removeCachedEntity(this.deps.tenantId, ENTITY, id);
     await enqueueMutation({
       id: generateClientId(),
@@ -174,10 +257,6 @@ export class TransactionOfflineRepository implements OfflineFirstRepository<
 
     return filtered.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   }
-}
-
-function isOnline(): boolean {
-  return typeof navigator === "undefined" || navigator.onLine;
 }
 
 function applyLocalFilters(

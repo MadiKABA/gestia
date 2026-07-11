@@ -1,7 +1,10 @@
 import { PaymentOfflineRepository } from "@/infrastructure/payment/payment-offline.repository";
 import { setCachedEntity } from "@/infrastructure/offline/local-cache.store";
 import type { Payment } from "@/domain/payment/payment.entity";
-import { triggerBackgroundSync } from "@/presentation/shared/hooks/use-network-status";
+import {
+  syncTransport,
+  triggerBackgroundSync,
+} from "@/presentation/shared/hooks/use-network-status";
 
 const ENTITY = "payment";
 
@@ -14,6 +17,7 @@ export function createPaymentOfflineRepository(
   return new PaymentOfflineRepository({
     tenantId,
     userId,
+    syncTransport,
     onSyncNeeded: () => triggerBackgroundSync(tenantId),
   });
 }

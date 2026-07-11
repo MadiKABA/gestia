@@ -62,7 +62,7 @@ export async function inviteVendeur(
     purpose: "PIN_RESET",
     expiresAt: new Date(Date.now() + OTP_EXPIRY_MS),
   });
-  await deps.otpSender.sendOtp(input.phone, code);
+  await deps.otpSender.sendOtp(input.phone, code, { isVendeurInvitation: true });
 
   await deps.auditLogger.log(context, {
     action: "auth.vendeur_invited",

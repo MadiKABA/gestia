@@ -88,7 +88,12 @@ serwist.addEventListeners();
  * traite alors comme une session expirée plutôt qu'un échec réseau
  * ordinaire (voir sync-engine.ts). Sans redirection possible depuis un
  * service worker, la mutation reste simplement en attente jusqu'à la
- * prochaine synchronisation foreground, qui gère la redirection.
+ * prochaine synchronisation foreground, qui gère la redirection. Un 422
+ * signale de la même façon une erreur de validation métier définitive
+ * (voir /api/sync route.ts) — traduit en `{ ok: false, reason:
+ * "validation_error" }` pour que syncQueue la sorte de la boucle de retry
+ * (markMutationPermanentlyFailed) plutôt que de la traiter comme un échec
+ * transitoire, exactement comme le fait syncMutationAction côté page.
  */
 const pushMutationFromServiceWorker: SyncTransport = async (mutation) => {
   const response = await fetch("/api/sync", {
@@ -99,6 +104,10 @@ const pushMutationFromServiceWorker: SyncTransport = async (mutation) => {
   });
   if (response.status === 401) {
     return { ok: false, reason: "auth_required" };
+  }
+  if (response.status === 422) {
+    const body = (await response.json()) as { error: string };
+    return { ok: false, reason: "validation_error", message: body.error };
   }
   if (!response.ok) {
     throw new Error(`Échec de la synchronisation en arrière-plan (${response.status})`);

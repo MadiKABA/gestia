@@ -253,6 +253,35 @@ export const authLabels = {
   roleLabelVendeur: "Vendeur",
 };
 
+export const tenantSettingsLabels = {
+  pageTitle: "Paramètres",
+
+  generalSectionTitle: "Général",
+  displayNameField: "Nom affiché",
+  displayNameHelperText: "Utilisé à la place du nom légal dans l'app si renseigné.",
+  currencyField: "Devise",
+  currencyReadOnlyHelperText: "FCFA uniquement pour le moment.",
+
+  relanceSectionTitle: "Relances",
+  reminderDaysField: "Délai de relance (jours)",
+  whatsappTemplateField: "Message de relance WhatsApp",
+  whatsappPlaceholdersHelperText:
+    "Utilisez {client}, {montant} et {reference} — remplacés automatiquement dans le message envoyé.",
+  whatsappPreviewLabel: "Aperçu",
+  resetTemplateButtonLabel: "Réinitialiser au modèle par défaut",
+
+  appearanceSectionTitle: "Apparence",
+  brandColorField: "Couleur principale",
+  logoField: "Logo de la boutique",
+  logoHelperText: "PNG, JPEG ou WEBP, 2 Mo maximum.",
+  logoUploadButtonLabel: "Changer le logo",
+  logoUploadingButtonLabel: "Envoi en cours...",
+
+  saveButtonLabel: "Enregistrer",
+  savingButtonLabel: "Enregistrement...",
+  savedMessage: "Paramètres enregistrés.",
+};
+
 export const pwaLabels = {
   installTitle: "Installer Gestia",
   installDescription: "Accédez à Gestia plus rapidement, même hors connexion.",

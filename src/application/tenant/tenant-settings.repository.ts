@@ -9,6 +9,8 @@ export type TenantSettingsFull = {
   currency: string;
   reminderDays: number;
   whatsappTemplate: string | null;
+  whatsappReceiptPartialTemplate: string | null;
+  whatsappReceiptFinalTemplate: string | null;
   brandColor: string | null;
   logoUrl: string | null;
 };

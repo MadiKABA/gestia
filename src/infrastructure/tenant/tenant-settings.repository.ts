@@ -37,6 +37,14 @@ export class PrismaTenantSettingsRepository
     return settings?.whatsappTemplate ?? null;
   }
 
+  async findWhatsappReceiptTemplates(): Promise<{ partial: string | null; final: string | null }> {
+    const settings = await this.prisma.tenantSettings.findUnique({ where: this.scoped() });
+    return {
+      partial: settings?.whatsappReceiptPartialTemplate ?? null,
+      final: settings?.whatsappReceiptFinalTemplate ?? null,
+    };
+  }
+
   async findFull(): Promise<TenantSettingsFull | null> {
     const settings = await this.prisma.tenantSettings.findUnique({ where: this.scoped() });
     if (!settings) return null;
@@ -45,6 +53,8 @@ export class PrismaTenantSettingsRepository
       currency: settings.currency,
       reminderDays: settings.reminderDays,
       whatsappTemplate: settings.whatsappTemplate,
+      whatsappReceiptPartialTemplate: settings.whatsappReceiptPartialTemplate,
+      whatsappReceiptFinalTemplate: settings.whatsappReceiptFinalTemplate,
       brandColor: settings.brandColor,
       logoUrl: settings.logoUrl,
     };
@@ -66,6 +76,8 @@ export class PrismaTenantSettingsRepository
         currency: input.currency ?? "FCFA",
         reminderDays: input.reminderDays ?? 7,
         whatsappTemplate: input.whatsappTemplate ?? null,
+        whatsappReceiptPartialTemplate: input.whatsappReceiptPartialTemplate ?? null,
+        whatsappReceiptFinalTemplate: input.whatsappReceiptFinalTemplate ?? null,
         brandColor: input.brandColor ?? "#0F2A4A",
         logoUrl: input.logoUrl ?? null,
         displayName: input.displayName ?? null,
@@ -76,6 +88,8 @@ export class PrismaTenantSettingsRepository
       currency: settings.currency,
       reminderDays: settings.reminderDays,
       whatsappTemplate: settings.whatsappTemplate,
+      whatsappReceiptPartialTemplate: settings.whatsappReceiptPartialTemplate,
+      whatsappReceiptFinalTemplate: settings.whatsappReceiptFinalTemplate,
       brandColor: settings.brandColor,
       logoUrl: settings.logoUrl,
     };

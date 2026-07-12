@@ -10,6 +10,8 @@ const EMPTY_SETTINGS: TenantSettingsFull = {
   currency: "FCFA",
   reminderDays: 7,
   whatsappTemplate: null,
+  whatsappReceiptPartialTemplate: null,
+  whatsappReceiptFinalTemplate: null,
   brandColor: "#0F2A4A",
   logoUrl: null,
 };

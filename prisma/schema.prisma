@@ -385,6 +385,8 @@ model TenantSettings {
   currency         String  @default("FCFA")
   reminderDays     Int     @default(7)
   whatsappTemplate String?
+  whatsappReceiptPartialTemplate String?
+  whatsappReceiptFinalTemplate   String?
 
   // Theming : brandColor doit être un des presets validés (contrôlé côté application, pas en DB)
   brandColor  String? @default("#0F2A4A")

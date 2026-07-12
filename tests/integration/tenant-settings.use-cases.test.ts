@@ -100,6 +100,56 @@ describe("use cases tenant-settings", () => {
       ).rejects.toThrow(ValidationError);
     });
 
+    it("rejette whatsappReceiptPartialTemplate sans les placeholders attendus", async () => {
+      const patron = await registerTenant();
+      const repository = new PrismaTenantSettingsRepository(patron.tenantId);
+
+      await expect(
+        updateTenantSettings(
+          { tenantId: patron.tenantId, userId: patron.id, role: "PATRON" },
+          { repository, auditLogger },
+          { whatsappReceiptPartialTemplate: "Message sans placeholders" },
+        ),
+      ).rejects.toThrow(ValidationError);
+    });
+
+    it("rejette whatsappReceiptFinalTemplate sans les placeholders attendus", async () => {
+      const patron = await registerTenant();
+      const repository = new PrismaTenantSettingsRepository(patron.tenantId);
+
+      await expect(
+        updateTenantSettings(
+          { tenantId: patron.tenantId, userId: patron.id, role: "PATRON" },
+          { repository, auditLogger },
+          { whatsappReceiptFinalTemplate: "Message sans placeholders" },
+        ),
+      ).rejects.toThrow(ValidationError);
+    });
+
+    it("persiste les gabarits de reçu WhatsApp (round-trip Postgres)", async () => {
+      const patron = await registerTenant();
+      const repository = new PrismaTenantSettingsRepository(patron.tenantId);
+      const context = { tenantId: patron.tenantId, userId: patron.id, role: "PATRON" as const };
+
+      await updateTenantSettings(
+        context,
+        { repository, auditLogger },
+        {
+          whatsappReceiptPartialTemplate:
+            "Salam {client}, paiement {montantPaye} par {modePaiement}, reste {montantRestant} FCFA",
+          whatsappReceiptFinalTemplate: "Salam {client}, merci pour {montantPaye} FCFA. Safi !",
+        },
+      );
+
+      const settings = await repository.findFull();
+      expect(settings?.whatsappReceiptPartialTemplate).toBe(
+        "Salam {client}, paiement {montantPaye} par {modePaiement}, reste {montantRestant} FCFA",
+      );
+      expect(settings?.whatsappReceiptFinalTemplate).toBe(
+        "Salam {client}, merci pour {montantPaye} FCFA. Safi !",
+      );
+    });
+
     it("persiste un update partiel sans toucher aux champs non envoyés", async () => {
       const patron = await registerTenant();
       const repository = new PrismaTenantSettingsRepository(patron.tenantId);
@@ -164,6 +214,8 @@ describe("use cases tenant-settings", () => {
       );
       expect(settings.currency).toBe("FCFA");
       expect(settings.brandColor).toBe("#0F2A4A");
+      expect(settings.whatsappReceiptPartialTemplate).toBeNull();
+      expect(settings.whatsappReceiptFinalTemplate).toBeNull();
     });
   });
 

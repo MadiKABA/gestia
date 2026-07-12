@@ -8,6 +8,7 @@ import { PrismaAuditLogger } from "@/infrastructure/audit-log/audit-log.reposito
 import { CloudinaryLogoUploader } from "@/infrastructure/external/cloudinary-client";
 import { getTenantBranding } from "@/application/tenant/get-tenant-branding.use-case";
 import { getTenantWhatsappTemplate } from "@/application/tenant/get-tenant-whatsapp-template.use-case";
+import { getTenantWhatsappReceiptTemplates } from "@/application/tenant/get-tenant-whatsapp-receipt-templates.use-case";
 import { getTenantSettingsForEdit } from "@/application/tenant/get-tenant-settings-for-edit.use-case";
 import { updateTenantSettings } from "@/application/tenant/update-tenant-settings.use-case";
 import { uploadTenantLogo } from "@/application/tenant/upload-tenant-logo.use-case";
@@ -33,6 +34,12 @@ export async function getTenantWhatsappTemplateAction() {
   const context = await requireTenantContext();
   const repository = new PrismaTenantSettingsRepository(context.tenantId);
   return getTenantWhatsappTemplate({ repository });
+}
+
+export async function getTenantWhatsappReceiptTemplatesAction() {
+  const context = await requireTenantContext();
+  const repository = new PrismaTenantSettingsRepository(context.tenantId);
+  return getTenantWhatsappReceiptTemplates({ repository });
 }
 
 export async function getTenantSettingsForEditAction() {

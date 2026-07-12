@@ -12,6 +12,8 @@ export const updateTenantSettingsSchema = z.object({
   currency: z.string().trim().min(1).optional(),
   reminderDays: z.number().int().optional(),
   whatsappTemplate: z.string().trim().optional().nullable(),
+  whatsappReceiptPartialTemplate: z.string().trim().optional().nullable(),
+  whatsappReceiptFinalTemplate: z.string().trim().optional().nullable(),
   brandColor: z.string().optional().nullable(),
 });
 

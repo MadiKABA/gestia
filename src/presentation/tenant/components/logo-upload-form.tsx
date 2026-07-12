@@ -43,7 +43,7 @@ export function LogoUploadForm({ logoUrl: initialLogoUrl }: { logoUrl: string | 
   }
 
   return (
-    <div className="bg-card border-border space-y-3 rounded-xl border p-4 shadow-xs">
+    <div className="space-y-3">
       <h2 className="text-foreground text-sm font-semibold">{tenantSettingsLabels.logoField}</h2>
 
       <div className="flex items-center gap-4">

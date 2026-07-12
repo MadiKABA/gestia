@@ -26,7 +26,7 @@ export function BrandColorPicker({ brandColor: initialBrandColor }: { brandColor
   }
 
   return (
-    <div className="bg-card border-border space-y-3 rounded-xl border p-4 shadow-xs">
+    <div className="space-y-3">
       <h2 className="text-foreground text-sm font-semibold">
         {tenantSettingsLabels.brandColorField}
       </h2>

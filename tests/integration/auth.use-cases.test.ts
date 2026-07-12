@@ -198,6 +198,46 @@ describe("use cases auth", () => {
       expect(user?.lockedUntil).not.toBeNull();
     });
 
+    it("verrouille le compte même sous tentatives concurrentes (régression race condition)", async () => {
+      // Reproduit le scénario de l'audit sécurité : 10 tentatives de login
+      // concurrentes avec un mauvais PIN sur le même compte. Avant le fix
+      // (read-then-write applicatif), toutes lisaient `failedAttempts=0`
+      // avant qu'aucune n'écrive, produisant `failedAttempts=1` en base et
+      // aucun verrouillage. Avec l'incrément atomique
+      // (`incrementFailedAttempts`), Postgres sérialise les écritures
+      // concurrentes sur la ligne : chaque tentative relit la valeur déjà
+      // committée par la précédente.
+      const phone = `+22178${Date.now().toString().slice(-6)}9${Math.floor(Math.random() * 10)}`;
+      const patron = await registerTenant(phone);
+
+      const attempts = Array.from({ length: 10 }, () =>
+        login(
+          { repository, hasher, auditLogger },
+          { channel: "PHONE", identifier: phone, pin: "0000" },
+        ).catch((error: unknown) => error),
+      );
+      const results = await Promise.all(attempts);
+
+      expect(results.every((result) => result instanceof Error)).toBe(true);
+
+      const user = await prisma.user.findUnique({ where: { id: patron.id } });
+      // Les 10 tentatives concurrentes se sont bien toutes traduites par un
+      // incrément réel (pas de lost update) — le compteur reflète le nombre
+      // réel de tentatives, pas une valeur figée à 1.
+      expect(user?.failedAttempts).toBe(10);
+      expect(user?.lockedUntil).not.toBeNull();
+
+      // Une tentative séquentielle suivante, même avec le bon PIN, doit être
+      // rejetée : le compte est bien verrouillé, pas seulement le compteur
+      // correctement incrémenté.
+      await expect(
+        login(
+          { repository, hasher, auditLogger },
+          { channel: "PHONE", identifier: phone, pin: "1234" },
+        ),
+      ).rejects.toThrow(ForbiddenError);
+    });
+
     it("réinitialise failedAttempts après une connexion réussie", async () => {
       const phone = `+22178${Date.now().toString().slice(-6)}3`;
       const patron = await registerTenant(phone);

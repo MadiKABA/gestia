@@ -1,4 +1,8 @@
-import { isLockedOut, nextLockoutState } from "@/domain/auth/pin-policy";
+import {
+  computeLockoutExpiry,
+  isLockedOut,
+  isLockoutThresholdReached,
+} from "@/domain/auth/pin-policy";
 import { validatePhoneFormat } from "@/domain/auth/phone";
 import { validateEmailFormat } from "@/domain/auth/email";
 import type { OtpChannel } from "@/domain/auth/otp";
@@ -47,8 +51,10 @@ export async function login(
   const validPin = await deps.hasher.verify(user.pinHash, input.pin);
 
   if (!validPin) {
-    const { failedAttempts, lockedUntil } = nextLockoutState(user);
-    await deps.repository.recordFailedLogin(user.id, { failedAttempts, lockedUntil });
+    const { failedAttempts } = await deps.repository.incrementFailedAttempts(user.id);
+    if (isLockoutThresholdReached(failedAttempts)) {
+      await deps.repository.lockAccount(user.id, computeLockoutExpiry());
+    }
     await deps.auditLogger.log(
       { tenantId: user.tenantId, userId: user.id, role: user.role },
       { action: "auth.login_failed", entity: "User", entityId: user.id },

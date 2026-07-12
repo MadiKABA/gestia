@@ -72,11 +72,18 @@ export class PrismaAuthRepository implements AuthRepository {
     });
   }
 
-  async recordFailedLogin(
+  async incrementFailedAttempts(
     userId: string,
-    state: { failedAttempts: number; lockedUntil: Date | null },
-  ): Promise<void> {
-    await prisma.user.update({ where: { id: userId }, data: state });
+  ): Promise<{ failedAttempts: number; lockedUntil: Date | null }> {
+    const updated = await prisma.user.update({
+      where: { id: userId },
+      data: { failedAttempts: { increment: 1 } },
+    });
+    return { failedAttempts: updated.failedAttempts, lockedUntil: updated.lockedUntil };
+  }
+
+  async lockAccount(userId: string, lockedUntil: Date): Promise<void> {
+    await prisma.user.update({ where: { id: userId }, data: { lockedUntil } });
   }
 
   async clearLockout(userId: string): Promise<void> {

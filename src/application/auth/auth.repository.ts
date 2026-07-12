@@ -48,10 +48,15 @@ export interface AuthRepository {
   /** Nom uniquement — le téléphone (identifiant de connexion) n'est jamais
    * modifiable via cette méthode, voir update-vendeur.use-case.ts. */
   updateName(userId: string, name: string): Promise<void>;
-  recordFailedLogin(
+  /** Incrémente atomiquement le compteur d'échecs côté base
+   * (`UPDATE ... SET failedAttempts = failedAttempts + 1`) — jamais un
+   * read-then-write applicatif, pour rester correct sous tentatives de login
+   * concurrentes. Retourne le compteur à jour pour que l'appelant décide du
+   * verrouillage (`isLockoutThresholdReached`). */
+  incrementFailedAttempts(
     userId: string,
-    state: { failedAttempts: number; lockedUntil: Date | null },
-  ): Promise<void>;
+  ): Promise<{ failedAttempts: number; lockedUntil: Date | null }>;
+  lockAccount(userId: string, lockedUntil: Date): Promise<void>;
   clearLockout(userId: string): Promise<void>;
   setActive(userId: string, active: boolean): Promise<void>;
   listVendeursByTenant(tenantId: string): Promise<AuthUser[]>;

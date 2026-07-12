@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   MAX_FAILED_ATTEMPTS,
+  computeLockoutExpiry,
   isLockedOut,
-  nextLockoutState,
+  isLockoutThresholdReached,
   validatePinFormat,
 } from "@/domain/auth/pin-policy";
 import { ValidationError } from "@/domain/shared/errors";
@@ -32,16 +33,24 @@ describe("isLockedOut", () => {
   });
 });
 
-describe("nextLockoutState", () => {
-  it("incrémente les tentatives sans verrouiller avant le seuil", () => {
-    const state = nextLockoutState({ failedAttempts: 0 });
-    expect(state.failedAttempts).toBe(1);
-    expect(state.lockedUntil).toBeNull();
+describe("isLockoutThresholdReached", () => {
+  it("ne verrouille pas avant le seuil", () => {
+    expect(isLockoutThresholdReached(MAX_FAILED_ATTEMPTS - 1)).toBe(false);
   });
 
   it("verrouille au seuil de tentatives échouées", () => {
-    const state = nextLockoutState({ failedAttempts: MAX_FAILED_ATTEMPTS - 1 });
-    expect(state.failedAttempts).toBe(MAX_FAILED_ATTEMPTS);
-    expect(state.lockedUntil).not.toBeNull();
+    expect(isLockoutThresholdReached(MAX_FAILED_ATTEMPTS)).toBe(true);
+  });
+
+  it("reste verrouillé au-delà du seuil", () => {
+    expect(isLockoutThresholdReached(MAX_FAILED_ATTEMPTS + 5)).toBe(true);
+  });
+});
+
+describe("computeLockoutExpiry", () => {
+  it("retourne une date dans le futur par rapport à `now`", () => {
+    const now = new Date("2026-01-01T00:00:00.000Z");
+    const expiry = computeLockoutExpiry(now);
+    expect(expiry.getTime()).toBeGreaterThan(now.getTime());
   });
 });

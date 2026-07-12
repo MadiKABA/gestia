@@ -16,9 +16,16 @@ export function isLockedOut(user: { lockedUntil: Date | null }, now = new Date()
   return user.lockedUntil !== null && user.lockedUntil > now;
 }
 
-export function nextLockoutState(user: { failedAttempts: number }, now = new Date()) {
-  const failedAttempts = user.failedAttempts + 1;
-  const lockedUntil =
-    failedAttempts >= MAX_FAILED_ATTEMPTS ? new Date(now.getTime() + LOCKOUT_DURATION_MS) : null;
-  return { failedAttempts, lockedUntil };
+/** Le compte doit être verrouillé une fois `failedAttempts` (déjà incrémenté
+ * de façon atomique côté base, voir `AuthRepository.incrementFailedAttempts`)
+ * au seuil — jamais calculé à partir d'une valeur lue en mémoire, pour éviter
+ * le lost update qu'un `read-then-write` provoquerait sous requêtes
+ * concurrentes (plusieurs tentatives de login en parallèle liraient toutes le
+ * même compteur avant qu'aucune ne l'incrémente). */
+export function isLockoutThresholdReached(failedAttempts: number): boolean {
+  return failedAttempts >= MAX_FAILED_ATTEMPTS;
+}
+
+export function computeLockoutExpiry(now = new Date()): Date {
+  return new Date(now.getTime() + LOCKOUT_DURATION_MS);
 }

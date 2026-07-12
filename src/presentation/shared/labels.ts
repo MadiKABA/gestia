@@ -197,6 +197,7 @@ export const authLabels = {
     "Un SMS avec le lien de première connexion vient d'être envoyé. Vous pouvez aussi le transmettre vous-même (WhatsApp, etc.) :",
   copyLinkButton: "Copier le lien",
   linkCopiedButton: "Lien copié !",
+  copyLinkFailedMessage: "Impossible de copier automatiquement — sélectionnez le lien ci-dessus.",
   dismissVendeurInvitedLabel: "Fermer",
 
   premiereConnexionExpiredLinkLabel: "Code expiré ? Recevoir un nouveau code",

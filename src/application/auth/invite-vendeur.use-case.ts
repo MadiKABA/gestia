@@ -62,7 +62,19 @@ export async function inviteVendeur(
     purpose: "PIN_RESET",
     expiresAt: new Date(Date.now() + OTP_EXPIRY_MS),
   });
-  await deps.otpSender.sendOtp(input.phone, code, { isVendeurInvitation: true });
+
+  // Le vendeur et son OTP sont déjà valides à ce stade — une panne de l'envoi
+  // SMS (réseau, quota, fournisseur en incident) ne doit pas faire échouer
+  // toute l'invitation : ce serait perdre le lien de première connexion
+  // affiché ensuite au patron (voir VendeursPanel, "Copier le lien"), alors
+  // que c'est précisément le filet de secours prévu pour ce cas. L'échec
+  // reste visible côté opérateur via les logs serveur, jamais silencieux au
+  // point de masquer un vrai incident fournisseur récurrent.
+  try {
+    await deps.otpSender.sendOtp(input.phone, code, { isVendeurInvitation: true });
+  } catch (error) {
+    console.error("Échec de l'envoi du SMS d'invitation vendeur :", error);
+  }
 
   await deps.auditLogger.log(context, {
     action: "auth.vendeur_invited",

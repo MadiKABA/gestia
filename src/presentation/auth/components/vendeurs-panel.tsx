@@ -54,8 +54,16 @@ export function VendeursPanel({ initialVendeurs }: { initialVendeurs: Vendeur[] 
 
   async function onCopyLink() {
     if (!invitedLink) return;
-    await navigator.clipboard.writeText(invitedLink);
-    setCopied(true);
+    try {
+      await navigator.clipboard.writeText(invitedLink);
+      setCopied(true);
+    } catch {
+      // Permission clipboard refusée/indisponible (contexte non sécurisé,
+      // navigateur non supporté) : le lien reste affiché en clair
+      // juste au-dessus, sélectionnable/copiable manuellement — jamais un
+      // clic sans aucun retour.
+      setError(authLabels.copyLinkFailedMessage);
+    }
   }
 
   function onDeactivate(vendeurId: string) {

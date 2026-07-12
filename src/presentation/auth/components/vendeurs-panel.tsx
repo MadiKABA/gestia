@@ -168,7 +168,7 @@ export function VendeursPanel({ initialVendeurs }: { initialVendeurs: Vendeur[] 
   }
 
   return (
-    <div className="mx-auto w-full max-w-md space-y-4 p-4 md:max-w-5xl">
+    <div className="mx-auto w-full max-w-md space-y-4 p-4 lg:max-w-5xl">
       <div className="flex items-center justify-between gap-2">
         <div>
           <h1 className="text-foreground text-lg font-semibold">{authLabels.vendeursListTitle}</h1>
@@ -212,8 +212,8 @@ export function VendeursPanel({ initialVendeurs }: { initialVendeurs: Vendeur[] 
         </div>
       ) : null}
 
-      {/* Mobile (< md) : résumé 2 cases. */}
-      <div className="grid grid-cols-2 gap-3 md:hidden">
+      {/* Mobile (< lg) : résumé 2 cases. */}
+      <div className="grid grid-cols-2 gap-3 lg:hidden">
         <div className="bg-card border-border rounded-xl border p-4 shadow-xs">
           <p className="text-muted-foreground text-sm">{authLabels.totalCountLabel}</p>
           <p className="text-foreground mt-1 text-xl font-semibold tabular-nums">{counts.total}</p>
@@ -224,8 +224,8 @@ export function VendeursPanel({ initialVendeurs }: { initialVendeurs: Vendeur[] 
         </div>
       </div>
 
-      {/* Desktop/tablette (≥ md) : résumé 4 cases. */}
-      <div className="hidden gap-3 md:grid md:grid-cols-4">
+      {/* Desktop/tablette (≥ lg) : résumé 4 cases. */}
+      <div className="hidden gap-3 lg:grid lg:grid-cols-4">
         <div className="bg-card border-border rounded-xl border p-4 shadow-xs">
           <p className="text-muted-foreground text-sm">{authLabels.totalCountLabel}</p>
           <p className="text-foreground mt-1 text-xl font-semibold tabular-nums">{counts.total}</p>
@@ -278,8 +278,8 @@ export function VendeursPanel({ initialVendeurs }: { initialVendeurs: Vendeur[] 
         </Select>
       </div>
 
-      {/* Mobile (< md) : cards simples, design inchangé. */}
-      <ul className="grid grid-cols-1 gap-2 md:hidden">
+      {/* Mobile (< lg) : cards simples, design inchangé. */}
+      <ul className="grid grid-cols-1 gap-2 lg:hidden">
         {visibleVendeurs.map((vendeur) => {
           const status = statusOf(vendeur);
           return (
@@ -330,8 +330,8 @@ export function VendeursPanel({ initialVendeurs }: { initialVendeurs: Vendeur[] 
         ) : null}
       </ul>
 
-      {/* Desktop/tablette (≥ md) : tableau avec actions par ligne. */}
-      <div className="border-border bg-card hidden overflow-x-auto rounded-xl border md:block">
+      {/* Desktop/tablette (≥ lg) : tableau avec actions par ligne. */}
+      <div className="border-border bg-card hidden overflow-x-auto rounded-xl border lg:block">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-border text-muted-foreground border-b text-left text-xs">

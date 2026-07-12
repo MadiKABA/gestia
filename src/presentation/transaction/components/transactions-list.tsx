@@ -184,7 +184,7 @@ export function TransactionsList({
   );
 
   return (
-    <div className="mx-auto w-full max-w-md space-y-4 p-4 md:max-w-5xl">
+    <div className="mx-auto w-full max-w-md space-y-4 p-4 lg:max-w-5xl">
       <div className="flex items-center justify-between gap-2">
         <h1 className="text-foreground text-lg font-semibold">{transactionLabels.listTitle}</h1>
         <Button
@@ -197,13 +197,13 @@ export function TransactionsList({
         </Button>
       </div>
 
-      {/* Mobile (< md) : résumé 2 cases, design inchangé. */}
-      <div className="grid grid-cols-2 gap-3 md:hidden">
+      {/* Mobile (< lg) : résumé 2 cases, design inchangé. */}
+      <div className="grid grid-cols-2 gap-3 lg:hidden">
         <BalanceSummaryCards owedToMe={summary.owedToMe} owedByMe={summary.owedByMe} />
       </div>
 
-      {/* Desktop/tablette (≥ md) : résumé étendu à 4 cases. */}
-      <div className="hidden gap-3 md:grid md:grid-cols-4">
+      {/* Desktop/tablette (≥ lg) : résumé étendu à 4 cases. */}
+      <div className="hidden gap-3 lg:grid lg:grid-cols-4">
         <BalanceSummaryCards owedToMe={summary.owedToMe} owedByMe={summary.owedByMe} />
         <div className="bg-card border-border rounded-xl border p-4 shadow-xs">
           <p className="text-muted-foreground text-sm">{transactionLabels.totalCountLabel}</p>
@@ -259,8 +259,8 @@ export function TransactionsList({
         </div>
       </div>
 
-      {/* Mobile (< md) : cartes tap → détail, design inchangé. */}
-      <ul className="grid grid-cols-1 gap-2 md:hidden">
+      {/* Mobile (< lg) : cartes tap → détail, design inchangé. */}
+      <ul className="grid grid-cols-1 gap-2 lg:hidden">
         {visibleTransactions.map((transaction) => {
           const signedAmount =
             transaction.type === "CREANCE" ? transaction.amount : -transaction.amount;
@@ -305,8 +305,8 @@ export function TransactionsList({
         ) : null}
       </ul>
 
-      {/* Desktop/tablette (≥ md) : tableau avec actions par ligne. */}
-      <div className="border-border bg-card hidden overflow-x-auto rounded-xl border md:block">
+      {/* Desktop/tablette (≥ lg) : tableau avec actions par ligne. */}
+      <div className="border-border bg-card hidden overflow-x-auto rounded-xl border lg:block">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-border text-muted-foreground border-b text-left text-xs">

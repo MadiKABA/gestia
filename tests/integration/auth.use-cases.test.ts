@@ -1,4 +1,4 @@
-import { afterAll, describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it, vi } from "vitest";
 import { prisma } from "@/infrastructure/prisma/client";
 import { PrismaAuthRepository } from "@/infrastructure/auth/auth.repository";
 import { Argon2Hasher } from "@/infrastructure/auth/argon2-hasher";
@@ -296,6 +296,40 @@ describe("use cases auth", () => {
       expect(vendeur.role).toBe("VENDEUR");
       expect(vendeur.tenantId).toBe(patron.tenantId);
       expect(sentTo).toBe(vendeurPhone);
+    });
+
+    it("crée le vendeur et l'OTP même si l'envoi du SMS échoue (panne fournisseur non bloquante)", async () => {
+      const phone = `+22179${Date.now().toString().slice(-6)}3`;
+      const patron = await registerTenant(phone);
+      const vendeurPhone = `+22179${Date.now().toString().slice(-6)}4`;
+      const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+      const vendeur = await inviteVendeur(
+        { tenantId: patron.tenantId, userId: patron.id, role: "PATRON" },
+        {
+          repository,
+          otpSender: {
+            sendOtp: async () => {
+              throw new Error("Panne fournisseur SMS");
+            },
+          },
+          hasher,
+          auditLogger,
+        },
+        { name: "Vendeur Test", phone: vendeurPhone },
+      );
+
+      expect(vendeur.role).toBe("VENDEUR");
+      const otpRecord = await prisma.otpCode.findFirst({
+        where: { identifier: vendeurPhone, purpose: "PIN_RESET" },
+      });
+      expect(otpRecord).not.toBeNull();
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        "Échec de l'envoi du SMS d'invitation vendeur :",
+        expect.any(Error),
+      );
+
+      consoleErrorSpy.mockRestore();
     });
   });
 

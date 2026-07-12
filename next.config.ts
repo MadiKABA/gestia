@@ -8,6 +8,12 @@ const nextConfig: NextConfig = {
     // listée ici.
     remotePatterns: [{ protocol: "https", hostname: "res.cloudinary.com" }],
   },
+  experimental: {
+    // Défaut Next.js (1 Mo) trop bas pour un upload de logo (validation
+    // domain plafonnée à 2 Mo, voir logo-file.ts) — sans ce relèvement,
+    // l'upload échoue avant même d'atteindre notre code de validation.
+    serverActions: { bodySizeLimit: "3mb" },
+  },
   // Headers de réponse uniquement — ne touche pas au routage/aux redirections
   // (ça reste le rôle de src/proxy.ts, dont le matcher n'est pas concerné ici).
   async headers() {

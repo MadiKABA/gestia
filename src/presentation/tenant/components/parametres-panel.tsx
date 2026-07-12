@@ -1,6 +1,8 @@
 import type { TenantSettingsFull } from "@/application/tenant/tenant-settings.repository";
 import { GeneralSettingsForm } from "@/presentation/tenant/components/general-settings-form";
 import { RelanceSettingsForm } from "@/presentation/tenant/components/relance-settings-form";
+import { BrandColorPicker } from "@/presentation/tenant/components/brand-color-picker";
+import { LogoUploadForm } from "@/presentation/tenant/components/logo-upload-form";
 import { tenantSettingsLabels } from "@/presentation/shared/labels";
 
 /** Sections empilées, chacune avec son propre bouton "Enregistrer" —
@@ -20,6 +22,14 @@ export function ParametresPanel({ initialSettings }: { initialSettings: TenantSe
         reminderDays={initialSettings.reminderDays}
         whatsappTemplate={initialSettings.whatsappTemplate}
       />
+
+      <div className="space-y-3">
+        <h2 className="text-foreground text-sm font-semibold">
+          {tenantSettingsLabels.appearanceSectionTitle}
+        </h2>
+        <BrandColorPicker brandColor={initialSettings.brandColor} />
+        <LogoUploadForm logoUrl={initialSettings.logoUrl} />
+      </div>
     </div>
   );
 }

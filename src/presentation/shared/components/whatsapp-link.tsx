@@ -1,5 +1,6 @@
 import { MessageCircle } from "lucide-react";
 import { Button } from "@/presentation/shared/components/ui/button";
+import { WhatsappMessagePreview } from "@/presentation/shared/components/whatsapp-message-preview";
 import { transactionLabels } from "@/presentation/shared/labels";
 
 /** Gabarit par défaut si le tenant n'a jamais personnalisé
@@ -8,14 +9,24 @@ import { transactionLabels } from "@/presentation/shared/labels";
 export const DEFAULT_WHATSAPP_TEMPLATE =
   "Bonjour {client}, petit rappel : {reference} de {montant} FCFA est toujours en attente. Merci de régulariser dès que possible !";
 
-export function renderWhatsappTemplate(
-  template: string,
-  vars: { client: string; montant: string; reference: string },
-): string {
-  return template
-    .replaceAll("{client}", vars.client)
-    .replaceAll("{montant}", vars.montant)
-    .replaceAll("{reference}", vars.reference);
+/** Gabarits par défaut des reçus de paiement — voir
+ * `TenantSettings.whatsappReceiptPartialTemplate`/`whatsappReceiptFinalTemplate`,
+ * consommés par `WhatsappReceiptLink` (presentation/payment). */
+export const DEFAULT_WHATSAPP_RECEIPT_PARTIAL_TEMPLATE =
+  "Salam {client}, j'ai bien enregistré ton paiement de {montantPaye} FCFA par {modePaiement} aujourd'hui. Merci ! Il te reste maintenant {montantRestant} FCFA dans mon cahier. À bientôt !";
+
+export const DEFAULT_WHATSAPP_RECEIPT_FINAL_TEMPLATE =
+  "Salam {client}, merci beaucoup pour ton paiement de {montantPaye} FCFA. Ton compte est maintenant à 0 FCFA. C'est totalement réglé (Safi) ! Merci pour la confiance. 🙏";
+
+/** Clés de gabarit arbitraires (relance : `{client}`, `{montant}`,
+ * `{reference}` ; reçu : `{montantPaye}`, `{modePaiement}`, `{montantRestant}`
+ * en plus) — généralisé en `Record` plutôt qu'un type figé pour servir les
+ * deux usages sans dupliquer la fonction. */
+export function renderWhatsappTemplate(template: string, vars: Record<string, string>): string {
+  return Object.entries(vars).reduce(
+    (message, [key, value]) => message.replaceAll(`{${key}}`, value),
+    template,
+  );
 }
 
 /** Ne garde que les chiffres — wa.me n'accepte ni "+", ni espaces, ni
@@ -54,14 +65,17 @@ export function WhatsappLink({
   const href = buildWhatsappUrl(phone, message);
 
   return (
-    <Button
-      variant="outline"
-      className="w-full"
-      render={<a href={href} target="_blank" rel="noopener noreferrer" />}
-      nativeButton={false}
-    >
-      <MessageCircle className="size-4" aria-hidden />
-      {transactionLabels.whatsappButtonLabel}
-    </Button>
+    <div className="space-y-2">
+      <WhatsappMessagePreview message={message} />
+      <Button
+        variant="outline"
+        className="w-full"
+        render={<a href={href} target="_blank" rel="noopener noreferrer" />}
+        nativeButton={false}
+      >
+        <MessageCircle className="size-4" aria-hidden />
+        {transactionLabels.whatsappButtonLabel}
+      </Button>
+    </div>
   );
 }

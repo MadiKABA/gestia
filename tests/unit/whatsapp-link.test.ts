@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_WHATSAPP_TEMPLATE,
+  DEFAULT_WHATSAPP_RECEIPT_PARTIAL_TEMPLATE,
+  DEFAULT_WHATSAPP_RECEIPT_FINAL_TEMPLATE,
   buildWhatsappUrl,
   renderWhatsappTemplate,
   toWhatsappDigits,
@@ -28,6 +30,35 @@ describe("renderWhatsappTemplate", () => {
     expect(result).toContain("Fatou");
     expect(result).toContain("1 000");
     expect(result).toContain("CR-2026-00001");
+  });
+
+  it("remplace des clés arbitraires (gabarit reçu partiel)", () => {
+    const result = renderWhatsappTemplate(DEFAULT_WHATSAPP_RECEIPT_PARTIAL_TEMPLATE, {
+      client: "Fatou",
+      montantPaye: "5 000",
+      modePaiement: "Wave",
+      montantRestant: "10 000",
+    });
+    expect(result).not.toContain("{client}");
+    expect(result).not.toContain("{montantPaye}");
+    expect(result).not.toContain("{modePaiement}");
+    expect(result).not.toContain("{montantRestant}");
+    expect(result).toContain("Fatou");
+    expect(result).toContain("5 000");
+    expect(result).toContain("Wave");
+    expect(result).toContain("10 000");
+  });
+
+  it("remplace des clés arbitraires (gabarit reçu final)", () => {
+    const result = renderWhatsappTemplate(DEFAULT_WHATSAPP_RECEIPT_FINAL_TEMPLATE, {
+      client: "Fatou",
+      montantPaye: "15 000",
+    });
+    expect(result).not.toContain("{client}");
+    expect(result).not.toContain("{montantPaye}");
+    expect(result).toContain("Fatou");
+    expect(result).toContain("15 000");
+    expect(result).toContain("Safi");
   });
 });
 

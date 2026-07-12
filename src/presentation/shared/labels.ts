@@ -285,6 +285,14 @@ export const tenantSettingsLabels = {
   whatsappPreviewLabel: "Aperçu",
   resetTemplateButtonLabel: "Réinitialiser au modèle par défaut",
 
+  whatsappReceiptsSectionTitle: "Reçus de paiement WhatsApp",
+  whatsappReceiptPartialTemplateField: "Message de reçu partiel",
+  whatsappReceiptPartialPlaceholdersHelperText:
+    "Utilisez {client}, {montantPaye}, {modePaiement} et {montantRestant} — remplacés automatiquement.",
+  whatsappReceiptFinalTemplateField: "Message de reçu final (Safi)",
+  whatsappReceiptFinalPlaceholdersHelperText:
+    "Utilisez {client} et {montantPaye} — remplacés automatiquement.",
+
   appearanceSectionTitle: "Apparence",
   brandColorField: "Couleur principale",
   logoField: "Logo de la boutique",

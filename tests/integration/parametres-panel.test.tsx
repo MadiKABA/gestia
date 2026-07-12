@@ -59,6 +59,20 @@ describe("ParametresPanel", () => {
     expect(grid).toHaveClass("lg:grid-cols-2");
   });
 
+  it("l'onglet Relances affiche à la fois la relance et les gabarits de reçu", async () => {
+    render(<ParametresPanel initialSettings={SETTINGS} />);
+    await userEvent.click(
+      screen.getByRole("tab", { name: tenantSettingsLabels.relanceSectionTitle }),
+    );
+
+    expect(
+      screen.getByRole("heading", { name: tenantSettingsLabels.relanceSectionTitle }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: tenantSettingsLabels.whatsappReceiptsSectionTitle }),
+    ).toBeInTheDocument();
+  });
+
   it("la grille Relances utilise une colonne étroite et une large à partir de lg", async () => {
     const { container } = render(<ParametresPanel initialSettings={SETTINGS} />);
     await userEvent.click(

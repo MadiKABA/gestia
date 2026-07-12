@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { TenantSettingsFull } from "@/application/tenant/tenant-settings.repository";
 import { GeneralSettingsForm } from "@/presentation/tenant/components/general-settings-form";
 import { RelanceSettingsForm } from "@/presentation/tenant/components/relance-settings-form";
+import { ReceiptTemplatesSettingsForm } from "@/presentation/tenant/components/receipt-templates-settings-form";
 import { AppearanceSettingsSection } from "@/presentation/tenant/components/appearance-settings-section";
 import {
   ParametresTabs,
@@ -37,10 +38,16 @@ export function ParametresPanel({ initialSettings }: { initialSettings: TenantSe
       ) : null}
 
       {activeTab === "relance" ? (
-        <RelanceSettingsForm
-          reminderDays={initialSettings.reminderDays}
-          whatsappTemplate={initialSettings.whatsappTemplate}
-        />
+        <>
+          <RelanceSettingsForm
+            reminderDays={initialSettings.reminderDays}
+            whatsappTemplate={initialSettings.whatsappTemplate}
+          />
+          <ReceiptTemplatesSettingsForm
+            whatsappReceiptPartialTemplate={initialSettings.whatsappReceiptPartialTemplate}
+            whatsappReceiptFinalTemplate={initialSettings.whatsappReceiptFinalTemplate}
+          />
+        </>
       ) : null}
 
       {activeTab === "appearance" ? (

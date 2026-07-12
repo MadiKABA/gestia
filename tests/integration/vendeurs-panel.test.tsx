@@ -22,10 +22,28 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: refreshMock }),
 }));
 
+/** InviteVendeurModal passe par ResponsivePanel (Dialog/Sheet selon la
+ * largeur d'écran) — jsdom n'implémente pas matchMedia, même stub que
+ * payment-modal.test.tsx (peu importe desktop/mobile ici, le contenu rendu
+ * est identique dans les deux cas). */
+function stubMatchMedia(matches: boolean) {
+  Object.defineProperty(window, "matchMedia", {
+    writable: true,
+    configurable: true,
+    value: vi.fn().mockImplementation((query: string) => ({
+      matches,
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    })),
+  });
+}
+
 const expectedLink = "http://localhost:3000/premiere-connexion?phone=%2B221771234567";
 
 async function invite() {
   render(<VendeursPanel initialVendeurs={[]} />);
+  await userEvent.click(screen.getByRole("button", { name: authLabels.inviteVendeurButtonLabel }));
   await userEvent.type(screen.getByLabelText("Nom du vendeur"), "Vendeur Test");
   await userEvent.type(screen.getByLabelText("Numéro de téléphone"), "771234567");
   await userEvent.click(screen.getByRole("button", { name: "Inviter" }));
@@ -35,6 +53,7 @@ async function invite() {
 beforeEach(() => {
   inviteVendeurActionMock.mockReset().mockResolvedValue(undefined);
   refreshMock.mockReset();
+  stubMatchMedia(false);
 });
 
 describe("VendeursPanel", () => {

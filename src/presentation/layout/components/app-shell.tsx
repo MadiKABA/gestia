@@ -64,7 +64,18 @@ export function AppShell({
   }, []);
 
   return (
-    <div className="bg-background min-h-dvh">
+    <div
+      className="bg-background min-h-dvh"
+      // Seule variable que le theming par tenant peut surcharger (preset
+      // parmi les couleurs validées, voir globals.css et brand-presets.ts) —
+      // simple substitution CSS textuelle, aucune conversion de format
+      // nécessaire par-dessus l'oklch(...) défini dans la cascade en amont.
+      style={
+        branding.brandColor
+          ? ({ "--primary": branding.brandColor } as React.CSSProperties)
+          : undefined
+      }
+    >
       <SidebarFixed role={role} branding={branding} />
       <AppHeader
         currentUser={currentUser}

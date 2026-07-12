@@ -90,6 +90,13 @@ export class PrismaAuthRepository implements AuthRepository {
     await prisma.user.update({ where: { id: userId }, data: { active } });
   }
 
+  async recordFirstLoginIfUnset(userId: string): Promise<void> {
+    await prisma.user.updateMany({
+      where: { id: userId, firstLoginAt: null },
+      data: { firstLoginAt: new Date() },
+    });
+  }
+
   async listVendeursByTenant(tenantId: string): Promise<AuthUser[]> {
     return prisma.user.findMany({
       where: { tenantId, role: "VENDEUR" },

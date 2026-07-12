@@ -100,3 +100,8 @@ export const deactivateVendeurSchema = z.object({
   vendeurId: z.string().min(1),
 });
 export type DeactivateVendeurInput = z.infer<typeof deactivateVendeurSchema>;
+
+export const reactivateVendeurSchema = z.object({
+  vendeurId: z.string().min(1),
+});
+export type ReactivateVendeurInput = z.infer<typeof reactivateVendeurSchema>;

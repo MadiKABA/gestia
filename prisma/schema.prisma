@@ -142,6 +142,15 @@ model User {
   failedAttempts Int       @default(0)
   lockedUntil    DateTime?
   active         Boolean   @default(true)
+  /** Posé une seule fois, quand un vendeur invité définit son PIN pour la
+   * première fois (confirm-pin-reset.use-case.ts) — jamais réécrit ensuite,
+   * y compris lors d'un reset PIN ultérieur. Permet de distinguer un vendeur
+   * invité qui n'a pas encore terminé sa première connexion d'un vendeur
+   * actif : le hash placeholder posé à l'invitation
+   * (invite-vendeur.use-case.ts) n'est lui-même jamais relu, il ne peut pas
+   * servir de signal fiable. Toujours `null` pour un patron (inscription
+   * directe, pas de flux d'invitation). */
+  firstLoginAt DateTime?
 
   createdAt DateTime @default(now())
 

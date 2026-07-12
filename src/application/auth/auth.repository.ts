@@ -22,6 +22,8 @@ export type AuthUser = {
   active: boolean;
   failedAttempts: number;
   lockedUntil: Date | null;
+  createdAt: Date;
+  firstLoginAt: Date | null;
 };
 
 /** Implémenté par src/infrastructure/auth/auth.repository.ts. */
@@ -50,6 +52,10 @@ export interface AuthRepository {
   clearLockout(userId: string): Promise<void>;
   setActive(userId: string, active: boolean): Promise<void>;
   listVendeursByTenant(tenantId: string): Promise<AuthUser[]>;
+  /** Idempotent : n'écrit que si `firstLoginAt` est encore `null`, quel que
+   * soit le flux appelant (premier PIN vendeur invité ou reset PIN ultérieur
+   * — voir confirm-pin-reset.use-case.ts). */
+  recordFirstLoginIfUnset(userId: string): Promise<void>;
 
   createOtp(input: {
     identifier: string;

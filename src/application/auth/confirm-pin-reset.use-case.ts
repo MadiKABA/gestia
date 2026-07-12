@@ -42,6 +42,7 @@ export async function confirmPinReset(
 
   await deps.repository.updatePinHash(user.id, await deps.hasher.hash(input.newPin));
   await deps.repository.consumeOtp(otpRecord.id);
+  await deps.repository.recordFirstLoginIfUnset(user.id);
 
   await deps.auditLogger.log(
     { tenantId: user.tenantId, userId: user.id, role: user.role },

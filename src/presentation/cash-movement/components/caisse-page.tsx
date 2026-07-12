@@ -97,10 +97,13 @@ export function CaissePage({
         </div>
       </div>
 
+      {/* Mobile (< lg) : cards simples, design inchangé. */}
       {movements.length === 0 ? (
-        <p className="text-muted-foreground text-sm">{cashMovementLabels.emptyStateList}</p>
+        <p className="text-muted-foreground text-sm lg:hidden">
+          {cashMovementLabels.emptyStateList}
+        </p>
       ) : (
-        <ul className="space-y-2">
+        <ul className="space-y-2 lg:hidden">
           {movements.map((movement) => (
             <li
               key={movement.id}
@@ -125,6 +128,42 @@ export function CaissePage({
           ))}
         </ul>
       )}
+
+      {/* Desktop/tablette (≥ lg) : tableau. Pas de colonne Actions : aucun
+          use-case update/delete n'existe pour CashMovement. */}
+      <div className="border-border bg-card hidden overflow-x-auto rounded-xl border lg:block">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-border text-muted-foreground border-b text-left text-xs">
+              <th className="px-3 py-2 font-medium">{cashMovementLabels.reasonField}</th>
+              <th className="px-3 py-2 font-medium">{cashMovementLabels.amountColumnLabel}</th>
+              <th className="px-3 py-2 font-medium">{cashMovementLabels.dateColumnLabel}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {movements.map((movement) => (
+              <tr key={movement.id} className="border-border border-b last:border-b-0">
+                <td className="text-foreground px-3 py-2">{movement.reason}</td>
+                <td
+                  className={cn(
+                    "px-3 py-2 whitespace-nowrap tabular-nums",
+                    movement.type === "ENTREE" ? "text-[#1B7A5A]" : "text-[#C0392B]",
+                  )}
+                >
+                  {movement.type === "ENTREE" ? "+" : "-"}
+                  {movement.amount.toLocaleString("fr-FR")} FCFA
+                </td>
+                <td className="text-muted-foreground px-3 py-2 whitespace-nowrap">
+                  {movement.date.toLocaleDateString("fr-FR")}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {movements.length === 0 ? (
+          <p className="text-muted-foreground p-4 text-sm">{cashMovementLabels.emptyStateList}</p>
+        ) : null}
+      </div>
 
       {hasMore ? (
         <Button variant="outline" className="w-full" disabled={loadingMore} onClick={loadMore}>

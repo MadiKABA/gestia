@@ -191,6 +191,10 @@ export const cashMovementLabels = {
   amountField: "Montant (FCFA)",
   reasonField: "Motif",
 
+  // Tableau desktop/tablette (caisse-page.tsx).
+  amountColumnLabel: "Montant",
+  dateColumnLabel: "Date",
+
   emptyStateList: "Aucun mouvement de caisse pour le moment.",
   showMoreLabel: "Voir plus",
 

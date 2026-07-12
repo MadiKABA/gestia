@@ -7,6 +7,7 @@ import { authLabels } from "@/presentation/shared/labels";
 const inviteVendeurActionMock = vi.fn();
 const deactivateVendeurActionMock = vi.fn();
 const reactivateVendeurActionMock = vi.fn();
+const updateVendeurActionMock = vi.fn();
 const refreshMock = vi.fn();
 
 /**
@@ -19,6 +20,7 @@ vi.mock("@/presentation/auth/actions", () => ({
   inviteVendeurAction: (...args: unknown[]) => inviteVendeurActionMock(...args),
   deactivateVendeurAction: (...args: unknown[]) => deactivateVendeurActionMock(...args),
   reactivateVendeurAction: (...args: unknown[]) => reactivateVendeurActionMock(...args),
+  updateVendeurAction: (...args: unknown[]) => updateVendeurActionMock(...args),
 }));
 
 vi.mock("next/navigation", () => ({
@@ -82,6 +84,7 @@ beforeEach(() => {
   inviteVendeurActionMock.mockReset().mockResolvedValue(undefined);
   deactivateVendeurActionMock.mockReset().mockResolvedValue(undefined);
   reactivateVendeurActionMock.mockReset().mockResolvedValue(undefined);
+  updateVendeurActionMock.mockReset().mockResolvedValue(undefined);
   refreshMock.mockReset();
   stubMatchMedia(false);
 });
@@ -185,5 +188,28 @@ describe("VendeursPanel", () => {
     expect(writeText).toHaveBeenCalledWith(
       "http://localhost:3000/premiere-connexion?phone=%2B221773333333",
     );
+  });
+
+  it("modifie le nom d'un vendeur via la modale d'édition, sans jamais toucher au téléphone", async () => {
+    render(<VendeursPanel initialVendeurs={[vendeurActif]} />);
+    const table = screen.getByRole("table");
+
+    await userEvent.click(
+      within(table).getByRole("button", { name: authLabels.editVendeurButtonLabel }),
+    );
+    const nameInput = await screen.findByLabelText(authLabels.vendeurNameField);
+    await userEvent.clear(nameInput);
+    await userEvent.type(nameInput, "Awa Diop Renommée");
+    await userEvent.click(screen.getByRole("button", { name: authLabels.saveVendeurButtonLabel }));
+
+    await vi.waitFor(() => {
+      expect(within(table).getByText("Awa Diop Renommée")).toBeInTheDocument();
+    });
+    expect(updateVendeurActionMock).toHaveBeenCalledWith({
+      vendeurId: vendeurActif.id,
+      name: "Awa Diop Renommée",
+    });
+    // Aucune trace d'un champ téléphone dans le payload envoyé au serveur.
+    expect(updateVendeurActionMock.mock.calls[0][0]).not.toHaveProperty("phone");
   });
 });

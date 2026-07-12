@@ -105,3 +105,11 @@ export const reactivateVendeurSchema = z.object({
   vendeurId: z.string().min(1),
 });
 export type ReactivateVendeurInput = z.infer<typeof reactivateVendeurSchema>;
+
+/** Pas de champ `phone` : le téléphone n'est jamais modifiable via ce chemin
+ * (voir update-vendeur.use-case.ts). */
+export const updateVendeurSchema = z.object({
+  vendeurId: z.string().min(1),
+  name: z.string().trim().min(2, "Le nom du vendeur est requis"),
+});
+export type UpdateVendeurInput = z.infer<typeof updateVendeurSchema>;

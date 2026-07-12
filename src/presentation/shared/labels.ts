@@ -16,6 +16,9 @@ export const commonLabels = {
   // : chaque écran doit avoir une sortie claire, jamais dépendre du seul
   // bouton retour du navigateur). Même libellé partout, voir back-link.tsx.
   back: "Retour",
+  // Fermeture générique d'une card dismissible (voir vendeurs-panel.tsx,
+  // transactions-list.tsx) — même mot partout plutôt qu'un "Fermer" par écran.
+  close: "Fermer",
 };
 
 export const partyLabels = {
@@ -156,6 +159,10 @@ export const transactionLabels = {
   showMoreLabel: "Voir plus",
 
   whatsappButtonLabel: "Contacter sur WhatsApp",
+
+  // Badge "à relancer" (transactions-list.tsx, transaction-detail.tsx) —
+  // dérivé de TenantSettings.reminderDays, jamais saisi par l'utilisateur.
+  reminderBadgeLabel: "À relancer",
 };
 
 export const paymentLabels = {
@@ -174,6 +181,10 @@ export const paymentLabels = {
   editDisabledTooltip: "Déjà réglée en partie, modification impossible",
 
   sendReceiptButtonLabel: "Envoyer le reçu par WhatsApp",
+  // Card dismissible affichée après un paiement rapide depuis la liste
+  // (transactions-list.tsx) — même contenu que le fil du détail, wording
+  // en plus pour la carte elle-même.
+  receiptPromptTitle: "Paiement enregistré — envoyer un reçu ?",
 };
 
 export const cashMovementLabels = {
@@ -237,6 +248,11 @@ export const authLabels = {
   reactivateConfirmTitle: (name: string) => `Réactiver ${name} ?`,
   reactivateConfirmDescription: "Ce vendeur pourra de nouveau se connecter à la boutique.",
   copyLinkRowActionLabel: "Copier le lien de première connexion",
+
+  editVendeurButtonLabel: "Modifier",
+  editVendeurModalTitle: "Modifier le vendeur",
+  saveVendeurButtonLabel: "Enregistrer",
+  savingVendeurButtonLabel: "Enregistrement...",
 
   inviteVendeurButtonLabel: "Inviter un vendeur",
   inviteVendeurModalTitle: "Inviter un vendeur",

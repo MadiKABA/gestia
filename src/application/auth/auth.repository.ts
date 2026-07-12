@@ -45,6 +45,9 @@ export interface AuthRepository {
     placeholderPinHash: string;
   }): Promise<AuthUser>;
   updatePinHash(userId: string, pinHash: string): Promise<void>;
+  /** Nom uniquement — le téléphone (identifiant de connexion) n'est jamais
+   * modifiable via cette méthode, voir update-vendeur.use-case.ts. */
+  updateName(userId: string, name: string): Promise<void>;
   recordFailedLogin(
     userId: string,
     state: { failedAttempts: number; lockedUntil: Date | null },

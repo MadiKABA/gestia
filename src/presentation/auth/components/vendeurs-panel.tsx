@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Ban, Check, Copy, RotateCcw } from "lucide-react";
+import { Ban, Check, Copy, Pencil, RotateCcw } from "lucide-react";
 import { Button } from "@/presentation/shared/components/ui/button";
 import { Input } from "@/presentation/shared/components/ui/input";
 import { Badge } from "@/presentation/shared/components/ui/badge";
@@ -18,6 +18,7 @@ import { deactivateVendeurAction, reactivateVendeurAction } from "@/presentation
 import { commonLabels, authLabels } from "@/presentation/shared/labels";
 import { buildPremiereConnexionLink } from "@/domain/auth/premiere-connexion-link";
 import { InviteVendeurModal } from "@/presentation/auth/components/invite-vendeur-modal";
+import { EditVendeurModal } from "@/presentation/auth/components/edit-vendeur-modal";
 
 type Vendeur = {
   id: string;
@@ -72,6 +73,7 @@ export function VendeursPanel({ initialVendeurs }: { initialVendeurs: Vendeur[] 
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [error, setError] = useState<string | null>(null);
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState<Vendeur | null>(null);
   const [invitedLink, setInvitedLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [copiedVendeurId, setCopiedVendeurId] = useState<string | null>(null);
@@ -145,6 +147,12 @@ export function VendeursPanel({ initialVendeurs }: { initialVendeurs: Vendeur[] 
     }
   }
 
+  function onVendeurUpdated(vendeurId: string, name: string) {
+    setVendeurs((current) => current.map((v) => (v.id === vendeurId ? { ...v, name } : v)));
+    setEditTarget(null);
+    router.refresh();
+  }
+
   function onConfirmAction() {
     if (!confirmTarget) return;
     const { vendeur, action } = confirmTarget;
@@ -183,6 +191,13 @@ export function VendeursPanel({ initialVendeurs }: { initialVendeurs: Vendeur[] 
         open={inviteModalOpen}
         onOpenChange={setInviteModalOpen}
         onInvited={onInvited}
+      />
+
+      <EditVendeurModal
+        open={editTarget !== null}
+        onOpenChange={(open) => setEditTarget(open ? editTarget : null)}
+        vendeur={editTarget}
+        onUpdated={onVendeurUpdated}
       />
 
       {error ? <p className="text-destructive text-sm">{error}</p> : null}
@@ -295,6 +310,9 @@ export function VendeursPanel({ initialVendeurs }: { initialVendeurs: Vendeur[] 
                 <Badge variant={STATUS_BADGE_VARIANT[status]}>{STATUS_LABEL[status]}</Badge>
               </div>
               <div className="flex flex-wrap gap-2">
+                <Button variant="outline" size="sm" onClick={() => setEditTarget(vendeur)}>
+                  {authLabels.editVendeurButtonLabel}
+                </Button>
                 {status === "DISABLED" ? (
                   <Button
                     variant="outline"
@@ -359,6 +377,14 @@ export function VendeursPanel({ initialVendeurs }: { initialVendeurs: Vendeur[] 
                   </td>
                   <td className="px-3 py-2">
                     <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label={authLabels.editVendeurButtonLabel}
+                        onClick={() => setEditTarget(vendeur)}
+                      >
+                        <Pencil aria-hidden />
+                      </Button>
                       {status === "DISABLED" ? (
                         <Button
                           variant="ghost"

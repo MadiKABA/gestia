@@ -86,6 +86,10 @@ export class PrismaAuthRepository implements AuthRepository {
     });
   }
 
+  async updateName(userId: string, name: string): Promise<void> {
+    await prisma.user.update({ where: { id: userId }, data: { name } });
+  }
+
   async setActive(userId: string, active: boolean): Promise<void> {
     await prisma.user.update({ where: { id: userId }, data: { active } });
   }

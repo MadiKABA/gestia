@@ -10,6 +10,7 @@ import { confirmPinReset } from "@/application/auth/confirm-pin-reset.use-case";
 import { inviteVendeur } from "@/application/auth/invite-vendeur.use-case";
 import { deactivateVendeur } from "@/application/auth/deactivate-vendeur.use-case";
 import { reactivateVendeur } from "@/application/auth/reactivate-vendeur.use-case";
+import { updateVendeur } from "@/application/auth/update-vendeur.use-case";
 import { MAX_FAILED_ATTEMPTS } from "@/domain/auth/pin-policy";
 import { ForbiddenError, ValidationError } from "@/domain/shared/errors";
 
@@ -449,6 +450,51 @@ describe("use cases auth", () => {
           { tenantId: patron.tenantId, userId: vendeur.id, role: "VENDEUR" },
           { repository, auditLogger },
           { vendeurId: vendeur.id },
+        ),
+      ).rejects.toThrow(ForbiddenError);
+    });
+  });
+
+  describe("updateVendeur", () => {
+    it("modifie le nom d'un vendeur du même tenant quand l'appelant est PATRON", async () => {
+      const phone = `+22170${Date.now().toString().slice(-6)}9`;
+      const patron = await registerTenant(phone);
+      const originalPhone = `+22171${Date.now().toString().slice(-6)}1`;
+      const vendeur = await repository.createVendeur({
+        tenantId: patron.tenantId,
+        name: "Vendeur",
+        phone: originalPhone,
+        placeholderPinHash: await hasher.hash(crypto.randomUUID()),
+      });
+
+      await updateVendeur(
+        { tenantId: patron.tenantId, userId: patron.id, role: "PATRON" },
+        { repository, auditLogger },
+        { vendeurId: vendeur.id, name: "Vendeur Renommé" },
+      );
+
+      const updated = await prisma.user.findUnique({ where: { id: vendeur.id } });
+      expect(updated?.name).toBe("Vendeur Renommé");
+      // Le téléphone (identifiant de connexion) ne doit jamais changer via ce
+      // chemin — updateVendeur n'accepte même pas ce champ en entrée.
+      expect(updated?.phone).toBe(originalPhone);
+    });
+
+    it("refuse si l'appelant n'est pas PATRON", async () => {
+      const phone = `+22171${Date.now().toString().slice(-6)}2`;
+      const patron = await registerTenant(phone);
+      const vendeur = await repository.createVendeur({
+        tenantId: patron.tenantId,
+        name: "Vendeur",
+        phone: `+22171${Date.now().toString().slice(-6)}3`,
+        placeholderPinHash: await hasher.hash(crypto.randomUUID()),
+      });
+
+      await expect(
+        updateVendeur(
+          { tenantId: patron.tenantId, userId: vendeur.id, role: "VENDEUR" },
+          { repository, auditLogger },
+          { vendeurId: vendeur.id, name: "Autre nom" },
         ),
       ).rejects.toThrow(ForbiddenError);
     });

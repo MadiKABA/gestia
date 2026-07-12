@@ -21,6 +21,7 @@ import { confirmPinReset } from "@/application/auth/confirm-pin-reset.use-case";
 import { inviteVendeur } from "@/application/auth/invite-vendeur.use-case";
 import { deactivateVendeur } from "@/application/auth/deactivate-vendeur.use-case";
 import { reactivateVendeur } from "@/application/auth/reactivate-vendeur.use-case";
+import { updateVendeur } from "@/application/auth/update-vendeur.use-case";
 import { listVendeurs } from "@/application/auth/list-vendeurs.use-case";
 import { getCurrentUser } from "@/application/auth/get-current-user.use-case";
 import { NotFoundError, ValidationError } from "@/domain/shared/errors";
@@ -30,6 +31,7 @@ import {
   confirmRegistrationSchema,
   deactivateVendeurSchema,
   reactivateVendeurSchema,
+  updateVendeurSchema,
   inviteVendeurSchema,
   loginSchema,
   requestPinResetSchema,
@@ -38,6 +40,7 @@ import {
   type ConfirmRegistrationInput,
   type DeactivateVendeurInput,
   type ReactivateVendeurInput,
+  type UpdateVendeurInput,
   type InviteVendeurInput,
   type LoginInput,
   type RequestPinResetInput,
@@ -173,6 +176,21 @@ export async function reactivateVendeurAction(input: ReactivateVendeurInput) {
 
   try {
     await reactivateVendeur(context, { repository, auditLogger }, { vendeurId });
+  } catch (error) {
+    if (error instanceof NotFoundError) {
+      throw new Error(authLabels.vendeurNotFoundMessage);
+    }
+    throw error;
+  }
+  revalidatePath("/vendeurs");
+}
+
+export async function updateVendeurAction(input: UpdateVendeurInput) {
+  const context = await requirePatron();
+  const { vendeurId, name } = updateVendeurSchema.parse(input);
+
+  try {
+    await updateVendeur(context, { repository, auditLogger }, { vendeurId, name });
   } catch (error) {
     if (error instanceof NotFoundError) {
       throw new Error(authLabels.vendeurNotFoundMessage);

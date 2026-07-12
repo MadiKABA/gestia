@@ -86,12 +86,12 @@ l'infrastructure technique : `Session` (better-auth) et `OtpCode` (OTP
 inscription/reset PIN). Ce sont des tables de plomberie, pas des entités
 métier.
 
-**Point en attente (module Transaction)** : la suppression (soft delete)
-d'un `Party` ne vérifie aujourd'hui aucune transaction liée — normal,
-`Transaction` n'existe pas encore. Une fois ce module implémenté, il faudra
-soit bloquer la suppression d'un client ayant des transactions en cours, soit
-avertir fortement l'utilisateur avant de confirmer. Voir le TODO dans
-`src/application/party/delete-party.use-case.ts`.
+**Suppression d'un `Party` ayant des transactions liées** : bloquée si le
+client a des créances ou dettes non soldées (statut `EN_COURS`/`PARTIELLE`) —
+`deleteParty` (`src/application/party/delete-party.use-case.ts`) reçoit un
+contrat `hasOpenTransactions`, câblé dans
+`src/infrastructure/party/party-mutation-handler.ts` vers
+`TransactionRepository.hasOpenTransactionsForParty`.
 
 Règles non négociables sur ce schéma :
 

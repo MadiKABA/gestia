@@ -83,11 +83,12 @@ export function AppShell({
         onMenuClick={() => setDrawerOpen(true)}
       />
 
-      <main className="min-h-dvh pt-14 pb-16 lg:pb-0 lg:pl-64">
+      <main className="min-h-dvh pt-[calc(3.5rem+env(safe-area-inset-top))] pb-16 lg:pb-0 lg:pl-64">
         {/* Juste sous le header, visible sans scroll sur toutes les tailles
             d'écran (cf. plan de refonte PWA) — en flux normal ici, pas de
             recouvrement à calculer avec le header `fixed` (déjà compensé par
-            `pt-14` ci-dessus). */}
+            `pt-[calc(3.5rem+env(safe-area-inset-top))]` ci-dessus, synchronisé
+            avec la hauteur réelle du header — voir app-header.tsx). */}
         <InstallPromptBanner />
         <StoragePersistenceWarning />
         {cacheReady ? children : null}

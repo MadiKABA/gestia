@@ -60,7 +60,13 @@ export function AppHeader({
   }
 
   return (
-    <header className="border-border bg-background fixed inset-x-0 top-0 z-40 flex h-14 items-center justify-between gap-2 border-b px-4 lg:left-64">
+    <header
+      // Hauteur agrandie de l'inset (jamais un padding "dans" une hauteur
+      // fixe comme le bottom tab bar) : sinon le contenu serait écrasé sous
+      // l'encoche/l'île dynamique au lieu de descendre en dessous. Voir
+      // app-shell.tsx (pt-14 du <main>), synchronisé avec cette même valeur.
+      className="border-border bg-background fixed inset-x-0 top-0 z-40 flex h-[calc(3.5rem+env(safe-area-inset-top))] items-center justify-between gap-2 border-b px-4 pt-[env(safe-area-inset-top)] lg:left-64"
+    >
       <div className="flex min-w-0 items-center gap-3">
         <h1 className="text-foreground truncate text-base font-semibold">{title}</h1>
         <NetworkStatusIndicator tenantId={tenantId} className="shrink-0" />

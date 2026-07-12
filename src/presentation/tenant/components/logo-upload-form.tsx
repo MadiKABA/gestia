@@ -2,6 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import Image from "next/image";
+import { Store } from "lucide-react";
 import { Button } from "@/presentation/shared/components/ui/button";
 import { uploadTenantLogoAction } from "@/presentation/tenant/actions";
 import { LOGO_ALLOWED_MIME_TYPES, LOGO_MAX_SIZE_BYTES } from "@/domain/tenant-settings/logo-file";
@@ -51,12 +52,14 @@ export function LogoUploadForm({ logoUrl: initialLogoUrl }: { logoUrl: string | 
           <Image
             src={logoUrl}
             alt=""
-            width={64}
-            height={64}
-            className="border-border size-16 rounded-lg border object-contain"
+            width={56}
+            height={56}
+            className="border-border size-12 rounded-lg border object-contain lg:size-14"
           />
         ) : (
-          <div className="border-border bg-muted size-16 rounded-lg border" />
+          <div className="border-border bg-muted text-muted-foreground flex size-12 items-center justify-center rounded-lg border lg:size-14">
+            <Store className="size-5" aria-hidden="true" />
+          </div>
         )}
 
         <div className="space-y-1.5">

@@ -34,6 +34,15 @@ export const partyLabels = {
   editSubmitLabel: "Enregistrer les modifications",
   editButtonLabel: "Modifier",
 
+  // Tableau desktop/tablette (parties-list.tsx).
+  nameColumnLabel: "Nom",
+  phoneColumnLabel: "Téléphone",
+  typeColumnLabel: "Type",
+  balanceColumnLabel: "Solde",
+  actionsColumnLabel: "Actions",
+  totalCountLabel: "Total clients",
+  viewActionLabel: "Voir",
+
   emptyStateList: "Aucun client pour le moment.",
   emptyStateTransactions: "Aucune opération pour ce client.",
 

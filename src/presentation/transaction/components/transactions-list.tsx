@@ -19,9 +19,15 @@ import {
 } from "@/presentation/transaction/offline-repository";
 import { BalanceSummaryCards } from "@/presentation/transaction/components/balance-summary-cards";
 import { PaymentModal } from "@/presentation/payment/components/payment-modal";
+import { WhatsappReceiptLink } from "@/presentation/payment/components/whatsapp-receipt-link";
 import type { Transaction, TransactionType } from "@/domain/transaction/transaction.entity";
-import type { PaymentMethod } from "@/domain/payment/payment.entity";
-import { paymentLabels, transactionLabels, syncLabels } from "@/presentation/shared/labels";
+import type { Payment, PaymentMethod } from "@/domain/payment/payment.entity";
+import {
+  commonLabels,
+  paymentLabels,
+  transactionLabels,
+  syncLabels,
+} from "@/presentation/shared/labels";
 
 type StatusFilter = "ALL" | Transaction["status"];
 
@@ -77,7 +83,12 @@ const PAYMENT_METHOD_LABEL: Record<PaymentMethod, string> = {
  * (cahier des charges : éviter une liste surchargée à l'écran). */
 const PAGE_SIZE = 20;
 
-type PartyContact = { id: string; name: string; phone: string | null };
+type PartyContact = {
+  id: string;
+  name: string;
+  phone: string | null;
+  whatsappNumber: string | null;
+};
 
 /** Lit le cache local en priorité (affichage instantané, fonctionne hors
  * ligne) — même pattern que PartiesList. `parties` sert uniquement à
@@ -91,6 +102,7 @@ export function TransactionsList({
   summary,
   initialType,
   lastPaymentMethodByTransactionId,
+  whatsappReceiptTemplates,
 }: {
   initialTransactions: Transaction[];
   tenantId: string;
@@ -105,6 +117,10 @@ export function TransactionsList({
    * peut rester incomplet pour une transaction créée/filtrée après coup
    * (re-filtrage client hors ligne), auquel cas la colonne affiche "—". */
   lastPaymentMethodByTransactionId: Record<string, PaymentMethod>;
+  /** Gabarits de reçu WhatsApp du tenant — mêmes valeurs que celles lues par
+   * transaction-detail.tsx, pour proposer le même reçu après un paiement
+   * rapide déclenché directement depuis cette liste. */
+  whatsappReceiptTemplates: { partial: string | null; final: string | null };
 }) {
   const [transactions, setTransactions] = useState(initialTransactions);
   const [search, setSearch] = useState("");
@@ -112,6 +128,12 @@ export function TransactionsList({
   const [status, setStatus] = useState<StatusFilter>("ALL");
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [paymentTarget, setPaymentTarget] = useState<Transaction | null>(null);
+  const [receiptContext, setReceiptContext] = useState<{
+    transaction: Transaction;
+    payment: Payment;
+    whatsappNumber: string;
+    clientName: string;
+  } | null>(null);
   const [, startTransition] = useTransition();
   const repository = useMemo(
     () => createTransactionOfflineRepository(tenantId, userId),
@@ -152,6 +174,27 @@ export function TransactionsList({
       status: status === "ALL" ? undefined : status,
     });
     setTransactions(results);
+  }
+
+  /** Même condition d'affichage que transaction-detail.tsx : créance
+   * uniquement (jamais une dette), statut post-paiement différent de
+   * EN_COURS, et un numéro WhatsApp effectivement disponible pour ce client. */
+  async function onQuickPaymentSuccess(paidTransactionId: string, payment: Payment) {
+    setPaymentTarget(null);
+    const updated = await repository.getById(paidTransactionId);
+    await refresh();
+    if (!updated || updated.type !== "CREANCE" || updated.status === "EN_COURS") return;
+
+    const party = partyById.get(updated.partyId);
+    const whatsappNumber = party?.whatsappNumber ?? party?.phone ?? null;
+    if (!whatsappNumber) return;
+
+    setReceiptContext({
+      transaction: updated,
+      payment,
+      whatsappNumber,
+      clientName: party?.name ?? "",
+    });
   }
 
   // Recherche par référence/description/nom/téléphone — volontairement pas
@@ -406,6 +449,31 @@ export function TransactionsList({
         </Button>
       ) : null}
 
+      {receiptContext ? (
+        <div className="border-primary/30 bg-primary/5 space-y-3 rounded-xl border p-4">
+          <div className="flex items-start justify-between gap-2">
+            <p className="text-foreground text-sm font-medium">
+              {paymentLabels.receiptPromptTitle}
+            </p>
+            <Button variant="ghost" size="sm" onClick={() => setReceiptContext(null)}>
+              {commonLabels.close}
+            </Button>
+          </div>
+          <WhatsappReceiptLink
+            phone={receiptContext.whatsappNumber}
+            status={receiptContext.transaction.status}
+            client={receiptContext.clientName}
+            amountPaid={receiptContext.payment.amount}
+            method={receiptContext.payment.method}
+            remainingBalance={
+              receiptContext.transaction.amount - receiptContext.transaction.paidAmount
+            }
+            partialTemplate={whatsappReceiptTemplates.partial}
+            finalTemplate={whatsappReceiptTemplates.final}
+          />
+        </div>
+      ) : null}
+
       {paymentTarget ? (
         <PaymentModal
           transaction={paymentTarget}
@@ -413,10 +481,7 @@ export function TransactionsList({
           userId={userId}
           open={paymentTarget !== null}
           onOpenChange={(open) => setPaymentTarget(open ? paymentTarget : null)}
-          onSuccess={() => {
-            setPaymentTarget(null);
-            void refresh();
-          }}
+          onSuccess={(payment) => void onQuickPaymentSuccess(paymentTarget.id, payment)}
         />
       ) : null}
     </div>

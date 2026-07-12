@@ -45,6 +45,23 @@ export function PaymentModal({
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
+  /**
+   * `transaction-detail.tsx` garde cette modale montée en continu (seul
+   * `open` bascule sa visibilité) — sans ceci, `amount` resterait figé au
+   * solde restant du tout premier montage : un deuxième paiement rouvrirait
+   * la modale avec un montant obsolète. Ajustement pendant le rendu plutôt
+   * qu'un `useEffect`, pour éviter un flash de l'ancienne valeur à l'ouverture.
+   */
+  const [prevOpen, setPrevOpen] = useState(open);
+  if (open !== prevOpen) {
+    setPrevOpen(open);
+    if (open) {
+      setAmount(remainingBalance);
+      setMethod("CASH");
+      setError(null);
+    }
+  }
+
   const title = paymentLabels.payButtonLabel(transaction.type);
 
   async function onSubmit() {

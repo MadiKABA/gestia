@@ -156,4 +156,50 @@ describe("PaymentModal", () => {
     expect(onOpenChange).toHaveBeenCalledWith(false);
     expect(onSuccess).toHaveBeenCalledWith(payment);
   });
+
+  it("réinitialise le montant au solde restant actuel à chaque réouverture, même si l'instance reste montée", () => {
+    // Reproduit transaction-detail.tsx : la modale n'est jamais démontée
+    // entre deux paiements (seul `open` change), contrairement à
+    // transactions-list.tsx qui la démonte/remonte via un rendu conditionnel.
+    const { rerender } = render(
+      <PaymentModal
+        transaction={creance}
+        tenantId="tenant-1"
+        userId="user-1"
+        open={true}
+        onOpenChange={vi.fn()}
+        onSuccess={vi.fn()}
+      />,
+    );
+    expect(screen.getByLabelText(transactionLabels.amountField)).toHaveValue(6000);
+
+    // Fermeture après un premier paiement partiel de 4000 (paidAmount passe
+    // de 4000 à 8000), instance conservée.
+    rerender(
+      <PaymentModal
+        transaction={{ ...creance, paidAmount: 8000 }}
+        tenantId="tenant-1"
+        userId="user-1"
+        open={false}
+        onOpenChange={vi.fn()}
+        onSuccess={vi.fn()}
+      />,
+    );
+
+    // Réouverture pour un second paiement : le montant doit refléter le
+    // nouveau solde restant (2000), pas la valeur de la toute première
+    // ouverture (6000).
+    rerender(
+      <PaymentModal
+        transaction={{ ...creance, paidAmount: 8000 }}
+        tenantId="tenant-1"
+        userId="user-1"
+        open={true}
+        onOpenChange={vi.fn()}
+        onSuccess={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByLabelText(transactionLabels.amountField)).toHaveValue(2000);
+  });
 });

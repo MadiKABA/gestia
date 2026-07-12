@@ -36,6 +36,12 @@ export function GeneralSettingsForm({
     });
   }
 
+  function onCancel() {
+    setDisplayName(initialDisplayName ?? "");
+    setError(null);
+    setSaved(false);
+  }
+
   return (
     <form
       onSubmit={onSubmit}
@@ -45,27 +51,40 @@ export function GeneralSettingsForm({
         {tenantSettingsLabels.generalSectionTitle}
       </h2>
 
-      <div className="space-y-1.5">
-        <Label htmlFor="displayName">{tenantSettingsLabels.displayNameField}</Label>
-        <Input id="displayName" value={displayName} onValueChange={setDisplayName} />
-        <p className="text-muted-foreground text-sm">
-          {tenantSettingsLabels.displayNameHelperText}
-        </p>
-      </div>
+      <div className="space-y-4 lg:grid lg:grid-cols-2 lg:items-start lg:gap-4 lg:space-y-0">
+        <div className="space-y-1.5">
+          <Label htmlFor="displayName">{tenantSettingsLabels.displayNameField}</Label>
+          <Input id="displayName" value={displayName} onValueChange={setDisplayName} />
+          <p className="text-muted-foreground text-sm">
+            {tenantSettingsLabels.displayNameHelperText}
+          </p>
+        </div>
 
-      <div className="space-y-1.5">
-        <Label htmlFor="currency">{tenantSettingsLabels.currencyField}</Label>
-        <Input id="currency" value={currency} disabled />
-        <p className="text-muted-foreground text-sm">
-          {tenantSettingsLabels.currencyReadOnlyHelperText}
-        </p>
+        <div className="space-y-1.5">
+          <Label htmlFor="currency">{tenantSettingsLabels.currencyField}</Label>
+          <Input id="currency" value={currency} disabled />
+          <p className="text-muted-foreground text-sm">
+            {tenantSettingsLabels.currencyReadOnlyHelperText}
+          </p>
+        </div>
       </div>
 
       {error ? <p className="text-destructive text-sm">{error}</p> : null}
       {saved ? <p className="text-success text-sm">{tenantSettingsLabels.savedMessage}</p> : null}
-      <Button type="submit" disabled={saving}>
-        {saving ? tenantSettingsLabels.savingButtonLabel : tenantSettingsLabels.saveButtonLabel}
-      </Button>
+      <div className="flex flex-col gap-2 lg:flex-row lg:justify-end lg:gap-3">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onCancel}
+          disabled={saving}
+          className="hidden lg:inline-flex"
+        >
+          {commonLabels.cancel}
+        </Button>
+        <Button type="submit" disabled={saving} className="w-full lg:w-auto">
+          {saving ? tenantSettingsLabels.savingButtonLabel : tenantSettingsLabels.saveButtonLabel}
+        </Button>
+      </div>
     </form>
   );
 }

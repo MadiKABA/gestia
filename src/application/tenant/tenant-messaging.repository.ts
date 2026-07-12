@@ -5,4 +5,5 @@
 export interface TenantMessagingRepository {
   findWhatsappTemplate(): Promise<string | null>;
   findWhatsappReceiptTemplates(): Promise<{ partial: string | null; final: string | null }>;
+  findReminderDays(): Promise<number>;
 }

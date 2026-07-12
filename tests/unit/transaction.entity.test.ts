@@ -3,6 +3,7 @@ import {
   computePartyBalance,
   deriveTransactionStatus,
   formatReference,
+  isEligibleForReminder,
   transactionBalanceContribution,
   validateTransactionInput,
 } from "@/domain/transaction/transaction.entity";
@@ -126,5 +127,69 @@ describe("transactionBalanceContribution / computePartyBalance", () => {
 
   it("retourne 0 pour une liste vide", () => {
     expect(computePartyBalance([])).toBe(0);
+  });
+});
+
+describe("isEligibleForReminder", () => {
+  const now = new Date("2026-07-12T00:00:00.000Z");
+
+  it("n'est jamais éligible pour une transaction réglée, même très ancienne", () => {
+    expect(
+      isEligibleForReminder(
+        { status: "REGLEE", dueDate: null, createdAt: new Date("2026-01-01T00:00:00.000Z") },
+        7,
+        now,
+      ),
+    ).toBe(false);
+  });
+
+  it("n'est pas éligible tant que le seuil n'est pas atteint", () => {
+    expect(
+      isEligibleForReminder(
+        { status: "EN_COURS", dueDate: null, createdAt: new Date("2026-07-10T00:00:00.000Z") },
+        7,
+        now,
+      ),
+    ).toBe(false);
+  });
+
+  it("devient éligible dès que le seuil est atteint, en se basant sur createdAt à défaut de dueDate", () => {
+    expect(
+      isEligibleForReminder(
+        { status: "PARTIELLE", dueDate: null, createdAt: new Date("2026-07-05T00:00:00.000Z") },
+        7,
+        now,
+      ),
+    ).toBe(true);
+  });
+
+  it("privilégie dueDate sur createdAt quand les deux sont renseignées", () => {
+    // createdAt très ancien (aurait déclenché le badge) mais dueDate encore
+    // loin dans le futur : l'échéance explicite doit l'emporter.
+    expect(
+      isEligibleForReminder(
+        {
+          status: "EN_COURS",
+          dueDate: new Date("2026-08-01T00:00:00.000Z"),
+          createdAt: new Date("2026-01-01T00:00:00.000Z"),
+        },
+        7,
+        now,
+      ),
+    ).toBe(false);
+
+    // dueDate dépassée depuis plus de reminderDays jours, createdAt récent :
+    // toujours l'échéance qui doit décider.
+    expect(
+      isEligibleForReminder(
+        {
+          status: "EN_COURS",
+          dueDate: new Date("2026-07-01T00:00:00.000Z"),
+          createdAt: new Date("2026-07-11T00:00:00.000Z"),
+        },
+        7,
+        now,
+      ),
+    ).toBe(true);
   });
 });

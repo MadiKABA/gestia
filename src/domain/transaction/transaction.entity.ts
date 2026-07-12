@@ -110,3 +110,24 @@ export function computePartyBalance(
     0,
   );
 }
+
+const MS_PER_DAY = 1000 * 60 * 60 * 24;
+
+/**
+ * Éligibilité au badge "à relancer" (`TenantSettings.reminderDays`, jamais
+ * une notification automatique — juste un indicateur visuel sur les écrans
+ * existants). Une transaction REGLEE n'est jamais éligible. La base de
+ * calcul est `dueDate` quand le commerçant l'a renseignée (l'échéance
+ * explicite est le signal le plus fiable), sinon `createdAt` — seul signal
+ * disponible à défaut.
+ */
+export function isEligibleForReminder(
+  transaction: Pick<Transaction, "status" | "dueDate" | "createdAt">,
+  reminderDays: number,
+  now: Date = new Date(),
+): boolean {
+  if (transaction.status === "REGLEE") return false;
+  const basis = transaction.dueDate ?? transaction.createdAt;
+  const elapsedDays = (now.getTime() - basis.getTime()) / MS_PER_DAY;
+  return elapsedDays >= reminderDays;
+}

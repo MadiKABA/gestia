@@ -100,6 +100,7 @@ function renderList(transaction: Transaction) {
       summary={{ owedToMe: 10000, owedByMe: 0 }}
       lastPaymentMethodByTransactionId={{}}
       whatsappReceiptTemplates={receiptTemplates}
+      reminderDays={7}
     />,
   );
 }
@@ -164,6 +165,7 @@ describe("TransactionsList — reçu WhatsApp après paiement rapide", () => {
         summary={{ owedToMe: 10000, owedByMe: 0 }}
         lastPaymentMethodByTransactionId={{}}
         whatsappReceiptTemplates={receiptTemplates}
+        reminderDays={7}
       />,
     );
 

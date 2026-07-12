@@ -6,6 +6,7 @@ import { listPaymentsByTransactionAction } from "@/presentation/payment/actions"
 import {
   getTenantWhatsappTemplateAction,
   getTenantWhatsappReceiptTemplatesAction,
+  getTenantReminderDaysAction,
 } from "@/presentation/tenant/actions";
 import { TransactionDetail } from "@/presentation/transaction/components/transaction-detail";
 
@@ -36,10 +37,11 @@ export default async function TransactionDetailPage({
     throw error;
   }
 
-  const [payments, whatsappTemplate, whatsappReceiptTemplates] = await Promise.all([
+  const [payments, whatsappTemplate, whatsappReceiptTemplates, reminderDays] = await Promise.all([
     listPaymentsByTransactionAction(id),
     getTenantWhatsappTemplateAction(),
     getTenantWhatsappReceiptTemplatesAction(),
+    getTenantReminderDaysAction(),
   ]);
 
   return (
@@ -48,6 +50,7 @@ export default async function TransactionDetailPage({
       party={detail.party}
       whatsappTemplate={whatsappTemplate}
       whatsappReceiptTemplates={whatsappReceiptTemplates}
+      reminderDays={reminderDays}
       tenantId={context.tenantId}
       userId={context.userId}
       canDelete={context.role === "PATRON"}

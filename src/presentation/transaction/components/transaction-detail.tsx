@@ -14,13 +14,14 @@ import { PaymentHistory } from "@/presentation/payment/components/payment-histor
 import { seedPaymentCache } from "@/presentation/payment/offline-repository";
 import { WhatsappLink } from "@/presentation/shared/components/whatsapp-link";
 import { WhatsappReceiptLink } from "@/presentation/payment/components/whatsapp-receipt-link";
+import { Badge } from "@/presentation/shared/components/ui/badge";
 import {
   commonLabels,
   paymentLabels,
   transactionLabels,
   syncLabels,
 } from "@/presentation/shared/labels";
-import type { Transaction } from "@/domain/transaction/transaction.entity";
+import { isEligibleForReminder, type Transaction } from "@/domain/transaction/transaction.entity";
 import type { Payment } from "@/domain/payment/payment.entity";
 
 type PartyContact = { name: string; phone: string | null; whatsappNumber: string | null };
@@ -41,6 +42,7 @@ export function TransactionDetail({
   party,
   whatsappTemplate,
   whatsappReceiptTemplates,
+  reminderDays,
   tenantId,
   userId,
   canDelete,
@@ -50,6 +52,8 @@ export function TransactionDetail({
   party: PartyContact | null;
   whatsappTemplate: string | null;
   whatsappReceiptTemplates: { partial: string | null; final: string | null };
+  /** `TenantSettings.reminderDays` — sert uniquement au badge "à relancer". */
+  reminderDays: number;
   tenantId: string;
   userId: string;
   canDelete: boolean;
@@ -118,11 +122,14 @@ export function TransactionDetail({
           <span className="text-muted-foreground">{transactionLabels.referenceLabel} : </span>
           {transaction.reference ?? syncLabels.syncing}
         </p>
-        <p>
+        <p className="flex flex-wrap items-center gap-2">
           <span className="text-muted-foreground">{transactionLabels.statusLabel} : </span>
           <span className={transaction.status === "REGLEE" ? "text-[#1B7A5A]" : undefined}>
             {STATUS_LABEL[transaction.status]}
           </span>
+          {isEligibleForReminder(transaction, reminderDays) ? (
+            <Badge variant="warning">{transactionLabels.reminderBadgeLabel}</Badge>
+          ) : null}
         </p>
         {transaction.quantity != null ? (
           <p>

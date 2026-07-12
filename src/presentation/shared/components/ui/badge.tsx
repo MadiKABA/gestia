@@ -14,6 +14,10 @@ const badgeVariants = cva(
         // couleur d'alerte de la charte n'est jamais utilisée ailleurs pour
         // un usage décoratif (voir CLAUDE.md "Theming").
         alert: "bg-[#C0392B]/10 text-[#C0392B]",
+        // Ambre — réservé au badge "à relancer" (échéance dépassée selon
+        // TenantSettings.reminderDays) : signal d'attention, jamais aussi
+        // fort que `alert` (impayé), jamais réutilisé pour un usage décoratif.
+        warning: "bg-[#B45309]/10 text-[#B45309]",
       },
     },
     defaultVariants: {

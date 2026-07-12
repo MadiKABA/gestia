@@ -20,7 +20,11 @@ import {
 import { BalanceSummaryCards } from "@/presentation/transaction/components/balance-summary-cards";
 import { PaymentModal } from "@/presentation/payment/components/payment-modal";
 import { WhatsappReceiptLink } from "@/presentation/payment/components/whatsapp-receipt-link";
-import type { Transaction, TransactionType } from "@/domain/transaction/transaction.entity";
+import {
+  isEligibleForReminder,
+  type Transaction,
+  type TransactionType,
+} from "@/domain/transaction/transaction.entity";
 import type { Payment, PaymentMethod } from "@/domain/payment/payment.entity";
 import {
   commonLabels,
@@ -103,6 +107,7 @@ export function TransactionsList({
   initialType,
   lastPaymentMethodByTransactionId,
   whatsappReceiptTemplates,
+  reminderDays,
 }: {
   initialTransactions: Transaction[];
   tenantId: string;
@@ -121,6 +126,10 @@ export function TransactionsList({
    * transaction-detail.tsx, pour proposer le même reçu après un paiement
    * rapide déclenché directement depuis cette liste. */
   whatsappReceiptTemplates: { partial: string | null; final: string | null };
+  /** `TenantSettings.reminderDays` — sert uniquement au badge "à relancer"
+   * (indicateur visuel, jamais une notification automatique, cf. CLAUDE.md
+   * "Hors périmètre"). */
+  reminderDays: number;
 }) {
   const [transactions, setTransactions] = useState(initialTransactions);
   const [search, setSearch] = useState("");
@@ -335,6 +344,9 @@ export function TransactionsList({
                       {STATUS_LABEL[transaction.status]}
                     </span>
                   </p>
+                  {isEligibleForReminder(transaction, reminderDays) ? (
+                    <Badge variant="warning">{transactionLabels.reminderBadgeLabel}</Badge>
+                  ) : null}
                 </div>
                 <span className={`shrink-0 text-sm font-medium tabular-nums ${amountColorClass}`}>
                   {signedAmount.toLocaleString("fr-FR")} FCFA
@@ -388,9 +400,14 @@ export function TransactionsList({
                     {lastMethod ? PAYMENT_METHOD_LABEL[lastMethod] : "—"}
                   </td>
                   <td className="px-3 py-2">
-                    <Badge variant={STATUS_BADGE_VARIANT[transaction.status]}>
-                      {STATUS_BADGE_LABEL[transaction.status]}
-                    </Badge>
+                    <div className="flex flex-wrap items-center gap-1">
+                      <Badge variant={STATUS_BADGE_VARIANT[transaction.status]}>
+                        {STATUS_BADGE_LABEL[transaction.status]}
+                      </Badge>
+                      {isEligibleForReminder(transaction, reminderDays) ? (
+                        <Badge variant="warning">{transactionLabels.reminderBadgeLabel}</Badge>
+                      ) : null}
+                    </div>
                   </td>
                   <td className="text-muted-foreground px-3 py-2 whitespace-nowrap">
                     {transaction.createdAt.toLocaleDateString("fr-FR")}

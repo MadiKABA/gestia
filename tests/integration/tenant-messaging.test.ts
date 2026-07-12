@@ -3,6 +3,7 @@ import { prisma } from "@/infrastructure/prisma/client";
 import { PrismaTenantSettingsRepository } from "@/infrastructure/tenant/tenant-settings.repository";
 import { getTenantWhatsappTemplate } from "@/application/tenant/get-tenant-whatsapp-template.use-case";
 import { getTenantWhatsappReceiptTemplates } from "@/application/tenant/get-tenant-whatsapp-receipt-templates.use-case";
+import { getTenantReminderDays } from "@/application/tenant/get-tenant-reminder-days.use-case";
 
 describe("getTenantWhatsappTemplate", () => {
   const tenantId = "test-tenant-messaging";
@@ -63,5 +64,30 @@ describe("getTenantWhatsappReceiptTemplates", () => {
       partial: "Merci {client}, reste {montantRestant} FCFA",
       final: "Merci {client}, Safi !",
     });
+  });
+});
+
+describe("getTenantReminderDays", () => {
+  const tenantId = "test-tenant-messaging-reminder";
+
+  afterAll(async () => {
+    await prisma.tenant.delete({ where: { id: tenantId } });
+    await prisma.$disconnect();
+  });
+
+  it("retourne 7 par défaut si le tenant n'a jamais personnalisé ce réglage", async () => {
+    await prisma.tenant.create({ data: { id: tenantId, name: "Tenant messaging reminder" } });
+    const repository = new PrismaTenantSettingsRepository(tenantId);
+
+    await expect(getTenantReminderDays({ repository })).resolves.toBe(7);
+  });
+
+  it("retourne la valeur personnalisée du tenant une fois renseignée", async () => {
+    await prisma.tenantSettings.create({
+      data: { tenantId, reminderDays: 3 },
+    });
+    const repository = new PrismaTenantSettingsRepository(tenantId);
+
+    await expect(getTenantReminderDays({ repository })).resolves.toBe(3);
   });
 });

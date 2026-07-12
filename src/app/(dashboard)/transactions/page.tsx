@@ -7,7 +7,10 @@ import {
 } from "@/presentation/transaction/actions";
 import { searchPartiesAction } from "@/presentation/party/actions";
 import { getLastPaymentMethodsAction } from "@/presentation/payment/actions";
-import { getTenantWhatsappReceiptTemplatesAction } from "@/presentation/tenant/actions";
+import {
+  getTenantWhatsappReceiptTemplatesAction,
+  getTenantReminderDaysAction,
+} from "@/presentation/tenant/actions";
 import { TransactionsList } from "@/presentation/transaction/components/transactions-list";
 
 export default async function TransactionsPage({
@@ -31,12 +34,14 @@ export default async function TransactionsPage({
   // que le filtre client ne s'applique.
   const initialType = type === "CREANCE" || type === "DETTE" ? type : undefined;
 
-  const [transactions, parties, summary, whatsappReceiptTemplates] = await Promise.all([
-    searchTransactionsAction({ type: initialType }),
-    searchPartiesAction(),
-    getTransactionBalanceSummaryAction(),
-    getTenantWhatsappReceiptTemplatesAction(),
-  ]);
+  const [transactions, parties, summary, whatsappReceiptTemplates, reminderDays] =
+    await Promise.all([
+      searchTransactionsAction({ type: initialType }),
+      searchPartiesAction(),
+      getTransactionBalanceSummaryAction(),
+      getTenantWhatsappReceiptTemplatesAction(),
+      getTenantReminderDaysAction(),
+    ]);
   // Batch séparé (dépend des ids de transactions déjà résolus) : mode de
   // paiement du dernier paiement de chaque ligne, affiché en colonne
   // desktop/tablette (voir transactions-list.tsx).
@@ -59,6 +64,7 @@ export default async function TransactionsPage({
       initialType={initialType}
       lastPaymentMethodByTransactionId={lastPaymentMethodByTransactionId}
       whatsappReceiptTemplates={whatsappReceiptTemplates}
+      reminderDays={reminderDays}
     />
   );
 }

@@ -45,6 +45,14 @@ export class PrismaTenantSettingsRepository
     };
   }
 
+  /** Défaut `7` cohérent avec la valeur créée à l'inscription (voir `update`
+   * ci-dessous) — ne devrait s'appliquer que si la ligne TenantSettings
+   * manquait, ce qui ne devrait jamais arriver. */
+  async findReminderDays(): Promise<number> {
+    const settings = await this.prisma.tenantSettings.findUnique({ where: this.scoped() });
+    return settings?.reminderDays ?? 7;
+  }
+
   async findFull(): Promise<TenantSettingsFull | null> {
     const settings = await this.prisma.tenantSettings.findUnique({ where: this.scoped() });
     if (!settings) return null;

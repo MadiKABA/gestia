@@ -1,10 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { VendeursPanel } from "@/presentation/auth/components/vendeurs-panel";
 import { authLabels } from "@/presentation/shared/labels";
 
 const inviteVendeurActionMock = vi.fn();
+const deactivateVendeurActionMock = vi.fn();
+const reactivateVendeurActionMock = vi.fn();
 const refreshMock = vi.fn();
 
 /**
@@ -15,7 +17,8 @@ const refreshMock = vi.fn();
  */
 vi.mock("@/presentation/auth/actions", () => ({
   inviteVendeurAction: (...args: unknown[]) => inviteVendeurActionMock(...args),
-  deactivateVendeurAction: vi.fn(),
+  deactivateVendeurAction: (...args: unknown[]) => deactivateVendeurActionMock(...args),
+  reactivateVendeurAction: (...args: unknown[]) => reactivateVendeurActionMock(...args),
 }));
 
 vi.mock("next/navigation", () => ({
@@ -50,8 +53,35 @@ async function invite() {
   await screen.findByText(authLabels.vendeurInvitedTitle);
 }
 
+const vendeurActif = {
+  id: "vendeur-actif",
+  name: "Awa Diop",
+  phone: "+221771111111",
+  active: true,
+  createdAt: new Date("2026-01-10"),
+  firstLoginAt: new Date("2026-01-11"),
+};
+const vendeurDesactive = {
+  id: "vendeur-desactive",
+  name: "Moussa Ba",
+  phone: "+221772222222",
+  active: false,
+  createdAt: new Date("2026-01-12"),
+  firstLoginAt: new Date("2026-01-13"),
+};
+const vendeurEnAttente = {
+  id: "vendeur-en-attente",
+  name: "Fatou Sarr",
+  phone: "+221773333333",
+  active: true,
+  createdAt: new Date("2026-01-14"),
+  firstLoginAt: null,
+};
+
 beforeEach(() => {
   inviteVendeurActionMock.mockReset().mockResolvedValue(undefined);
+  deactivateVendeurActionMock.mockReset().mockResolvedValue(undefined);
+  reactivateVendeurActionMock.mockReset().mockResolvedValue(undefined);
   refreshMock.mockReset();
   stubMatchMedia(false);
 });
@@ -88,5 +118,72 @@ describe("VendeursPanel", () => {
     // Le bouton reste à son libellé initial : l'échec ne doit jamais laisser
     // croire à tort que le lien a été copié.
     expect(screen.getByRole("button", { name: authLabels.copyLinkButton })).toBeInTheDocument();
+  });
+
+  it("ouvre et ferme la modale d'invitation", async () => {
+    // Dialog (desktop) plutôt que Sheet : le bouton de fermeture porte un
+    // libellé français ("Fermer") cohérent avec le reste de la suite.
+    stubMatchMedia(true);
+    render(<VendeursPanel initialVendeurs={[]} />);
+
+    expect(screen.queryByLabelText("Nom du vendeur")).not.toBeInTheDocument();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: authLabels.inviteVendeurButtonLabel }),
+    );
+    expect(await screen.findByLabelText("Nom du vendeur")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Fermer" }));
+
+    await vi.waitFor(() => {
+      expect(screen.queryByLabelText("Nom du vendeur")).not.toBeInTheDocument();
+    });
+    expect(inviteVendeurActionMock).not.toHaveBeenCalled();
+  });
+
+  it("filtre la liste par recherche (nom/téléphone) et par statut", async () => {
+    render(<VendeursPanel initialVendeurs={[vendeurActif, vendeurDesactive, vendeurEnAttente]} />);
+    // Le tableau desktop/tablette et les cards mobile sont tous deux rendus
+    // dans le DOM (le basculement se fait en CSS, invisible pour jsdom) —
+    // les assertions ciblent donc le tableau pour éviter les doublons.
+    const table = screen.getByRole("table");
+
+    expect(within(table).getByText("Awa Diop")).toBeInTheDocument();
+    expect(within(table).getByText("Moussa Ba")).toBeInTheDocument();
+    expect(within(table).getByText("Fatou Sarr")).toBeInTheDocument();
+
+    await userEvent.type(screen.getByPlaceholderText(authLabels.searchPlaceholder), "Awa");
+    expect(within(table).getByText("Awa Diop")).toBeInTheDocument();
+    expect(within(table).queryByText("Moussa Ba")).not.toBeInTheDocument();
+    expect(within(table).queryByText("Fatou Sarr")).not.toBeInTheDocument();
+
+    // Recherche par téléphone.
+    await userEvent.clear(screen.getByPlaceholderText(authLabels.searchPlaceholder));
+    await userEvent.type(screen.getByPlaceholderText(authLabels.searchPlaceholder), "772222222");
+    expect(within(table).getByText("Moussa Ba")).toBeInTheDocument();
+    expect(within(table).queryByText("Awa Diop")).not.toBeInTheDocument();
+
+    await userEvent.clear(screen.getByPlaceholderText(authLabels.searchPlaceholder));
+
+    await userEvent.click(screen.getByRole("combobox"));
+    await userEvent.click(await screen.findByRole("option", { name: authLabels.statusPending }));
+
+    expect(within(table).getByText("Fatou Sarr")).toBeInTheDocument();
+    expect(within(table).queryByText("Awa Diop")).not.toBeInTheDocument();
+    expect(within(table).queryByText("Moussa Ba")).not.toBeInTheDocument();
+  });
+
+  it("permet de copier le lien de première connexion à tout moment pour un vendeur en attente", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.assign(navigator, { clipboard: { writeText } });
+    render(<VendeursPanel initialVendeurs={[vendeurEnAttente]} />);
+
+    // Disponible directement depuis la liste, sans passer par une invitation
+    // dans cette même session.
+    await userEvent.click(screen.getByRole("button", { name: authLabels.copyLinkRowActionLabel }));
+
+    expect(writeText).toHaveBeenCalledWith(
+      "http://localhost:3000/premiere-connexion?phone=%2B221773333333",
+    );
   });
 });

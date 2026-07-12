@@ -9,6 +9,7 @@ import { requestPinReset } from "@/application/auth/request-pin-reset.use-case";
 import { confirmPinReset } from "@/application/auth/confirm-pin-reset.use-case";
 import { inviteVendeur } from "@/application/auth/invite-vendeur.use-case";
 import { deactivateVendeur } from "@/application/auth/deactivate-vendeur.use-case";
+import { reactivateVendeur } from "@/application/auth/reactivate-vendeur.use-case";
 import { MAX_FAILED_ATTEMPTS } from "@/domain/auth/pin-policy";
 import { ForbiddenError, ValidationError } from "@/domain/shared/errors";
 
@@ -256,6 +257,42 @@ describe("use cases auth", () => {
       );
       expect(user.id).toBe(patron.id);
     });
+
+    it("pose firstLoginAt une seule fois, jamais réécrit lors d'un reset ultérieur", async () => {
+      const phone = `+22178${Date.now().toString().slice(-6)}7`;
+      const email = `awa${Date.now()}@gestia.test`;
+      const patron = await registerTenant(phone, email);
+
+      async function resetPinWith(newPin: string) {
+        const otpCode = `${Date.now()}`.slice(-6);
+        await prisma.otpCode.create({
+          data: {
+            identifier: email,
+            channel: "EMAIL",
+            purpose: "PIN_RESET",
+            codeHash: await hasher.hash(otpCode),
+            expiresAt: new Date(Date.now() + 60_000),
+          },
+        });
+        await confirmPinReset(
+          { repository, hasher, auditLogger },
+          { channel: "EMAIL", identifier: email, otp: otpCode, newPin },
+        );
+      }
+
+      const beforeAnyReset = await prisma.user.findUnique({ where: { id: patron.id } });
+      expect(beforeAnyReset?.firstLoginAt).toBeNull();
+
+      await resetPinWith("4321");
+      const afterFirstReset = await prisma.user.findUnique({ where: { id: patron.id } });
+      expect(afterFirstReset?.firstLoginAt).not.toBeNull();
+
+      await resetPinWith("5678");
+      const afterSecondReset = await prisma.user.findUnique({ where: { id: patron.id } });
+      expect(afterSecondReset?.firstLoginAt?.getTime()).toBe(
+        afterFirstReset?.firstLoginAt?.getTime(),
+      );
+    });
   });
 
   describe("inviteVendeur", () => {
@@ -366,6 +403,49 @@ describe("use cases auth", () => {
 
       await expect(
         deactivateVendeur(
+          { tenantId: patron.tenantId, userId: vendeur.id, role: "VENDEUR" },
+          { repository, auditLogger },
+          { vendeurId: vendeur.id },
+        ),
+      ).rejects.toThrow(ForbiddenError);
+    });
+  });
+
+  describe("reactivateVendeur", () => {
+    it("réactive un vendeur désactivé du même tenant quand l'appelant est PATRON", async () => {
+      const phone = `+22170${Date.now().toString().slice(-6)}5`;
+      const patron = await registerTenant(phone);
+      const vendeur = await repository.createVendeur({
+        tenantId: patron.tenantId,
+        name: "Vendeur",
+        phone: `+22170${Date.now().toString().slice(-6)}6`,
+        placeholderPinHash: await hasher.hash(crypto.randomUUID()),
+      });
+      await repository.setActive(vendeur.id, false);
+
+      await reactivateVendeur(
+        { tenantId: patron.tenantId, userId: patron.id, role: "PATRON" },
+        { repository, auditLogger },
+        { vendeurId: vendeur.id },
+      );
+
+      const updated = await prisma.user.findUnique({ where: { id: vendeur.id } });
+      expect(updated?.active).toBe(true);
+    });
+
+    it("refuse si l'appelant n'est pas PATRON", async () => {
+      const phone = `+22170${Date.now().toString().slice(-6)}7`;
+      const patron = await registerTenant(phone);
+      const vendeur = await repository.createVendeur({
+        tenantId: patron.tenantId,
+        name: "Vendeur",
+        phone: `+22170${Date.now().toString().slice(-6)}8`,
+        placeholderPinHash: await hasher.hash(crypto.randomUUID()),
+      });
+      await repository.setActive(vendeur.id, false);
+
+      await expect(
+        reactivateVendeur(
           { tenantId: patron.tenantId, userId: vendeur.id, role: "VENDEUR" },
           { repository, auditLogger },
           { vendeurId: vendeur.id },

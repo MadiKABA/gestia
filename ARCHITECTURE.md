@@ -147,8 +147,51 @@ création de session + pose du cookie via `setSessionCookie`.
    infrastructure (repository contre Postgres) minimum.
 
 Suivre exactement le module `party` comme référence — c'est le module validé
-en premier avant réplication sur les autres (créance/dette, paiement, caisse,
-paramètres tenant).
+en premier avant réplication sur les autres (créance/dette, paiement,
+caisse). Paramètres tenant est un cas à part, volontairement non répliqué
+sur ce pattern — voir "Modules volontairement hors de certains mécanismes
+génériques" ci-dessous.
+
+## Modules volontairement hors de certains mécanismes génériques
+
+Trois choix produit délibérés, à ne jamais lire comme des oublis ou des
+chantiers non terminés :
+
+**`TenantSettings` reste hors du moteur de sync offline** (`OfflineFirstRepository`/
+`mutationQueue`, voir "Synchronisation montante" plus haut). Contrairement à
+Party/Transaction/Payment/CashMovement, `updateTenantSettingsAction` et
+`uploadTenantLogoAction` (`presentation/tenant/actions.ts`) appellent
+directement leurs use cases, sans passer par un `MutationHandler` enregistré.
+Assumé pour deux raisons : modifier les paramètres de boutique (couleur,
+devise, logo, gabarits WhatsApp, délai de relance) n'est pas un geste terrain
+répété plusieurs fois par jour comme une créance ou un paiement — contrairement
+à Auth/Vendeurs, également online-only pour la même raison — et l'upload du
+logo dépend de toute façon de Cloudinary, donc d'une vraie connexion. Si ce
+choix devait changer (ex: un vendeur en boutique isolée a besoin de modifier
+son gabarit WhatsApp hors ligne), le retrofit suivrait exactement le même
+pattern que Party (voir section précédente).
+
+**`CashMovement` ne propose volontairement pas d'update/delete** — seuls
+`create`/lecture existent (`application/cash-movement/`), voir déjà la note
+dans "Convention responsive" ci-dessous (`CaissePage` sans colonne Actions).
+Une erreur de caisse se corrige par un mouvement inverse (une sortie pour
+annuler une entrée saisie par erreur, et inversement), jamais en éditant ou
+supprimant l'historique — cohérent avec le principe "aucune suppression
+définitive" (cf. CLAUDE.md) et avec la traçabilité déjà en place : corriger
+par un nouveau mouvement laisse une trace complète de ce qui s'est réellement
+passé, éditer l'historique l'effacerait.
+
+**Aucun AuditLog sur l'envoi d'un message WhatsApp** (relance ou reçu de
+paiement, `presentation/shared/components/whatsapp-link.tsx`/
+`presentation/payment/components/whatsapp-receipt-link.tsx`) — ce sont de
+simples liens `wa.me` ouverts côté client (`target="_blank"`), sans appel
+Server Action ni écriture Prisma au moment du clic : il n'y a littéralement
+aucune mutation à auditer sur ce chemin. Assumé aussi parce que WhatsApp ne
+fournit aucune confirmation d'envoi ou de livraison exploitable
+programmatiquement — tracer "le bouton a été cliqué" n'apporterait qu'une
+fausse certitude ("un message a été envoyé") pour un coût d'implémentation
+(faire transiter l'ouverture du lien par le serveur) disproportionné par
+rapport à la valeur réelle.
 
 ## Convention responsive (mobile / tablette / desktop)
 

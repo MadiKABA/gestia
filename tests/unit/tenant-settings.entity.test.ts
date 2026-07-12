@@ -51,6 +51,54 @@ describe("validateTenantSettingsInput", () => {
     expect(() => validateTenantSettingsInput({ whatsappTemplate: null })).not.toThrow();
   });
 
+  it("accepte whatsappReceiptPartialTemplate contenant les quatre placeholders", () => {
+    expect(() =>
+      validateTenantSettingsInput({
+        whatsappReceiptPartialTemplate:
+          "Salam {client}, paiement de {montantPaye} par {modePaiement}, reste {montantRestant} FCFA.",
+      }),
+    ).not.toThrow();
+  });
+
+  it("rejette whatsappReceiptPartialTemplate sans les placeholders attendus", () => {
+    expect(() =>
+      validateTenantSettingsInput({ whatsappReceiptPartialTemplate: "Merci pour le paiement." }),
+    ).toThrow(ValidationError);
+  });
+
+  it("accepte whatsappReceiptPartialTemplate null (remise au modèle par défaut)", () => {
+    expect(() =>
+      validateTenantSettingsInput({ whatsappReceiptPartialTemplate: null }),
+    ).not.toThrow();
+  });
+
+  it("rejette whatsappReceiptPartialTemplate trop long", () => {
+    expect(() =>
+      validateTenantSettingsInput({
+        whatsappReceiptPartialTemplate:
+          "{client} {montantPaye} {modePaiement} {montantRestant} " + "x".repeat(500),
+      }),
+    ).toThrow(ValidationError);
+  });
+
+  it("accepte whatsappReceiptFinalTemplate contenant les deux placeholders", () => {
+    expect(() =>
+      validateTenantSettingsInput({
+        whatsappReceiptFinalTemplate: "Salam {client}, merci pour {montantPaye} FCFA. Safi !",
+      }),
+    ).not.toThrow();
+  });
+
+  it("rejette whatsappReceiptFinalTemplate sans les placeholders attendus", () => {
+    expect(() =>
+      validateTenantSettingsInput({ whatsappReceiptFinalTemplate: "Compte soldé, merci !" }),
+    ).toThrow(ValidationError);
+  });
+
+  it("accepte whatsappReceiptFinalTemplate null (remise au modèle par défaut)", () => {
+    expect(() => validateTenantSettingsInput({ whatsappReceiptFinalTemplate: null })).not.toThrow();
+  });
+
   it("rejette displayName vide", () => {
     expect(() => validateTenantSettingsInput({ displayName: "   " })).toThrow(ValidationError);
   });

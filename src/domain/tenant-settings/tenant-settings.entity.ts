@@ -5,6 +5,13 @@ const REMINDER_DAYS_MIN = 1;
 const REMINDER_DAYS_MAX = 30;
 const WHATSAPP_TEMPLATE_MAX_LENGTH = 500;
 const WHATSAPP_PLACEHOLDERS = ["{client}", "{montant}", "{reference}"] as const;
+const WHATSAPP_RECEIPT_PARTIAL_PLACEHOLDERS = [
+  "{client}",
+  "{montantPaye}",
+  "{modePaiement}",
+  "{montantRestant}",
+] as const;
+const WHATSAPP_RECEIPT_FINAL_PLACEHOLDERS = ["{client}", "{montantPaye}"] as const;
 
 /**
  * Update partiel : seules les clés présentes sont validées/écrites (chaque
@@ -18,14 +25,36 @@ export type TenantSettingsUpdateInput = Partial<{
   currency: string;
   reminderDays: number;
   whatsappTemplate: string | null;
+  whatsappReceiptPartialTemplate: string | null;
+  whatsappReceiptFinalTemplate: string | null;
   brandColor: string | null;
   logoUrl: string | null;
 }>;
 
+/** Valide un gabarit WhatsApp générique (longueur + placeholders requis) —
+ * factorisé pour les 3 champs de gabarit (relance, reçu partiel, reçu final)
+ * qui partagent la même forme de règle, seuls la liste de placeholders et le
+ * libellé d'erreur changent. */
+function validateWhatsappTemplateField(
+  value: string,
+  placeholders: readonly string[],
+  fieldLabel: string,
+): void {
+  if (value.length > WHATSAPP_TEMPLATE_MAX_LENGTH) {
+    throw new ValidationError(
+      `${fieldLabel} ne doit pas dépasser ${WHATSAPP_TEMPLATE_MAX_LENGTH} caractères`,
+    );
+  }
+  const missing = placeholders.filter((placeholder) => !value.includes(placeholder));
+  if (missing.length > 0) {
+    throw new ValidationError(`${fieldLabel} doit contenir ${missing.join(", ")}`);
+  }
+}
+
 /**
  * Règles métier pures (cahier des charges §5, theming) : `reminderDays` dans
  * une plage raisonnable, `brandColor` dans la liste des presets validés
- * contraste/accessibilité, `whatsappTemplate` doit conserver les trois
+ * contraste/accessibilité, chaque gabarit WhatsApp doit conserver les
  * placeholders attendus par `renderWhatsappTemplate` (whatsapp-link.tsx).
  */
 export function validateTenantSettingsInput(input: TenantSettingsUpdateInput): void {
@@ -46,17 +75,27 @@ export function validateTenantSettingsInput(input: TenantSettingsUpdateInput): v
   }
 
   if (input.whatsappTemplate != null) {
-    if (input.whatsappTemplate.length > WHATSAPP_TEMPLATE_MAX_LENGTH) {
-      throw new ValidationError(
-        `Le message de relance ne doit pas dépasser ${WHATSAPP_TEMPLATE_MAX_LENGTH} caractères`,
-      );
-    }
-    const missing = WHATSAPP_PLACEHOLDERS.filter(
-      (placeholder) => !input.whatsappTemplate!.includes(placeholder),
+    validateWhatsappTemplateField(
+      input.whatsappTemplate,
+      WHATSAPP_PLACEHOLDERS,
+      "Le message de relance",
     );
-    if (missing.length > 0) {
-      throw new ValidationError(`Le message de relance doit contenir ${missing.join(", ")}`);
-    }
+  }
+
+  if (input.whatsappReceiptPartialTemplate != null) {
+    validateWhatsappTemplateField(
+      input.whatsappReceiptPartialTemplate,
+      WHATSAPP_RECEIPT_PARTIAL_PLACEHOLDERS,
+      "Le message de reçu partiel",
+    );
+  }
+
+  if (input.whatsappReceiptFinalTemplate != null) {
+    validateWhatsappTemplateField(
+      input.whatsappReceiptFinalTemplate,
+      WHATSAPP_RECEIPT_FINAL_PLACEHOLDERS,
+      "Le message de reçu final",
+    );
   }
 
   if (input.displayName != null && !input.displayName.trim()) {

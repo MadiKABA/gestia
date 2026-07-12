@@ -13,16 +13,10 @@ import {
 } from "@/presentation/shared/components/ui/select";
 import { ResponsivePanel } from "@/presentation/shared/components/responsive-panel";
 import { createPaymentOfflineRepository } from "@/presentation/payment/offline-repository";
+import { PAYMENT_METHOD_LABEL } from "@/presentation/payment/components/payment-method-labels";
 import { commonLabels, paymentLabels, transactionLabels } from "@/presentation/shared/labels";
 import type { Payment, PaymentMethod } from "@/domain/payment/payment.entity";
 import type { Transaction } from "@/domain/transaction/transaction.entity";
-
-const METHOD_LABEL: Record<PaymentMethod, string> = {
-  CASH: paymentLabels.methodCash,
-  WAVE: paymentLabels.methodWave,
-  ORANGE_MONEY: paymentLabels.methodOrangeMoney,
-  AUTRE: paymentLabels.methodOther,
-};
 
 /**
  * Modale de paiement partagée par la liste (action directe desktop/tablette)
@@ -99,7 +93,9 @@ export function PaymentModal({
           <Label htmlFor="payment-method">{paymentLabels.methodField}</Label>
           <Select value={method} onValueChange={(value) => setMethod(value as PaymentMethod)}>
             <SelectTrigger id="payment-method" className="w-full">
-              <SelectValue>{(value: string) => METHOD_LABEL[value as PaymentMethod]}</SelectValue>
+              <SelectValue>
+                {(value: string) => PAYMENT_METHOD_LABEL[value as PaymentMethod]}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="CASH">{paymentLabels.methodCash}</SelectItem>

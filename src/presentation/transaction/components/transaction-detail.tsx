@@ -13,6 +13,7 @@ import { PaymentModal } from "@/presentation/payment/components/payment-modal";
 import { PaymentHistory } from "@/presentation/payment/components/payment-history";
 import { seedPaymentCache } from "@/presentation/payment/offline-repository";
 import { WhatsappLink } from "@/presentation/shared/components/whatsapp-link";
+import { WhatsappReceiptLink } from "@/presentation/payment/components/whatsapp-receipt-link";
 import {
   commonLabels,
   paymentLabels,
@@ -39,6 +40,7 @@ export function TransactionDetail({
   transaction: initialTransaction,
   party,
   whatsappTemplate,
+  whatsappReceiptTemplates,
   tenantId,
   userId,
   canDelete,
@@ -47,6 +49,7 @@ export function TransactionDetail({
   transaction: Transaction;
   party: PartyContact | null;
   whatsappTemplate: string | null;
+  whatsappReceiptTemplates: { partial: string | null; final: string | null };
   tenantId: string;
   userId: string;
   canDelete: boolean;
@@ -55,6 +58,7 @@ export function TransactionDetail({
   const router = useRouter();
   const [transaction, setTransaction] = useState(initialTransaction);
   const [payments, setPayments] = useState(initialPayments);
+  const [lastPayment, setLastPayment] = useState<Payment | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
@@ -70,6 +74,7 @@ export function TransactionDetail({
 
   async function onPaymentSuccess(payment: Payment) {
     setPayments((current) => [...current, payment]);
+    setLastPayment(payment);
     const repository = createTransactionOfflineRepository(tenantId, userId);
     const updated = await repository.getById(transaction.id);
     if (updated) setTransaction(updated);
@@ -150,6 +155,22 @@ export function TransactionDetail({
           client={party?.name ?? ""}
           amount={transaction.amount - transaction.paidAmount}
           reference={transaction.reference}
+        />
+      ) : null}
+
+      {lastPayment &&
+      transaction.type === "CREANCE" &&
+      transaction.status !== "EN_COURS" &&
+      whatsappNumber ? (
+        <WhatsappReceiptLink
+          phone={whatsappNumber}
+          status={transaction.status}
+          client={party?.name ?? ""}
+          amountPaid={lastPayment.amount}
+          method={lastPayment.method}
+          remainingBalance={transaction.amount - transaction.paidAmount}
+          partialTemplate={whatsappReceiptTemplates.partial}
+          finalTemplate={whatsappReceiptTemplates.final}
         />
       ) : null}
 

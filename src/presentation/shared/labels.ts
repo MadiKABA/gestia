@@ -172,6 +172,8 @@ export const paymentLabels = {
   amountInvalidError: "Le montant doit être supérieur à zéro",
 
   editDisabledTooltip: "Déjà réglée en partie, modification impossible",
+
+  sendReceiptButtonLabel: "Envoyer le reçu par WhatsApp",
 };
 
 export const cashMovementLabels = {

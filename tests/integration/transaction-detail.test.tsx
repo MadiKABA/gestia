@@ -91,6 +91,8 @@ beforeEach(() => {
   paymentModalOnSuccess = null;
 });
 
+const emptyReceiptTemplates = { partial: null, final: null };
+
 describe("TransactionDetail", () => {
   it("affiche la description saisie à la création", () => {
     render(
@@ -98,6 +100,7 @@ describe("TransactionDetail", () => {
         transaction={transaction}
         party={{ name: "Fatou Diop", phone: "+221771234567", whatsappNumber: null }}
         whatsappTemplate={null}
+        whatsappReceiptTemplates={emptyReceiptTemplates}
         tenantId="tenant-1"
         userId="user-1"
         canDelete={true}
@@ -120,6 +123,7 @@ describe("TransactionDetail", () => {
         transaction={transaction}
         party={{ name: "Fatou Diop", phone: "+221771234567", whatsappNumber: null }}
         whatsappTemplate={null}
+        whatsappReceiptTemplates={emptyReceiptTemplates}
         tenantId="tenant-1"
         userId="user-1"
         canDelete={true}
@@ -136,5 +140,124 @@ describe("TransactionDetail", () => {
     });
 
     expect(await screen.findByText(paymentLabels.historyTitle)).toBeInTheDocument();
+  });
+
+  it("propose l'envoi d'un reçu partiel après un paiement laissant un solde restant", async () => {
+    getByIdMock.mockResolvedValue({
+      ...transaction,
+      paidAmount: 6000,
+      status: "PARTIELLE",
+    });
+
+    render(
+      <TransactionDetail
+        transaction={transaction}
+        party={{ name: "Fatou Diop", phone: "+221771234567", whatsappNumber: null }}
+        whatsappTemplate={null}
+        whatsappReceiptTemplates={emptyReceiptTemplates}
+        tenantId="tenant-1"
+        userId="user-1"
+        canDelete={true}
+        initialPayments={[firstPayment]}
+      />,
+    );
+
+    expect(
+      screen.queryByRole("button", { name: paymentLabels.sendReceiptButtonLabel }),
+    ).not.toBeInTheDocument();
+
+    await act(async () => {
+      paymentModalOnSuccess?.(secondPayment);
+      await Promise.resolve();
+    });
+
+    expect(
+      await screen.findByRole("button", { name: paymentLabels.sendReceiptButtonLabel }),
+    ).toBeInTheDocument();
+  });
+
+  it("propose l'envoi d'un reçu final (Safi) après un paiement qui solde la créance", async () => {
+    getByIdMock.mockResolvedValue({
+      ...transaction,
+      paidAmount: 10000,
+      status: "REGLEE",
+    });
+
+    render(
+      <TransactionDetail
+        transaction={transaction}
+        party={{ name: "Fatou Diop", phone: "+221771234567", whatsappNumber: null }}
+        whatsappTemplate={null}
+        whatsappReceiptTemplates={emptyReceiptTemplates}
+        tenantId="tenant-1"
+        userId="user-1"
+        canDelete={true}
+        initialPayments={[firstPayment]}
+      />,
+    );
+
+    await act(async () => {
+      paymentModalOnSuccess?.(secondPayment);
+      await Promise.resolve();
+    });
+
+    const receiptButton = await screen.findByRole("button", {
+      name: paymentLabels.sendReceiptButtonLabel,
+    });
+    expect(receiptButton).toBeInTheDocument();
+    expect(screen.getByText(/Safi/)).toBeInTheDocument();
+  });
+
+  it("n'affiche jamais le reçu WhatsApp pour une dette, même après un paiement", async () => {
+    const dette: Transaction = { ...transaction, type: "DETTE" };
+    getByIdMock.mockResolvedValue({ ...dette, paidAmount: 10000, status: "REGLEE" });
+
+    render(
+      <TransactionDetail
+        transaction={dette}
+        party={{ name: "Fatou Diop", phone: "+221771234567", whatsappNumber: null }}
+        whatsappTemplate={null}
+        whatsappReceiptTemplates={emptyReceiptTemplates}
+        tenantId="tenant-1"
+        userId="user-1"
+        canDelete={true}
+        initialPayments={[firstPayment]}
+      />,
+    );
+
+    await act(async () => {
+      paymentModalOnSuccess?.(secondPayment);
+      await Promise.resolve();
+    });
+
+    expect(
+      screen.queryByRole("button", { name: paymentLabels.sendReceiptButtonLabel }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("masque relance et reçu si le tiers n'a ni téléphone ni whatsapp", async () => {
+    getByIdMock.mockResolvedValue({ ...transaction, paidAmount: 6000, status: "PARTIELLE" });
+
+    render(
+      <TransactionDetail
+        transaction={transaction}
+        party={{ name: "Fatou Diop", phone: null, whatsappNumber: null }}
+        whatsappTemplate={null}
+        whatsappReceiptTemplates={emptyReceiptTemplates}
+        tenantId="tenant-1"
+        userId="user-1"
+        canDelete={true}
+        initialPayments={[firstPayment]}
+      />,
+    );
+
+    await act(async () => {
+      paymentModalOnSuccess?.(secondPayment);
+      await Promise.resolve();
+    });
+
+    expect(
+      screen.queryByRole("button", { name: paymentLabels.sendReceiptButtonLabel }),
+    ).not.toBeInTheDocument();
   });
 });

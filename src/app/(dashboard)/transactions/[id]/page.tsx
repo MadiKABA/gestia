@@ -3,7 +3,10 @@ import { requireTenantContext } from "@/infrastructure/auth/session";
 import { ForbiddenError, NotFoundError } from "@/domain/shared/errors";
 import { getTransactionByIdAction } from "@/presentation/transaction/actions";
 import { listPaymentsByTransactionAction } from "@/presentation/payment/actions";
-import { getTenantWhatsappTemplateAction } from "@/presentation/tenant/actions";
+import {
+  getTenantWhatsappTemplateAction,
+  getTenantWhatsappReceiptTemplatesAction,
+} from "@/presentation/tenant/actions";
 import { TransactionDetail } from "@/presentation/transaction/components/transaction-detail";
 
 export default async function TransactionDetailPage({
@@ -33,9 +36,10 @@ export default async function TransactionDetailPage({
     throw error;
   }
 
-  const [payments, whatsappTemplate] = await Promise.all([
+  const [payments, whatsappTemplate, whatsappReceiptTemplates] = await Promise.all([
     listPaymentsByTransactionAction(id),
     getTenantWhatsappTemplateAction(),
+    getTenantWhatsappReceiptTemplatesAction(),
   ]);
 
   return (
@@ -43,6 +47,7 @@ export default async function TransactionDetailPage({
       transaction={detail.transaction}
       party={detail.party}
       whatsappTemplate={whatsappTemplate}
+      whatsappReceiptTemplates={whatsappReceiptTemplates}
       tenantId={context.tenantId}
       userId={context.userId}
       canDelete={context.role === "PATRON"}

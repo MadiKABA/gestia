@@ -1,7 +1,7 @@
 import { validatePhoneFormat } from "@/domain/auth/phone";
 import { validateEmailFormat } from "@/domain/auth/email";
 import { validatePinFormat } from "@/domain/auth/pin-policy";
-import { isOtpExpired } from "@/domain/auth/otp";
+import { isOtpAttemptsExceeded, isOtpExpired } from "@/domain/auth/otp";
 import { ValidationError } from "@/domain/shared/errors";
 import type { AuthRepository } from "@/application/auth/auth.repository";
 import type { Hasher } from "@/application/auth/hasher";
@@ -35,10 +35,22 @@ export async function confirmRegistration(
   }
 
   const otpRecord = await deps.repository.findActiveOtp(input.phone, "REGISTRATION");
-  if (!otpRecord || isOtpExpired(otpRecord) || otpRecord.consumedAt) {
+  if (!otpRecord || isOtpExpired(otpRecord)) {
     throw new ValidationError("Code de vérification invalide ou expiré");
   }
+
   if (!(await deps.hasher.verify(otpRecord.codeHash, input.otp))) {
+    const { attempts } = await deps.repository.incrementOtpAttempts(otpRecord.id);
+    if (isOtpAttemptsExceeded(attempts)) {
+      await deps.repository.consumeOtp(otpRecord.id);
+    }
+    throw new ValidationError("Code de vérification invalide ou expiré");
+  }
+
+  const consumed = await deps.repository.consumeOtp(otpRecord.id);
+  if (!consumed) {
+    // Déjà consommé par une confirmation concurrente avec le même code —
+    // n'applique surtout pas une seconde fois la création du tenant.
     throw new ValidationError("Code de vérification invalide ou expiré");
   }
 
@@ -49,8 +61,6 @@ export async function confirmRegistration(
     pinHash: await deps.hasher.hash(input.pin),
     email: input.email,
   });
-
-  await deps.repository.consumeOtp(otpRecord.id);
 
   await deps.auditLogger.log(
     { tenantId: user.tenantId, userId: user.id, role: "PATRON" },

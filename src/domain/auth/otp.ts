@@ -13,6 +13,15 @@ export function isOtpExpired(otp: { expiresAt: Date }, now = new Date()): boolea
   return otp.expiresAt <= now;
 }
 
+/** Seuil d'essais de code avant invalidation de l'OTP (cahier des charges §4,
+ * même logique que MAX_FAILED_ATTEMPTS sur le PIN) — au-delà, l'utilisateur
+ * doit redemander un nouveau code, jamais de déblocage automatique. */
+export const MAX_OTP_ATTEMPTS = 5;
+
+export function isOtpAttemptsExceeded(attempts: number): boolean {
+  return attempts >= MAX_OTP_ATTEMPTS;
+}
+
 /** Anti-spam SMS (cahier des charges §8) : un cooldown court entre deux
  * demandes, plafonnées sur une fenêtre glissante plus large. */
 export const OTP_REQUEST_COOLDOWN_MS = 60 * 1000;

@@ -132,8 +132,20 @@ export class PrismaAuthRepository implements AuthRepository {
     });
   }
 
-  async consumeOtp(id: string): Promise<void> {
-    await prisma.otpCode.update({ where: { id }, data: { consumedAt: new Date() } });
+  async incrementOtpAttempts(id: string): Promise<{ attempts: number }> {
+    const updated = await prisma.otpCode.update({
+      where: { id },
+      data: { attempts: { increment: 1 } },
+    });
+    return { attempts: updated.attempts };
+  }
+
+  async consumeOtp(id: string): Promise<boolean> {
+    const result = await prisma.otpCode.updateMany({
+      where: { id, consumedAt: null },
+      data: { consumedAt: new Date() },
+    });
+    return result.count > 0;
   }
 
   async findRecentOtpRequestTimestamps(

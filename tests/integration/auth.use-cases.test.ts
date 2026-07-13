@@ -334,6 +334,80 @@ describe("use cases auth", () => {
         afterFirstReset?.firstLoginAt?.getTime(),
       );
     });
+
+    it("invalide l'OTP bien avant la 20e tentative de code erroné (régression brute-force)", async () => {
+      // Reproduit le scénario de l'audit sécurité : 20 tentatives de code
+      // erroné sur le même OTP actif. Avant le fix, aucune limite n'existait
+      // — l'OTP restait actif indéfiniment, ouvrant la voie à un brute-force
+      // exhaustif du code à 6 chiffres.
+      const phone = `+22178${Date.now().toString().slice(-6)}4`;
+      const patron = await registerTenant(phone);
+      const realCode = "999999";
+      const otpRecord = await prisma.otpCode.create({
+        data: {
+          identifier: phone,
+          channel: "PHONE",
+          purpose: "PIN_RESET",
+          codeHash: await hasher.hash(realCode),
+          expiresAt: new Date(Date.now() + 60_000),
+        },
+      });
+
+      for (let i = 0; i < 20; i++) {
+        await expect(
+          confirmPinReset(
+            { repository, hasher, auditLogger },
+            { channel: "PHONE", identifier: phone, otp: "000000", newPin: "9999" },
+          ),
+        ).rejects.toThrow(ValidationError);
+      }
+
+      const afterAttempts = await prisma.otpCode.findUnique({ where: { id: otpRecord.id } });
+      expect(afterAttempts?.consumedAt).not.toBeNull();
+      expect(afterAttempts?.attempts).toBeLessThan(20);
+
+      // Même le VRAI code, soumis après invalidation, doit échouer — pas de
+      // déblocage automatique, l'utilisateur doit redemander un nouvel OTP.
+      await expect(
+        confirmPinReset(
+          { repository, hasher, auditLogger },
+          { channel: "PHONE", identifier: phone, otp: realCode, newPin: "9999" },
+        ),
+      ).rejects.toThrow(ValidationError);
+
+      const finalUser = await prisma.user.findUnique({ where: { id: patron.id } });
+      expect(finalUser?.pinHash).toBe(patron.pinHash);
+    });
+
+    it("n'accepte qu'une seule des deux confirmations concurrentes avec le même OTP (régression TOCTOU)", async () => {
+      const phone = `+22178${Date.now().toString().slice(-6)}5`;
+      await registerTenant(phone);
+      const code = "123123";
+      await prisma.otpCode.create({
+        data: {
+          identifier: phone,
+          channel: "PHONE",
+          purpose: "PIN_RESET",
+          codeHash: await hasher.hash(code),
+          expiresAt: new Date(Date.now() + 60_000),
+        },
+      });
+
+      const attempts = await Promise.all(
+        [1, 2].map((n) =>
+          confirmPinReset(
+            { repository, hasher, auditLogger },
+            { channel: "PHONE", identifier: phone, otp: code, newPin: `000${n}` },
+          ).then(
+            () => "success" as const,
+            () => "failure" as const,
+          ),
+        ),
+      );
+
+      expect(attempts.filter((result) => result === "success")).toHaveLength(1);
+      expect(attempts.filter((result) => result === "failure")).toHaveLength(1);
+    });
   });
 
   describe("inviteVendeur", () => {

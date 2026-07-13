@@ -8,6 +8,7 @@ export type OtpCode = {
   purpose: OtpPurpose;
   expiresAt: Date;
   consumedAt: Date | null;
+  attempts: number;
 };
 
 export type AuthUser = {
@@ -73,7 +74,16 @@ export interface AuthRepository {
     expiresAt: Date;
   }): Promise<void>;
   findActiveOtp(identifier: string, purpose: OtpPurpose): Promise<OtpCode | null>;
-  consumeOtp(id: string): Promise<void>;
+  /** Incrémente atomiquement le compteur d'essais côté base (même pattern
+   * que `incrementFailedAttempts`) — retourne le compteur à jour pour que
+   * l'appelant décide de l'invalidation (`isOtpAttemptsExceeded`). */
+  incrementOtpAttempts(id: string): Promise<{ attempts: number }>;
+  /** Compare-and-swap : ne marque consommé que si l'OTP n'est pas déjà
+   * consommé (`WHERE consumedAt IS NULL`), et retourne `true` seulement si
+   * cet appel a réellement effectué la transition — empêche deux
+   * confirmations concurrentes avec le même code de réussir toutes les deux
+   * (TOCTOU entre la vérification et la consommation). */
+  consumeOtp(id: string): Promise<boolean>;
   findRecentOtpRequestTimestamps(
     identifier: string,
     purpose: OtpPurpose,

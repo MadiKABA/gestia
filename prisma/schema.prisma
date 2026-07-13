@@ -204,6 +204,12 @@ model OtpCode {
   purpose    OtpPurpose
   expiresAt  DateTime
   consumedAt DateTime?
+  /** Nombre d'essais de code échoués — incrémenté atomiquement à chaque
+   * vérification ratée (voir AuthRepository.incrementOtpAttempts), jamais
+   * un read-then-write applicatif. Au-delà de MAX_OTP_ATTEMPTS (domain/auth/otp.ts),
+   * l'OTP est invalidé (marqué consommé) : pas de déblocage automatique,
+   * l'utilisateur doit redemander un nouveau code. */
+  attempts   Int        @default(0)
 
   createdAt DateTime @default(now())
 

@@ -29,6 +29,19 @@ type RateLimitConfig = {
  * mutations, tout en bornant un client buggé en boucle de retry. */
 export const SYNC_RATE_LIMIT: RateLimitConfig = { limit: 60, windowMs: 60_000 };
 
+/** Demandes d'OTP (inscription/reset PIN) par IP, toutes cibles (numéros)
+ * confondues — complète le rate limiting déjà existant par numéro cible
+ * (`assertOtpRequestAllowed`, DB-backed), qui à lui seul ne bloque jamais un
+ * attaquant changeant de numéro à chaque appel : chaque nouveau numéro
+ * obtient son propre quota vierge. 20/heure laisse de la marge à plusieurs
+ * utilisateurs légitimes derrière une même IP partagée (NAT mobile fréquent),
+ * tout en plafonnant sévèrement un abus par numéros arbitraires. Suppose un
+ * reverse proxy de confiance en amont qui réécrit `X-Forwarded-For` plutôt
+ * qu'un client qui le falsifierait — cohérent avec le HSTS déjà émis
+ * (next.config.ts), qui suppose déjà un TLS terminé en amont ; à
+ * vérifier/configurer côté infra VPS. */
+export const OTP_REQUEST_IP_RATE_LIMIT: RateLimitConfig = { limit: 20, windowMs: 60 * 60 * 1000 };
+
 const requestTimestampsByKey = new Map<string, number[]>();
 
 /**

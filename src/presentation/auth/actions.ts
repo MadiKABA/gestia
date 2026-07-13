@@ -25,6 +25,7 @@ import { updateVendeur } from "@/application/auth/update-vendeur.use-case";
 import { listVendeurs } from "@/application/auth/list-vendeurs.use-case";
 import { getCurrentUser } from "@/application/auth/get-current-user.use-case";
 import { NotFoundError, ValidationError } from "@/domain/shared/errors";
+import { checkRateLimit, OTP_REQUEST_IP_RATE_LIMIT } from "@/infrastructure/shared/rate-limiter";
 import { authLabels } from "@/presentation/shared/labels";
 import {
   confirmPinResetSchema,
@@ -63,10 +64,26 @@ function otpSenderFor(channel: OtpChannel): OtpSender {
  * pris...) sont une issue normale du flux, pas une exception serveur. */
 export type RequestOtpResult = { success: true } | { success: false; error: string };
 
+const OTP_IP_RATE_LIMIT_MESSAGE = "Trop de demandes depuis cette connexion. Réessayez plus tard.";
+
+/** Meilleure IP disponible pour le rate limiting par IP des demandes d'OTP —
+ * voir le commentaire sur OTP_REQUEST_IP_RATE_LIMIT (rate-limiter.ts) pour
+ * l'hypothèse de confiance sur ce header. */
+async function clientIpKey(): Promise<string> {
+  const forwardedFor = (await headers()).get("x-forwarded-for");
+  return forwardedFor?.split(",")[0]?.trim() || "unknown";
+}
+
 export async function requestRegistrationOtpAction(
   input: RequestRegistrationOtpInput,
 ): Promise<RequestOtpResult> {
   const { phone } = requestRegistrationOtpSchema.parse(input);
+
+  const ip = await clientIpKey();
+  if (!checkRateLimit(`otp-request:${ip}`, OTP_REQUEST_IP_RATE_LIMIT)) {
+    return { success: false, error: OTP_IP_RATE_LIMIT_MESSAGE };
+  }
+
   try {
     await requestRegistrationOtp({ repository, otpSender: smsOtpSender, hasher }, { phone });
     return { success: true };
@@ -124,6 +141,12 @@ export async function requestPinResetAction(
   input: RequestPinResetInput,
 ): Promise<RequestOtpResult> {
   const { channel, identifier } = requestPinResetSchema.parse(input);
+
+  const ip = await clientIpKey();
+  if (!checkRateLimit(`otp-request:${ip}`, OTP_REQUEST_IP_RATE_LIMIT)) {
+    return { success: false, error: OTP_IP_RATE_LIMIT_MESSAGE };
+  }
+
   try {
     await requestPinReset(
       { repository, otpSender: otpSenderFor(channel), hasher },

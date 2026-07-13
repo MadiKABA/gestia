@@ -1,9 +1,11 @@
+import { PHASE_PRODUCTION_BUILD } from "next/constants";
 import { z } from "zod";
 
 /**
  * Validation Zod des variables d'environnement, exécutée à l'import de ce module
- * (donc au démarrage de l'app). Toute variable manquante ou mal formée fait
- * échouer le démarrage immédiatement plutôt qu'en pleine requête.
+ * (donc au démarrage réel de l'app — dev, ou `next start` en prod). Toute variable
+ * manquante ou mal formée fait échouer le démarrage immédiatement plutôt qu'en
+ * pleine requête.
  */
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
@@ -37,7 +39,21 @@ const envSchema = z.object({
   NEXT_PUBLIC_APP_NAME: z.string().default("Gestia"),
 });
 
-function loadEnv() {
+type Env = z.infer<typeof envSchema>;
+
+function loadEnv(): Env {
+  // Next.js exécute une étape de "collecte des données de page" pendant `next build`
+  // qui importe les modules de route (dont /api/auth/[...all]) pour analyse statique —
+  // ce module est alors chargé transitivement avant que la plateforme d'hébergement
+  // (déploiement Node natif sans Docker, ex. Render) ne garantisse les variables
+  // d'environnement à cette étape précise, même si elles sont bien présentes au
+  // démarrage réel du serveur. Next positionne `NEXT_PHASE=phase-production-build`
+  // uniquement pendant cette commande : on saute la validation *seulement* alors,
+  // jamais en dev ni au runtime réel (`next start`), qui restent fail-fast.
+  if (process.env.NEXT_PHASE === PHASE_PRODUCTION_BUILD) {
+    return process.env as unknown as Env;
+  }
+
   const parsed = envSchema.safeParse(process.env);
 
   if (!parsed.success) {

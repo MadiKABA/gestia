@@ -2,14 +2,28 @@ import { Resend } from "resend";
 import type { OtpSender } from "@/application/auth/otp-sender";
 import { env } from "@/lib/env";
 
-const resend = new Resend(env.RESEND_API_KEY);
+let resendClient: Resend | undefined;
+
+/**
+ * Construction paresseuse : `new Resend(...)` throw immédiatement si la clé
+ * est absente. Un singleton construit à l'import serait évalué pendant la
+ * collecte de données de page de `next build`, avant que les variables
+ * d'environnement ne soient garanties disponibles (voir better-auth.ts pour
+ * le même raisonnement appliqué à betterAuth()).
+ */
+function getResendClient(): Resend {
+  if (!resendClient) {
+    resendClient = new Resend(env.RESEND_API_KEY);
+  }
+  return resendClient;
+}
 
 export class EmailOtpSender implements OtpSender {
   // `options` (isVendeurInvitation) ignoré ici : un vendeur invité n'a pas
   // encore d'email (seul le téléphone est utilisé à l'invitation, cf.
   // otp-sender.ts) — ce canal ne reçoit donc jamais cette option à `true`.
   async sendOtp(email: string, code: string): Promise<void> {
-    const { error } = await resend.emails.send({
+    const { error } = await getResendClient().emails.send({
       from: env.RESEND_FROM_EMAIL,
       to: email,
       subject: `${code} — votre code de vérification Gestia`,

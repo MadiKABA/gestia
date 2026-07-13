@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { APIError } from "better-auth/api";
-import { auth } from "@/infrastructure/auth/better-auth";
+import { getAuth } from "@/infrastructure/auth/better-auth";
 import { requireTenantContext } from "@/infrastructure/auth/session";
 import { requirePatron } from "@/presentation/auth/require-role";
 import { PrismaAuthRepository } from "@/infrastructure/auth/auth.repository";
@@ -118,7 +118,7 @@ export async function confirmRegistrationAction(input: ConfirmRegistrationInput)
   // Le patron vient de définir son PIN dans ce même formulaire : on le connecte
   // directement plutôt que de lui faire ressaisir son PIN sur l'écran de
   // connexion (cahier des charges §9 : connexion < 5 s).
-  await auth.api.signInPin({ body: { channel: "PHONE", identifier: phone, pin } });
+  await getAuth().api.signInPin({ body: { channel: "PHONE", identifier: phone, pin } });
   redirect("/dashboard");
 }
 
@@ -126,7 +126,7 @@ export async function loginAction(input: LoginInput) {
   const { channel, identifier, pin } = loginSchema.parse(input);
 
   try {
-    await auth.api.signInPin({ body: { channel, identifier, pin } });
+    await getAuth().api.signInPin({ body: { channel, identifier, pin } });
   } catch (error) {
     if (error instanceof APIError) {
       throw new ValidationError(error.message);
@@ -234,6 +234,6 @@ export async function getCurrentUserAction() {
 }
 
 export async function signOutAction() {
-  await auth.api.signOut({ headers: await headers() });
+  await getAuth().api.signOut({ headers: await headers() });
   redirect("/login");
 }

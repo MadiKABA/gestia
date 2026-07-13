@@ -17,6 +17,28 @@ const nextConfig: NextConfig = {
   // Headers de réponse uniquement — ne touche pas au routage/aux redirections
   // (ça reste le rôle de src/proxy.ts, dont le matcher n'est pas concerné ici).
   async headers() {
+    // `img-src` autorise Cloudinary (logo boutique, voir remotePatterns
+    // ci-dessus) ; `connect-src` reste à 'self' (aucun fetch externe dans
+    // l'app, vérifié). `script-src`/`style-src` gardent 'unsafe-inline' :
+    // vérifié à la main (Playwright + build de prod) que Next.js émet des
+    // scripts inline non noncés (payload d'hydratation RSC) sur `/register`
+    // — les bloquer casse le rendu. Un passage à des nonces par requête
+    // (proxy.ts + layout) supprimerait ce besoin mais reste un chantier
+    // séparé, plus large que l'ajout de ces headers.
+    const csp = [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline'",
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' data: https://res.cloudinary.com",
+      "font-src 'self' data:",
+      "connect-src 'self'",
+      "worker-src 'self'",
+      "manifest-src 'self'",
+      "frame-ancestors 'none'",
+      "base-uri 'self'",
+      "form-action 'self'",
+    ].join("; ");
+
     return [
       {
         source: "/(.*)",
@@ -32,6 +54,7 @@ const nextConfig: NextConfig = {
             key: "Strict-Transport-Security",
             value: "max-age=63072000; includeSubDomains",
           },
+          { key: "Content-Security-Policy", value: csp },
         ],
       },
       {

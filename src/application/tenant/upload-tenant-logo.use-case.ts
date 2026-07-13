@@ -21,7 +21,7 @@ export async function uploadTenantLogo(
     throw new ForbiddenError("Seul le patron peut modifier le logo de la boutique");
   }
 
-  validateLogoFile(file);
+  validateLogoFile({ mimeType: file.mimeType, sizeBytes: file.sizeBytes, content: file.buffer });
 
   const { url } = await deps.logoUploader.upload(file, context.tenantId);
 

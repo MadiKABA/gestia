@@ -10,6 +10,11 @@ import { getTenantSettingsForEdit } from "@/application/tenant/get-tenant-settin
 import { uploadTenantLogo } from "@/application/tenant/upload-tenant-logo.use-case";
 import { ForbiddenError, ValidationError } from "@/domain/shared/errors";
 
+/** En-tête PNG réel (magic bytes) — depuis la validation par contenu réel du
+ * fichier (logo-file.ts), un buffer de texte arbitraire ne passe plus la
+ * vérification, même avec un mimeType "image/png" déclaré. */
+const PNG_BUFFER = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+
 /**
  * Tests d'intégration (couche application, contre un Postgres réel) : les
  * use cases d'écriture des paramètres tenant.
@@ -261,6 +266,36 @@ describe("use cases tenant-settings", () => {
       expect(called).toBe(false);
     });
 
+    it("rejette un mimeType falsifié dont le contenu réel n'est pas une image (régression contournement upload)", async () => {
+      const patron = await registerTenant();
+      const repository = new PrismaTenantSettingsRepository(patron.tenantId);
+      let called = false;
+
+      await expect(
+        uploadTenantLogo(
+          { tenantId: patron.tenantId, userId: patron.id, role: "PATRON" },
+          {
+            logoUploader: {
+              upload: async () => {
+                called = true;
+                return { url: "https://example.test/logo.png" };
+              },
+            },
+            repository,
+            auditLogger,
+          },
+          // mimeType déclaré "image/png" mais contenu réel arbitraire — un
+          // simple .type falsifiable côté client ne suffit plus à passer.
+          {
+            buffer: Buffer.from("#!/bin/sh\necho not an image"),
+            mimeType: "image/png",
+            sizeBytes: 100,
+          },
+        ),
+      ).rejects.toThrow(ValidationError);
+      expect(called).toBe(false);
+    });
+
     it("persiste logoUrl et écrit l'AuditLog quand l'upload réussit", async () => {
       const patron = await registerTenant();
       const repository = new PrismaTenantSettingsRepository(patron.tenantId);
@@ -272,7 +307,7 @@ describe("use cases tenant-settings", () => {
           repository,
           auditLogger,
         },
-        { buffer: Buffer.from("fake-image"), mimeType: "image/png", sizeBytes: 100 },
+        { buffer: PNG_BUFFER, mimeType: "image/png", sizeBytes: 100 },
       );
 
       expect(result.logoUrl).toBe("https://res.cloudinary.com/logo.png");
@@ -298,7 +333,7 @@ describe("use cases tenant-settings", () => {
             repository,
             auditLogger,
           },
-          { buffer: Buffer.from("fake-image"), mimeType: "image/png", sizeBytes: 100 },
+          { buffer: PNG_BUFFER, mimeType: "image/png", sizeBytes: 100 },
         ),
       ).rejects.toThrow("Panne Cloudinary");
     });

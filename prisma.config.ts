@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { defineConfig, env } from "prisma/config";
+import { defineConfig } from "prisma/config";
 
 export default defineConfig({
   schema: "prisma/schema.prisma",
@@ -8,10 +8,13 @@ export default defineConfig({
     seed: "tsx prisma/seed.ts",
   },
   datasource: {
-    // `env()` (plutôt que process.env directement) fait échouer le chargement
-    // de la config avec une erreur nommant explicitement DATABASE_URL si la
-    // variable est absente, au lieu du message générique et peu actionnable
-    // de la CLI ("datasource.url property is required...").
-    url: env("DATABASE_URL"),
+    // `process.env` plutôt que le helper `env()` : ce fichier est chargé pour
+    // TOUTE commande Prisma, y compris `generate` (appelé par `postinstall`
+    // à chaque `pnpm install`), qui n'a besoin d'aucune connexion réelle à la
+    // base. `env()` throw dès le chargement de la config si la variable est
+    // absente — ce qui casse `generate` inutilement. Seules les commandes qui
+    // se connectent réellement (`migrate deploy`, `db push`...) échoueront
+    // si la variable manque encore à ce moment-là, ce qui est correct.
+    url: process.env["DATABASE_URL"],
   },
 });

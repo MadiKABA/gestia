@@ -17,8 +17,17 @@ const PARTIAL_PREVIEW_VARS = {
   montantPaye: "5 000",
   modePaiement: "Wave",
   montantRestant: "10 000",
+  montantTotal: "15 000",
+  boutique: "Boutique Awa",
+  date: "12 juillet 2026",
 };
-const FINAL_PREVIEW_VARS = { client: "Awa Diop", montantPaye: "15 000" };
+const FINAL_PREVIEW_VARS = {
+  client: "Awa Diop",
+  montantPaye: "15 000",
+  montantTotal: "15 000",
+  boutique: "Boutique Awa",
+  date: "12 juillet 2026",
+};
 
 export function ReceiptTemplatesSettingsForm({
   whatsappReceiptPartialTemplate: initialPartialTemplate,

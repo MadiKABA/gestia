@@ -107,6 +107,7 @@ export function TransactionsList({
   initialType,
   lastPaymentMethodByTransactionId,
   whatsappReceiptTemplates,
+  boutique,
   reminderDays,
 }: {
   initialTransactions: Transaction[];
@@ -126,6 +127,9 @@ export function TransactionsList({
    * transaction-detail.tsx, pour proposer le même reçu après un paiement
    * rapide déclenché directement depuis cette liste. */
   whatsappReceiptTemplates: { partial: string | null; final: string | null };
+  /** Nom affiché à insérer dans les messages WhatsApp — voir
+   * `TenantBranding.displayName ?? tenantName`. */
+  boutique: string;
   /** `TenantSettings.reminderDays` — sert uniquement au badge "à relancer"
    * (indicateur visuel, jamais une notification automatique, cf. CLAUDE.md
    * "Hors périmètre"). */
@@ -485,6 +489,9 @@ export function TransactionsList({
             remainingBalance={
               receiptContext.transaction.amount - receiptContext.transaction.paidAmount
             }
+            totalAmount={receiptContext.transaction.amount}
+            boutique={boutique}
+            date={receiptContext.transaction.createdAt}
             partialTemplate={whatsappReceiptTemplates.partial}
             finalTemplate={whatsappReceiptTemplates.final}
           />

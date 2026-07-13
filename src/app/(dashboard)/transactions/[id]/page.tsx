@@ -7,6 +7,7 @@ import {
   getTenantWhatsappTemplateAction,
   getTenantWhatsappReceiptTemplatesAction,
   getTenantReminderDaysAction,
+  getTenantBrandingAction,
 } from "@/presentation/tenant/actions";
 import { TransactionDetail } from "@/presentation/transaction/components/transaction-detail";
 
@@ -37,12 +38,14 @@ export default async function TransactionDetailPage({
     throw error;
   }
 
-  const [payments, whatsappTemplate, whatsappReceiptTemplates, reminderDays] = await Promise.all([
-    listPaymentsByTransactionAction(id),
-    getTenantWhatsappTemplateAction(),
-    getTenantWhatsappReceiptTemplatesAction(),
-    getTenantReminderDaysAction(),
-  ]);
+  const [payments, whatsappTemplate, whatsappReceiptTemplates, reminderDays, branding] =
+    await Promise.all([
+      listPaymentsByTransactionAction(id),
+      getTenantWhatsappTemplateAction(),
+      getTenantWhatsappReceiptTemplatesAction(),
+      getTenantReminderDaysAction(),
+      getTenantBrandingAction(),
+    ]);
 
   return (
     <TransactionDetail
@@ -50,6 +53,7 @@ export default async function TransactionDetailPage({
       party={detail.party}
       whatsappTemplate={whatsappTemplate}
       whatsappReceiptTemplates={whatsappReceiptTemplates}
+      boutique={branding.displayName ?? branding.tenantName}
       reminderDays={reminderDays}
       tenantId={context.tenantId}
       userId={context.userId}

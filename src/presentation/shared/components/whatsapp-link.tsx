@@ -2,21 +2,22 @@ import { MessageCircle } from "lucide-react";
 import { Button } from "@/presentation/shared/components/ui/button";
 import { WhatsappMessagePreview } from "@/presentation/shared/components/whatsapp-message-preview";
 import { transactionLabels } from "@/presentation/shared/labels";
+import { formatLongDateFr } from "@/presentation/shared/date-format";
 
 /** Gabarit par défaut si le tenant n'a jamais personnalisé
  * `TenantSettings.whatsappTemplate` — placeholders remplacés par
  * `renderWhatsappTemplate`, jamais du HTML/markdown (message WhatsApp brut). */
 export const DEFAULT_WHATSAPP_TEMPLATE =
-  "Bonjour {client}, petit rappel : {reference} de {montant} FCFA est toujours en attente. Merci de régulariser dès que possible !";
+  "Salam {client}, j'espère que tu vas bien. Ici {boutique}. Selon mon cahier du {date}, tu as pris {description} pour un total de {montantTotal} FCFA (réf. {reference}). Il te reste {montantRestant} FCFA à régler. Merci et bonne journée !";
 
 /** Gabarits par défaut des reçus de paiement — voir
  * `TenantSettings.whatsappReceiptPartialTemplate`/`whatsappReceiptFinalTemplate`,
  * consommés par `WhatsappReceiptLink` (presentation/payment). */
 export const DEFAULT_WHATSAPP_RECEIPT_PARTIAL_TEMPLATE =
-  "Salam {client}, j'ai bien enregistré ton paiement de {montantPaye} FCFA par {modePaiement} aujourd'hui. Merci ! Il te reste maintenant {montantRestant} FCFA dans mon cahier. À bientôt !";
+  "Salam {client}, ici {boutique}. J'ai bien enregistré ton paiement de {montantPaye} FCFA par {modePaiement} aujourd'hui. Sur ton total de {montantTotal} FCFA pris le {date}, il te reste maintenant {montantRestant} FCFA dans mon cahier. Merci et à bientôt !";
 
 export const DEFAULT_WHATSAPP_RECEIPT_FINAL_TEMPLATE =
-  "Salam {client}, merci beaucoup pour ton paiement de {montantPaye} FCFA. Ton compte est maintenant à 0 FCFA. C'est totalement réglé (Safi) ! Merci pour la confiance. 🙏";
+  "Salam {client}, ici {boutique}. Merci beaucoup pour ton paiement de {montantPaye} FCFA. Ton total de {montantTotal} FCFA pris le {date} est maintenant soldé à 0 FCFA. C'est totalement réglé (Safi) ! Merci pour la confiance. 🙏";
 
 /** Clés de gabarit arbitraires (relance : `{client}`, `{montant}`,
  * `{reference}` ; reçu : `{montantPaye}`, `{modePaiement}`, `{montantRestant}`
@@ -49,18 +50,33 @@ export function WhatsappLink({
   template,
   client,
   amount,
+  totalAmount,
   reference,
+  boutique,
+  description,
+  date,
 }: {
   phone: string;
   template: string | null;
   client: string;
   amount: number;
+  totalAmount: number;
   reference: string | null;
+  boutique: string;
+  description: string;
+  date: Date;
 }) {
   const message = renderWhatsappTemplate(template ?? DEFAULT_WHATSAPP_TEMPLATE, {
     client,
+    // `montant` reste alimenté pour ne pas casser un gabarit déjà
+    // personnalisé par un tenant avant l'introduction de `montantRestant`.
     montant: amount.toLocaleString("fr-FR"),
+    montantRestant: amount.toLocaleString("fr-FR"),
+    montantTotal: totalAmount.toLocaleString("fr-FR"),
     reference: reference ?? "",
+    boutique,
+    description,
+    date: formatLongDateFr(date),
   });
   const href = buildWhatsappUrl(phone, message);
 

@@ -9,6 +9,7 @@ import {
 } from "@/presentation/shared/components/whatsapp-link";
 import { PAYMENT_METHOD_LABEL } from "@/presentation/payment/components/payment-method-labels";
 import { paymentLabels } from "@/presentation/shared/labels";
+import { formatLongDateFr } from "@/presentation/shared/date-format";
 import type { TransactionStatus } from "@/domain/transaction/transaction.entity";
 import type { PaymentMethod } from "@/domain/payment/payment.entity";
 
@@ -27,6 +28,9 @@ export function WhatsappReceiptLink({
   amountPaid,
   method,
   remainingBalance,
+  totalAmount,
+  boutique,
+  date,
   partialTemplate,
   finalTemplate,
 }: {
@@ -36,6 +40,9 @@ export function WhatsappReceiptLink({
   amountPaid: number;
   method: PaymentMethod;
   remainingBalance: number;
+  totalAmount: number;
+  boutique: string;
+  date: Date;
   partialTemplate: string | null;
   finalTemplate: string | null;
 }) {
@@ -51,6 +58,9 @@ export function WhatsappReceiptLink({
     montantPaye: amountPaid.toLocaleString("fr-FR"),
     modePaiement: PAYMENT_METHOD_LABEL[method],
     montantRestant: remainingBalance.toLocaleString("fr-FR"),
+    montantTotal: totalAmount.toLocaleString("fr-FR"),
+    boutique,
+    date: formatLongDateFr(date),
   });
   const href = buildWhatsappUrl(phone, message);
 

@@ -42,6 +42,7 @@ export function TransactionDetail({
   party,
   whatsappTemplate,
   whatsappReceiptTemplates,
+  boutique,
   reminderDays,
   tenantId,
   userId,
@@ -52,6 +53,9 @@ export function TransactionDetail({
   party: PartyContact | null;
   whatsappTemplate: string | null;
   whatsappReceiptTemplates: { partial: string | null; final: string | null };
+  /** Nom affiché à insérer dans les messages WhatsApp — voir
+   * `TenantBranding.displayName ?? tenantName`. */
+  boutique: string;
   /** `TenantSettings.reminderDays` — sert uniquement au badge "à relancer". */
   reminderDays: number;
   tenantId: string;
@@ -161,7 +165,11 @@ export function TransactionDetail({
           template={whatsappTemplate}
           client={party?.name ?? ""}
           amount={transaction.amount - transaction.paidAmount}
+          totalAmount={transaction.amount}
           reference={transaction.reference}
+          boutique={boutique}
+          description={transaction.description}
+          date={transaction.createdAt}
         />
       ) : null}
 
@@ -176,6 +184,9 @@ export function TransactionDetail({
           amountPaid={lastPayment.amount}
           method={lastPayment.method}
           remainingBalance={transaction.amount - transaction.paidAmount}
+          totalAmount={transaction.amount}
+          boutique={boutique}
+          date={transaction.createdAt}
           partialTemplate={whatsappReceiptTemplates.partial}
           finalTemplate={whatsappReceiptTemplates.final}
         />

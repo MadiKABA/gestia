@@ -15,7 +15,16 @@ import { commonLabels, tenantSettingsLabels } from "@/presentation/shared/labels
 const REMINDER_DAYS_MIN = 1;
 const REMINDER_DAYS_MAX = 30;
 
-const PREVIEW_VARS = { client: "Awa Diop", montant: "15 000", reference: "CR-1042" };
+const PREVIEW_VARS = {
+  client: "Awa Diop",
+  montant: "15 000",
+  montantRestant: "15 000",
+  montantTotal: "25 000",
+  reference: "CR-1042",
+  boutique: "Boutique Awa",
+  description: "3 sacs de riz",
+  date: "12 juillet 2026",
+};
 
 export function RelanceSettingsForm({
   reminderDays: initialReminderDays,

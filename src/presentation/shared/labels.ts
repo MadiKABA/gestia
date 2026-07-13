@@ -388,3 +388,15 @@ export const syncFailuresLabels = {
   discardConfirmDescription:
     "Cette action ne sera plus jamais synchronisée. Si elle était toujours nécessaire, vous devrez la recréer une fois reconnecté.",
 };
+
+/**
+ * Écran d'accueil public (`app/page.tsx`) — vitrine avant connexion,
+ * bouton principal adaptatif selon la présence d'une session (voir
+ * commentaire dans le composant pour le détail des deux états).
+ */
+export const landingLabels = {
+  tagline: "Qui me doit de l'argent, à qui je dois, combien j'ai en caisse.",
+  loginButtonLabel: "Se connecter",
+  dashboardButtonLabel: "Aller au tableau de bord",
+  registerLinkLabel: "Pas encore de compte ? Créer ma boutique",
+};

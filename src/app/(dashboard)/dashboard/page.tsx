@@ -16,7 +16,13 @@ export default async function DashboardPage() {
     await requirePatron();
   } catch (error) {
     if (error instanceof ForbiddenError) {
-      redirect("/");
+      // Effet de bord du correctif "/" → /dashboard pour une session valide
+      // (voir app/page.tsx) : rediriger un VENDEUR vers "/" créerait une
+      // boucle infinie (/ renvoie vers /dashboard, qui le renvoie ici vers
+      // /). "/tiers" est la première route accessible aux deux rôles dans
+      // SIDEBAR_NAV_ITEMS et sa page existe déjà, contrairement à
+      // "/mes-operations" (pas encore construite, voir nav-config.ts).
+      redirect("/tiers");
     }
     throw error;
   }

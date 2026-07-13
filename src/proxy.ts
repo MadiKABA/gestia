@@ -9,19 +9,27 @@ import { getSessionCookie } from "better-auth/cookies";
  * Action/page via requireTenantContext() (infrastructure/auth/session.ts).
  */
 const AUTH_ROUTE_PREFIXES = ["/login", "/register", "/reset-pin", "/premiere-connexion"];
+// Égalité stricte (pas préfixe) : seul l'écran d'accueil lui-même est
+// public, pas question d'exempter accidentellement une sous-route par ce
+// biais. La landing détecte elle-même une session valide et redirige vers
+// /dashboard (voir app/page.tsx) — ce garde-fou ne fait que la laisser
+// passer pour un visiteur sans session, plutôt que la court-circuiter en
+// forçant /login avant même son premier rendu.
+const PUBLIC_ROUTES = ["/"];
 
 export function proxy(request: NextRequest) {
   const isAuthRoute = AUTH_ROUTE_PREFIXES.some((prefix) =>
     request.nextUrl.pathname.startsWith(prefix),
   );
+  const isPublicRoute = PUBLIC_ROUTES.includes(request.nextUrl.pathname);
   const hasSession = Boolean(getSessionCookie(request));
 
-  if (!hasSession && !isAuthRoute) {
+  if (!hasSession && !isAuthRoute && !isPublicRoute) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
   if (hasSession && isAuthRoute) {
-    return NextResponse.redirect(new URL("/", request.url));
+    return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
   return NextResponse.next();

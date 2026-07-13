@@ -95,10 +95,11 @@ describe("Rate limiting par IP sur les demandes d'OTP", () => {
         channel: "PHONE",
         identifier: fakePhone(300 + i),
       });
-      // Ce numéro n'existe pas forcément en base — l'erreur métier
-      // ("Aucun compte associé") est acceptable ici, seul compte le fait que
-      // ce ne soit jamais le message de rate limiting avant d'avoir atteint
-      // la limite globale.
+      // Ce numéro n'existe pas en base — requestPinReset répond désormais
+      // silencieusement (jamais "Aucun compte associé", cf. régression
+      // énumération de compte), donc `success: true` ici aussi. Seul compte
+      // le fait que ce ne soit jamais le message de rate limiting avant
+      // d'avoir atteint la limite globale.
       expect(result.success === false ? result.error : "success").not.toBe(
         "Trop de demandes depuis cette connexion. Réessayez plus tard.",
       );

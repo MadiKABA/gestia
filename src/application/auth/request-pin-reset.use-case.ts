@@ -8,7 +8,6 @@ import {
   type OtpChannel,
 } from "@/domain/auth/otp";
 import { generateOtpCode } from "@/application/auth/generate-otp-code";
-import { ValidationError } from "@/domain/shared/errors";
 import type { AuthRepository } from "@/application/auth/auth.repository";
 import type { OtpSender } from "@/application/auth/otp-sender";
 import type { Hasher } from "@/application/auth/hasher";
@@ -28,7 +27,11 @@ export async function requestPinReset(
       ? await deps.repository.findUserByEmail(input.identifier)
       : await deps.repository.findUserByPhone(input.identifier);
   if (!user) {
-    throw new ValidationError("Aucun compte associé à cet identifiant");
+    // Ne révèle jamais si un compte existe pour cet identifiant (énumération
+    // de compte) : retourne silencieusement, comme un succès — aucun OTP créé,
+    // aucun SMS/email envoyé. Le message affiché à l'utilisateur reste
+    // générique quel que soit le cas, voir requestPinResetAction.
+    return;
   }
 
   const recentRequests = await deps.repository.findRecentOtpRequestTimestamps(

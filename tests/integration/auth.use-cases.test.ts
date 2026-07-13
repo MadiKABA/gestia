@@ -261,6 +261,24 @@ describe("use cases auth", () => {
   });
 
   describe("requestPinReset / confirmPinReset", () => {
+    it("répond silencieusement pour un identifiant qui n'existe pas (régression énumération de compte)", async () => {
+      const unknownPhone = `+22178${Date.now().toString().slice(-6)}6`;
+      const sendOtpMock = vi.fn().mockResolvedValue(undefined);
+
+      await expect(
+        requestPinReset(
+          { repository, otpSender: { sendOtp: sendOtpMock }, hasher },
+          { channel: "PHONE", identifier: unknownPhone },
+        ),
+      ).resolves.toBeUndefined();
+
+      expect(sendOtpMock).not.toHaveBeenCalled();
+      const otpRecord = await prisma.otpCode.findFirst({
+        where: { identifier: unknownPhone, purpose: "PIN_RESET" },
+      });
+      expect(otpRecord).toBeNull();
+    });
+
     it("réinitialise le PIN via le canal email", async () => {
       const phone = `+22178${Date.now().toString().slice(-6)}8`;
       const email = `awa${Date.now()}@gestia.test`;

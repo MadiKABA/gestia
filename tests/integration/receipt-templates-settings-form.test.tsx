@@ -51,7 +51,7 @@ describe("ReceiptTemplatesSettingsForm", () => {
     ).toHaveValue(DEFAULT_WHATSAPP_RECEIPT_FINAL_TEMPLATE);
   });
 
-  it("affiche un aperçu de chaque gabarit qui se met à jour en direct", () => {
+  it("affiche un aperçu de chaque gabarit qui se met à jour en direct, y compris boutique/montant total/date", () => {
     render(
       <ReceiptTemplatesSettingsForm
         whatsappReceiptPartialTemplate={null}
@@ -63,9 +63,48 @@ describe("ReceiptTemplatesSettingsForm", () => {
       tenantSettingsLabels.whatsappReceiptPartialTemplateField,
     );
     fireEvent.change(partialTextarea, {
-      target: { value: "Coucou {client}, reste {montantRestant} FCFA" },
+      target: {
+        value:
+          "Coucou {client} de {boutique}, reste {montantRestant} sur {montantTotal} FCFA le {date}",
+      },
     });
-    expect(screen.getByText("Coucou Awa Diop, reste 10 000 FCFA")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Coucou Awa Diop de Boutique Awa, reste 10 000 sur 15 000 FCFA le 12 juillet 2026",
+      ),
+    ).toBeInTheDocument();
+
+    const finalTextarea = screen.getByLabelText(
+      tenantSettingsLabels.whatsappReceiptFinalTemplateField,
+    );
+    fireEvent.change(finalTextarea, {
+      target: { value: "Merci {client} de {boutique}, {montantTotal} FCFA soldé le {date}" },
+    });
+    expect(
+      screen.getByText("Merci Awa Diop de Boutique Awa, 15 000 FCFA soldé le 12 juillet 2026"),
+    ).toBeInTheDocument();
+  });
+
+  it("un clic sur une variable l'insère dans le bon champ à la position du curseur", async () => {
+    render(
+      <ReceiptTemplatesSettingsForm
+        whatsappReceiptPartialTemplate="Salam {client} !"
+        whatsappReceiptFinalTemplate="Safi {client} !"
+      />,
+    );
+
+    const finalTextarea = screen.getByLabelText<HTMLTextAreaElement>(
+      tenantSettingsLabels.whatsappReceiptFinalTemplateField,
+    );
+    finalTextarea.setSelectionRange(5, 5);
+
+    const [, insertBoutiqueInFinal] = screen.getAllByRole("button", { name: "{boutique}" });
+    await userEvent.click(insertBoutiqueInFinal);
+
+    expect(finalTextarea).toHaveValue("Safi {boutique}{client} !");
+    expect(
+      screen.getByLabelText(tenantSettingsLabels.whatsappReceiptPartialTemplateField),
+    ).toHaveValue("Salam {client} !");
   });
 
   it("chaque bouton de réinitialisation restaure son propre modèle par défaut, sans toucher à l'autre", async () => {

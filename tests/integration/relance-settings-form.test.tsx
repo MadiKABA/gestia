@@ -25,17 +25,39 @@ describe("RelanceSettingsForm", () => {
 
   it("affiche un aperçu du message qui se met à jour en direct", async () => {
     render(<RelanceSettingsForm reminderDays={7} whatsappTemplate={null} />);
-    // Le template par défaut est prérempli quand aucun n'a été personnalisé.
-    expect(screen.getByText(/petit rappel : CR-1042 de 15 000 FCFA/)).toBeInTheDocument();
+    // Le template par défaut est prérempli quand aucun n'a été personnalisé,
+    // avec toutes les nouvelles variables déjà résolues dans l'aperçu.
+    expect(
+      screen.getByText(
+        "Salam Awa Diop, j'espère que tu vas bien. Ici Boutique Awa. Selon mon cahier du 12 juillet 2026, tu as pris 3 sacs de riz pour un total de 25 000 FCFA (réf. CR-1042). Il te reste 15 000 FCFA à régler. Merci et bonne journée !",
+      ),
+    ).toBeInTheDocument();
 
     const textarea = screen.getByLabelText(tenantSettingsLabels.whatsappTemplateField);
     // userEvent.type interprète {xxx} comme des séquences clavier spéciales —
     // fireEvent.change pose la valeur brute pour tester des placeholders.
     fireEvent.change(textarea, {
-      target: { value: "Coucou {client}, {reference} : {montant} FCFA" },
+      target: {
+        value: "Coucou {client} de {boutique}, {reference} : {montantTotal} FCFA le {date}",
+      },
     });
 
-    expect(screen.getByText("Coucou Awa Diop, CR-1042 : 15 000 FCFA")).toBeInTheDocument();
+    expect(
+      screen.getByText("Coucou Awa Diop de Boutique Awa, CR-1042 : 25 000 FCFA le 12 juillet 2026"),
+    ).toBeInTheDocument();
+  });
+
+  it("un clic sur une variable l'insère dans le champ à la position du curseur", async () => {
+    render(<RelanceSettingsForm reminderDays={7} whatsappTemplate="Salam {client} !" />);
+
+    const textarea = screen.getByLabelText<HTMLTextAreaElement>(
+      tenantSettingsLabels.whatsappTemplateField,
+    );
+    textarea.setSelectionRange(6, 6);
+
+    await userEvent.click(screen.getByRole("button", { name: "{boutique}" }));
+
+    expect(textarea).toHaveValue("Salam {boutique}{client} !");
   });
 
   it("le bouton de réinitialisation restaure le modèle par défaut", async () => {

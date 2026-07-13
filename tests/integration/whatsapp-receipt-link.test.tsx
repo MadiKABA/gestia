@@ -9,6 +9,9 @@ const baseProps = {
   amountPaid: 2000,
   method: "CASH" as const,
   remainingBalance: 4000,
+  totalAmount: 6000,
+  boutique: "Boutique Fatou",
+  date: new Date("2026-07-12T10:00:00Z"),
   partialTemplate: null,
   finalTemplate: null,
 };
@@ -19,19 +22,25 @@ describe("WhatsappReceiptLink", () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it("utilise le gabarit par défaut si aucun gabarit personnalisé n'est fourni (partiel)", () => {
+  it("utilise le gabarit par défaut si aucun gabarit personnalisé n'est fourni (partiel), avec boutique/montant total/date", () => {
     render(<WhatsappReceiptLink {...baseProps} status="PARTIELLE" />);
 
-    expect(screen.getByText(/Il te reste maintenant 4 000 FCFA/)).toBeInTheDocument();
+    expect(screen.getByText(/il te reste maintenant 4 000 FCFA/)).toBeInTheDocument();
+    expect(screen.getByText(/Boutique Fatou/)).toBeInTheDocument();
+    expect(screen.getByText(/6 000 FCFA/)).toBeInTheDocument();
+    expect(screen.getByText(/12 juillet 2026/)).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: paymentLabels.sendReceiptButtonLabel }),
     ).toBeInTheDocument();
   });
 
-  it("utilise le gabarit par défaut si aucun gabarit personnalisé n'est fourni (final)", () => {
+  it("utilise le gabarit par défaut si aucun gabarit personnalisé n'est fourni (final), avec boutique/montant total/date", () => {
     render(<WhatsappReceiptLink {...baseProps} status="REGLEE" />);
 
     expect(screen.getByText(/Safi/)).toBeInTheDocument();
+    expect(screen.getByText(/Boutique Fatou/)).toBeInTheDocument();
+    expect(screen.getByText(/6 000 FCFA/)).toBeInTheDocument();
+    expect(screen.getByText(/12 juillet 2026/)).toBeInTheDocument();
   });
 
   it("utilise le gabarit personnalisé du tenant quand il est fourni", () => {

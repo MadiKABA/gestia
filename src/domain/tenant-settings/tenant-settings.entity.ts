@@ -4,7 +4,7 @@ import { BRAND_PRESET_VALUES } from "@/config/brand-presets";
 const REMINDER_DAYS_MIN = 1;
 const REMINDER_DAYS_MAX = 30;
 const WHATSAPP_TEMPLATE_MAX_LENGTH = 500;
-const WHATSAPP_PLACEHOLDERS = ["{client}", "{montant}", "{reference}"] as const;
+const WHATSAPP_PLACEHOLDERS = ["{client}", "{montantRestant}", "{reference}"] as const;
 const WHATSAPP_RECEIPT_PARTIAL_PLACEHOLDERS = [
   "{client}",
   "{montantPaye}",

@@ -36,7 +36,7 @@ describe("validateTenantSettingsInput", () => {
   it("accepte whatsappTemplate contenant les trois placeholders", () => {
     expect(() =>
       validateTenantSettingsInput({
-        whatsappTemplate: "Bonjour {client}, {reference} de {montant} FCFA est en attente.",
+        whatsappTemplate: "Bonjour {client}, {reference} de {montantRestant} FCFA est en attente.",
       }),
     ).not.toThrow();
   });

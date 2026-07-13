@@ -1,16 +1,29 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { Button } from "@/presentation/shared/components/ui/button";
 import { Label } from "@/presentation/shared/components/ui/label";
 import { Textarea } from "@/presentation/shared/components/ui/textarea";
 import { updateTenantSettingsAction } from "@/presentation/tenant/actions";
+import { WhatsappVariableBadges } from "@/presentation/tenant/components/whatsapp-variable-badges";
+import { insertTokenAtCursor } from "@/presentation/tenant/insert-token-at-cursor";
 import {
   DEFAULT_WHATSAPP_RECEIPT_FINAL_TEMPLATE,
   DEFAULT_WHATSAPP_RECEIPT_PARTIAL_TEMPLATE,
   renderWhatsappTemplate,
 } from "@/presentation/shared/components/whatsapp-link";
 import { commonLabels, tenantSettingsLabels } from "@/presentation/shared/labels";
+
+const PARTIAL_TEMPLATE_VARIABLES = [
+  "client",
+  "boutique",
+  "montantPaye",
+  "modePaiement",
+  "montantTotal",
+  "montantRestant",
+  "date",
+];
+const FINAL_TEMPLATE_VARIABLES = ["client", "boutique", "montantPaye", "montantTotal", "date"];
 
 const PARTIAL_PREVIEW_VARS = {
   client: "Awa Diop",
@@ -45,6 +58,32 @@ export function ReceiptTemplatesSettingsForm({
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [saving, startSaving] = useTransition();
+  const partialTemplateRef = useRef<HTMLTextAreaElement>(null);
+  const finalTemplateRef = useRef<HTMLTextAreaElement>(null);
+
+  function insertPartialVariable(token: string) {
+    const el = partialTemplateRef.current;
+    const start = el?.selectionStart ?? partialTemplate.length;
+    const end = el?.selectionEnd ?? partialTemplate.length;
+    const { value, cursor } = insertTokenAtCursor(partialTemplate, token, start, end);
+    setPartialTemplate(value);
+    requestAnimationFrame(() => {
+      el?.focus();
+      el?.setSelectionRange(cursor, cursor);
+    });
+  }
+
+  function insertFinalVariable(token: string) {
+    const el = finalTemplateRef.current;
+    const start = el?.selectionStart ?? finalTemplate.length;
+    const end = el?.selectionEnd ?? finalTemplate.length;
+    const { value, cursor } = insertTokenAtCursor(finalTemplate, token, start, end);
+    setFinalTemplate(value);
+    requestAnimationFrame(() => {
+      el?.focus();
+      el?.setSelectionRange(cursor, cursor);
+    });
+  }
 
   function onSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -95,14 +134,16 @@ export function ReceiptTemplatesSettingsForm({
             </Button>
           </div>
           <Textarea
+            ref={partialTemplateRef}
             id="whatsappReceiptPartialTemplate"
             value={partialTemplate}
             onChange={(event) => setPartialTemplate(event.target.value)}
             rows={4}
           />
-          <p className="text-muted-foreground text-sm">
-            {tenantSettingsLabels.whatsappReceiptPartialPlaceholdersHelperText}
-          </p>
+          <WhatsappVariableBadges
+            tokens={PARTIAL_TEMPLATE_VARIABLES}
+            onInsert={insertPartialVariable}
+          />
           <div className="space-y-1.5">
             <p className="text-muted-foreground text-sm">
               {tenantSettingsLabels.whatsappPreviewLabel}
@@ -128,14 +169,16 @@ export function ReceiptTemplatesSettingsForm({
             </Button>
           </div>
           <Textarea
+            ref={finalTemplateRef}
             id="whatsappReceiptFinalTemplate"
             value={finalTemplate}
             onChange={(event) => setFinalTemplate(event.target.value)}
             rows={4}
           />
-          <p className="text-muted-foreground text-sm">
-            {tenantSettingsLabels.whatsappReceiptFinalPlaceholdersHelperText}
-          </p>
+          <WhatsappVariableBadges
+            tokens={FINAL_TEMPLATE_VARIABLES}
+            onInsert={insertFinalVariable}
+          />
           <div className="space-y-1.5">
             <p className="text-muted-foreground text-sm">
               {tenantSettingsLabels.whatsappPreviewLabel}

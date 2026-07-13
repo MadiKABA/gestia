@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { Button } from "@/presentation/shared/components/ui/button";
 import { Input } from "@/presentation/shared/components/ui/input";
 import { Label } from "@/presentation/shared/components/ui/label";
 import { Textarea } from "@/presentation/shared/components/ui/textarea";
 import { updateTenantSettingsAction } from "@/presentation/tenant/actions";
+import { WhatsappVariableBadges } from "@/presentation/tenant/components/whatsapp-variable-badges";
+import { insertTokenAtCursor } from "@/presentation/tenant/insert-token-at-cursor";
 import {
   DEFAULT_WHATSAPP_TEMPLATE,
   renderWhatsappTemplate,
@@ -14,6 +16,16 @@ import { commonLabels, tenantSettingsLabels } from "@/presentation/shared/labels
 
 const REMINDER_DAYS_MIN = 1;
 const REMINDER_DAYS_MAX = 30;
+
+const TEMPLATE_VARIABLES = [
+  "client",
+  "boutique",
+  "montantTotal",
+  "montantRestant",
+  "reference",
+  "description",
+  "date",
+];
 
 const PREVIEW_VARS = {
   client: "Awa Diop",
@@ -38,6 +50,19 @@ export function RelanceSettingsForm({
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [saving, startSaving] = useTransition();
+  const templateRef = useRef<HTMLTextAreaElement>(null);
+
+  function insertVariable(token: string) {
+    const el = templateRef.current;
+    const start = el?.selectionStart ?? template.length;
+    const end = el?.selectionEnd ?? template.length;
+    const { value, cursor } = insertTokenAtCursor(template, token, start, end);
+    setTemplate(value);
+    requestAnimationFrame(() => {
+      el?.focus();
+      el?.setSelectionRange(cursor, cursor);
+    });
+  }
 
   function onSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -99,14 +124,13 @@ export function RelanceSettingsForm({
               </Button>
             </div>
             <Textarea
+              ref={templateRef}
               id="whatsappTemplate"
               value={template}
               onChange={(event) => setTemplate(event.target.value)}
               rows={4}
             />
-            <p className="text-muted-foreground text-sm">
-              {tenantSettingsLabels.whatsappPlaceholdersHelperText}
-            </p>
+            <WhatsappVariableBadges tokens={TEMPLATE_VARIABLES} onInsert={insertVariable} />
           </div>
 
           <div className="space-y-1.5">

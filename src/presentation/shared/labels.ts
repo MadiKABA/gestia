@@ -296,18 +296,28 @@ export const tenantSettingsLabels = {
   relanceSectionTitle: "Relances",
   reminderDaysField: "Délai de relance (jours)",
   whatsappTemplateField: "Message de relance WhatsApp",
-  whatsappPlaceholdersHelperText:
-    "Utilisez {client}, {montant} et {reference} — remplacés automatiquement dans le message envoyé.",
   whatsappPreviewLabel: "Aperçu",
   resetTemplateButtonLabel: "Réinitialiser au modèle par défaut",
 
   whatsappReceiptsSectionTitle: "Reçus de paiement WhatsApp",
   whatsappReceiptPartialTemplateField: "Message de reçu partiel",
-  whatsappReceiptPartialPlaceholdersHelperText:
-    "Utilisez {client}, {montantPaye}, {modePaiement} et {montantRestant} — remplacés automatiquement.",
   whatsappReceiptFinalTemplateField: "Message de reçu final (Safi)",
-  whatsappReceiptFinalPlaceholdersHelperText:
-    "Utilisez {client} et {montantPaye} — remplacés automatiquement.",
+
+  // Variables insérables dans les 3 gabarits WhatsApp — badges cliquables
+  // (voir whatsapp-variable-badges.tsx), un seul dictionnaire de
+  // descriptions pour rester cohérent d'un gabarit à l'autre.
+  whatsappVariablesHelperLabel: "Cliquez pour insérer une variable :",
+  whatsappVariableDescriptions: {
+    client: "Nom du client",
+    boutique: "Nom de la boutique",
+    montantTotal: "Montant total de la créance/dette",
+    montantRestant: "Montant restant à régler",
+    reference: "Référence de la créance/dette",
+    description: "Description de la créance/dette",
+    date: "Date de création de la créance/dette",
+    montantPaye: "Montant payé lors de ce règlement",
+    modePaiement: "Mode de paiement utilisé",
+  } as Record<string, string>,
 
   appearanceSectionTitle: "Apparence",
   brandColorField: "Couleur principale",

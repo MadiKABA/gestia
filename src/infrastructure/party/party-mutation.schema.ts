@@ -11,17 +11,23 @@ import { ValidationError } from "@/domain/shared/errors";
  * qui arrive ici est toujours la forme domaine. Même règle métier que le
  * formulaire (délégation à validatePartyInput, jamais dupliquée) : c'est le
  * même contrat, juste sur l'autre forme des mêmes données.
+ *
+ * Longueurs plafonnées (200/1000) : ces champs texte libre transitent par la
+ * queue de sync sans limite HTML native (contrairement à un champ de
+ * formulaire) — évite qu'une valeur arbitrairement longue dégrade le
+ * stockage, cohérent avec le plafond déjà appliqué aux templates WhatsApp
+ * (WHATSAPP_TEMPLATE_MAX_LENGTH, tenant-settings.entity.ts).
  */
 export const partySyncPayloadSchema = z
   .object({
-    name: z.string().trim().min(1),
+    name: z.string().trim().min(1).max(200),
     phone: z.string().trim().nullable().optional(),
     whatsappNumber: z.string().trim().nullable().optional(),
     type: z.enum(["CLIENT", "SUPPLIER", "BOTH"]),
     isCompany: z.boolean().optional(),
-    companyName: z.string().trim().nullable().optional(),
-    contactName: z.string().trim().nullable().optional(),
-    note: z.string().trim().nullable().optional(),
+    companyName: z.string().trim().max(200).nullable().optional(),
+    contactName: z.string().trim().max(200).nullable().optional(),
+    note: z.string().trim().max(1000).nullable().optional(),
   })
   .superRefine((input, ctx) => {
     try {

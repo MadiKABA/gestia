@@ -17,7 +17,8 @@ export const transactionSyncPayloadSchema = z
   .object({
     partyId: z.string().trim().min(1),
     type: z.enum(["CREANCE", "DETTE"]),
-    description: z.string().trim().min(1),
+    // Plafonné (voir party-mutation.schema.ts pour le raisonnement complet).
+    description: z.string().trim().min(1).max(1000),
     quantity: z.number().nullable().optional(),
     amount: z.number(),
     // Le formulaire envoie une date sans heure ("YYYY-MM-DD", <input

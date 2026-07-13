@@ -11,5 +11,6 @@ import { z } from "zod";
 export const cashMovementSyncPayloadSchema = z.object({
   type: z.enum(["ENTREE", "SORTIE"]),
   amount: z.number().positive(),
-  reason: z.string().trim().min(1),
+  // Plafonné (voir party-mutation.schema.ts pour le raisonnement complet).
+  reason: z.string().trim().min(1).max(1000),
 });

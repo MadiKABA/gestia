@@ -11,5 +11,6 @@ export const paymentSyncPayloadSchema = z.object({
   transactionId: z.string().trim().min(1),
   amount: z.number().positive(),
   method: z.enum(["CASH", "WAVE", "ORANGE_MONEY", "AUTRE"]),
-  note: z.string().trim().min(1).nullable().optional(),
+  // Plafonné (voir party-mutation.schema.ts pour le raisonnement complet).
+  note: z.string().trim().min(1).max(1000).nullable().optional(),
 });

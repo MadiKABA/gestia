@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireTenantContext } from "@/infrastructure/auth/session";
 import { requirePatron } from "@/presentation/auth/require-role";
+import { ValidationError } from "@/domain/shared/errors";
 import { PrismaTenantSettingsRepository } from "@/infrastructure/tenant/tenant-settings.repository";
 import { PrismaAuditLogger } from "@/infrastructure/audit-log/audit-log.repository";
 import { CloudinaryLogoUploader } from "@/infrastructure/external/cloudinary-client";
@@ -74,7 +75,7 @@ export async function uploadTenantLogoAction(formData: FormData) {
   const context = await requirePatron();
   const file = formData.get("logo");
   if (!(file instanceof File)) {
-    throw new Error("Aucun fichier reçu");
+    throw new ValidationError("Aucun fichier reçu");
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());

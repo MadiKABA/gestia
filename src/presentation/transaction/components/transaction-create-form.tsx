@@ -11,8 +11,9 @@ import {
 } from "@/presentation/transaction/components/party-picker-step";
 import { createTransactionOfflineRepository } from "@/presentation/transaction/offline-repository";
 import { BackLink } from "@/presentation/shared/components/back-link";
-import { commonLabels, transactionLabels } from "@/presentation/shared/labels";
+import { transactionLabels } from "@/presentation/shared/labels";
 import { toastError, toastQueuedOffline, toastSuccess } from "@/presentation/shared/toast";
+import { resolveErrorMessage } from "@/presentation/shared/error-messages";
 import { cn } from "@/lib/utils";
 import type { TransactionType } from "@/domain/transaction/transaction.entity";
 
@@ -86,7 +87,7 @@ export function TransactionCreateForm({ tenantId, userId }: { tenantId: string; 
         }
         router.push("/transactions");
       } catch (err) {
-        toastError(err instanceof Error ? err.message : commonLabels.genericError);
+        toastError(resolveErrorMessage(err));
       }
     });
   }

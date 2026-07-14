@@ -14,8 +14,9 @@ import {
 import { ResponsivePanel } from "@/presentation/shared/components/responsive-panel";
 import { createPaymentOfflineRepository } from "@/presentation/payment/offline-repository";
 import { PAYMENT_METHOD_LABEL } from "@/presentation/payment/components/payment-method-labels";
-import { commonLabels, paymentLabels, transactionLabels } from "@/presentation/shared/labels";
+import { paymentLabels, transactionLabels } from "@/presentation/shared/labels";
 import { toastError, toastQueuedOffline, toastSuccess } from "@/presentation/shared/toast";
+import { resolveErrorMessage } from "@/presentation/shared/error-messages";
 import type { Payment, PaymentMethod } from "@/domain/payment/payment.entity";
 import type { Transaction } from "@/domain/transaction/transaction.entity";
 
@@ -91,7 +92,7 @@ export function PaymentModal({
       onOpenChange(false);
       onSuccess(payment);
     } catch (err) {
-      toastError(err instanceof Error ? err.message : commonLabels.genericError);
+      toastError(resolveErrorMessage(err));
     } finally {
       setPending(false);
     }

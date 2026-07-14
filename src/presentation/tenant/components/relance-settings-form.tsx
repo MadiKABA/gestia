@@ -14,6 +14,7 @@ import {
 } from "@/presentation/shared/components/whatsapp-link";
 import { commonLabels, tenantSettingsLabels } from "@/presentation/shared/labels";
 import { toastError, toastSuccess } from "@/presentation/shared/toast";
+import { resolveErrorMessage } from "@/presentation/shared/error-messages";
 
 const REMINDER_DAYS_MIN = 1;
 const REMINDER_DAYS_MAX = 30;
@@ -81,7 +82,7 @@ export function RelanceSettingsForm({
         });
         toastSuccess(tenantSettingsLabels.savedMessage);
       } catch (err) {
-        toastError(err instanceof Error ? err.message : commonLabels.genericError);
+        toastError(resolveErrorMessage(err));
       }
     });
   }

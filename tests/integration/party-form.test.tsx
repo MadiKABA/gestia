@@ -3,6 +3,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { PartyForm } from "@/presentation/party/components/party-form";
 import { commonLabels, partyLabels } from "@/presentation/shared/labels";
+import { ValidationError } from "@/domain/shared/errors";
 import type { PartyWithBalance } from "@/application/party/party.repository";
 
 const createMock = vi.fn<(input: unknown) => Promise<PartyWithBalance>>();
@@ -117,8 +118,8 @@ describe("PartyForm", () => {
     expect(toastErrorMock).not.toHaveBeenCalled();
   });
 
-  it("affiche un toast d'erreur quand la création échoue", async () => {
-    createMock.mockRejectedValue(new Error("Échec réseau"));
+  it("affiche le message métier traduit quand la création échoue avec une ValidationError", async () => {
+    createMock.mockRejectedValue(new ValidationError("Ce numéro est déjà associé à un compte"));
     render(
       <PartyForm mode="create" tenantId="tenant-1" userId="user-1" submitLabel="Enregistrer" />,
     );
@@ -126,9 +127,25 @@ describe("PartyForm", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Enregistrer" }));
 
-    await vi.waitFor(() => expect(toastErrorMock).toHaveBeenCalledWith("Échec réseau"));
+    await vi.waitFor(() =>
+      expect(toastErrorMock).toHaveBeenCalledWith("Ce numéro est déjà associé à un compte"),
+    );
     expect(toastSuccessMock).not.toHaveBeenCalled();
     expect(toastQueuedOfflineMock).not.toHaveBeenCalled();
+  });
+
+  it("affiche le message générique de repli pour une erreur non reconnue — jamais le message brut", async () => {
+    createMock.mockRejectedValue(new Error("TypeError: fetch failed at node:internal..."));
+    render(
+      <PartyForm mode="create" tenantId="tenant-1" userId="user-1" submitLabel="Enregistrer" />,
+    );
+    await fillValidForm();
+
+    await userEvent.click(screen.getByRole("button", { name: "Enregistrer" }));
+
+    await vi.waitFor(() =>
+      expect(toastErrorMock).toHaveBeenCalledWith(commonLabels.genericErrorToastMessage),
+    );
   });
 
   it("affiche le message générique de repli si l'erreur n'est pas une instance Error", async () => {
@@ -140,6 +157,8 @@ describe("PartyForm", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Enregistrer" }));
 
-    await vi.waitFor(() => expect(toastErrorMock).toHaveBeenCalledWith(commonLabels.genericError));
+    await vi.waitFor(() =>
+      expect(toastErrorMock).toHaveBeenCalledWith(commonLabels.genericErrorToastMessage),
+    );
   });
 });

@@ -25,6 +25,9 @@ export const commonLabels = {
   // erreur — cf. CLAUDE.md "Sync offline") — même message partout, la saisie
   // est déjà enregistrée localement, seule la confirmation serveur diffère.
   queuedOfflineMessage: "Enregistré. Sera synchronisé dès que possible.",
+  genericErrorToastMessage: "Une erreur est survenue, réessaie",
+  forbiddenErrorMessage: "Tu n'as pas accès à cette action",
+  dependencyNotFoundErrorMessage: "En attente d'une information pas encore synchronisée",
 };
 
 export const partyLabels = {

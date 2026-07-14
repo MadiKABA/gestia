@@ -6,8 +6,9 @@ import { Store } from "lucide-react";
 import { Button } from "@/presentation/shared/components/ui/button";
 import { uploadTenantLogoAction } from "@/presentation/tenant/actions";
 import { LOGO_ALLOWED_MIME_TYPES, LOGO_MAX_SIZE_BYTES } from "@/domain/tenant-settings/logo-file";
-import { commonLabels, tenantSettingsLabels } from "@/presentation/shared/labels";
+import { tenantSettingsLabels } from "@/presentation/shared/labels";
 import { toastError, toastSuccess } from "@/presentation/shared/toast";
+import { resolveErrorMessage } from "@/presentation/shared/error-messages";
 
 export function LogoUploadForm({ logoUrl: initialLogoUrl }: { logoUrl: string | null }) {
   const [logoUrl, setLogoUrl] = useState(initialLogoUrl);
@@ -40,7 +41,7 @@ export function LogoUploadForm({ logoUrl: initialLogoUrl }: { logoUrl: string | 
         setLogoUrl(updated.logoUrl);
         toastSuccess(tenantSettingsLabels.logoUpdatedToastMessage);
       } catch (err) {
-        toastError(err instanceof Error ? err.message : commonLabels.genericError);
+        toastError(resolveErrorMessage(err));
       }
     });
   }

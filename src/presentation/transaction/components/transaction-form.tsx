@@ -19,9 +19,10 @@ import {
   toTransactionInput,
   type TransactionFormInput,
 } from "@/presentation/transaction/schemas";
-import { commonLabels, transactionLabels } from "@/presentation/shared/labels";
+import { transactionLabels } from "@/presentation/shared/labels";
 import { createTransactionOfflineRepository } from "@/presentation/transaction/offline-repository";
 import { toastError, toastQueuedOffline, toastSuccess } from "@/presentation/shared/toast";
+import { resolveErrorMessage } from "@/presentation/shared/error-messages";
 
 const TYPE_OPTIONS = [
   { value: "CREANCE", label: transactionLabels.owedToMeLabel },
@@ -101,7 +102,7 @@ export function TransactionForm({
         // party-form.tsx : indisponible juste après une modification hors ligne.
         router.push("/transactions");
       } catch (err) {
-        toastError(err instanceof Error ? err.message : commonLabels.genericError);
+        toastError(resolveErrorMessage(err));
       }
     });
   }

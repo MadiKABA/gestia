@@ -6,8 +6,9 @@ import { Input } from "@/presentation/shared/components/ui/input";
 import { Label } from "@/presentation/shared/components/ui/label";
 import { ResponsivePanel } from "@/presentation/shared/components/responsive-panel";
 import { updateVendeurAction } from "@/presentation/auth/actions";
-import { commonLabels, authLabels } from "@/presentation/shared/labels";
+import { authLabels } from "@/presentation/shared/labels";
 import { toastError, toastSuccess } from "@/presentation/shared/toast";
+import { resolveErrorMessage } from "@/presentation/shared/error-messages";
 
 /**
  * Modale de modification d'un vendeur — nom uniquement, jamais le téléphone
@@ -48,7 +49,7 @@ export function EditVendeurModal({
         toastSuccess(authLabels.vendeurUpdatedToastMessage);
         onUpdated(vendeur.id, name);
       } catch (err) {
-        toastError(err instanceof Error ? err.message : commonLabels.genericError);
+        toastError(resolveErrorMessage(err));
       }
     });
   }

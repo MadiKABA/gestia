@@ -7,8 +7,9 @@ import { Input } from "@/presentation/shared/components/ui/input";
 import { Label } from "@/presentation/shared/components/ui/label";
 import { createCashMovementOfflineRepository } from "@/presentation/cash-movement/offline-repository";
 import { BackLink } from "@/presentation/shared/components/back-link";
-import { commonLabels, cashMovementLabels } from "@/presentation/shared/labels";
+import { cashMovementLabels } from "@/presentation/shared/labels";
 import { toastError, toastQueuedOffline, toastSuccess } from "@/presentation/shared/toast";
+import { resolveErrorMessage } from "@/presentation/shared/error-messages";
 import { cn } from "@/lib/utils";
 import type { CashMovementType } from "@/domain/cash-movement/cash-movement.entity";
 
@@ -53,7 +54,7 @@ export function CashMovementCreateForm({ tenantId, userId }: { tenantId: string;
         }
         router.push("/caisse");
       } catch (err) {
-        toastError(err instanceof Error ? err.message : commonLabels.genericError);
+        toastError(resolveErrorMessage(err));
       }
     });
   }

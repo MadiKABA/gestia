@@ -7,8 +7,9 @@ import { Label } from "@/presentation/shared/components/ui/label";
 import { PhoneInput } from "@/presentation/shared/components/phone-input";
 import { ResponsivePanel } from "@/presentation/shared/components/responsive-panel";
 import { inviteVendeurAction } from "@/presentation/auth/actions";
-import { commonLabels, authLabels } from "@/presentation/shared/labels";
+import { authLabels } from "@/presentation/shared/labels";
 import { toastError, toastSuccess } from "@/presentation/shared/toast";
+import { resolveErrorMessage } from "@/presentation/shared/error-messages";
 
 /**
  * Conteneur modal du formulaire d'invitation — même logique/validation
@@ -43,7 +44,7 @@ export function InviteVendeurModal({
         setPhone("");
         onInvited(invitedPhone);
       } catch (err) {
-        toastError(err instanceof Error ? err.message : commonLabels.genericError);
+        toastError(resolveErrorMessage(err));
       }
     });
   }

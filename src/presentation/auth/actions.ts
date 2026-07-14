@@ -186,7 +186,7 @@ export async function deactivateVendeurAction(input: DeactivateVendeurInput) {
     await deactivateVendeur(context, { repository, auditLogger }, { vendeurId });
   } catch (error) {
     if (error instanceof NotFoundError) {
-      throw new Error(authLabels.vendeurNotFoundMessage);
+      throw new ValidationError(authLabels.vendeurNotFoundMessage);
     }
     throw error;
   }
@@ -201,7 +201,7 @@ export async function reactivateVendeurAction(input: ReactivateVendeurInput) {
     await reactivateVendeur(context, { repository, auditLogger }, { vendeurId });
   } catch (error) {
     if (error instanceof NotFoundError) {
-      throw new Error(authLabels.vendeurNotFoundMessage);
+      throw new ValidationError(authLabels.vendeurNotFoundMessage);
     }
     throw error;
   }
@@ -216,7 +216,7 @@ export async function updateVendeurAction(input: UpdateVendeurInput) {
     await updateVendeur(context, { repository, auditLogger }, { vendeurId, name });
   } catch (error) {
     if (error instanceof NotFoundError) {
-      throw new Error(authLabels.vendeurNotFoundMessage);
+      throw new ValidationError(authLabels.vendeurNotFoundMessage);
     }
     throw error;
   }

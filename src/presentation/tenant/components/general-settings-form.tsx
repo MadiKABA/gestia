@@ -7,6 +7,7 @@ import { Label } from "@/presentation/shared/components/ui/label";
 import { updateTenantSettingsAction } from "@/presentation/tenant/actions";
 import { commonLabels, tenantSettingsLabels } from "@/presentation/shared/labels";
 import { toastError, toastSuccess } from "@/presentation/shared/toast";
+import { resolveErrorMessage } from "@/presentation/shared/error-messages";
 
 /** Devise verrouillée en lecture seule en V1 (voir CLAUDE.md) : rien dans
  * l'app ne pilote de calcul monétaire sur cette valeur, la rendre modifiable
@@ -28,7 +29,7 @@ export function GeneralSettingsForm({
         await updateTenantSettingsAction({ displayName: displayName.trim() || null });
         toastSuccess(tenantSettingsLabels.savedMessage);
       } catch (err) {
-        toastError(err instanceof Error ? err.message : commonLabels.genericError);
+        toastError(resolveErrorMessage(err));
       }
     });
   }

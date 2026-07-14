@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { GeneralSettingsForm } from "@/presentation/tenant/components/general-settings-form";
-import { tenantSettingsLabels } from "@/presentation/shared/labels";
+import { commonLabels, tenantSettingsLabels } from "@/presentation/shared/labels";
 
 const updateTenantSettingsActionMock = vi.fn();
 const toastSuccessMock = vi.fn();
@@ -45,7 +45,7 @@ describe("GeneralSettingsForm", () => {
     expect(updateTenantSettingsActionMock).toHaveBeenCalledWith({ displayName: "Boutique Awa" });
   });
 
-  it("notifie l'erreur renvoyée par l'action en cas d'échec", async () => {
+  it("notifie le message générique en cas d'échec (jamais le message brut de l'action)", async () => {
     updateTenantSettingsActionMock.mockRejectedValue(new Error("Échec réseau"));
     render(<GeneralSettingsForm displayName="Nom" currency="FCFA" />);
 
@@ -53,6 +53,8 @@ describe("GeneralSettingsForm", () => {
       screen.getByRole("button", { name: tenantSettingsLabels.saveButtonLabel }),
     );
 
-    await vi.waitFor(() => expect(toastErrorMock).toHaveBeenCalledWith("Échec réseau"));
+    await vi.waitFor(() =>
+      expect(toastErrorMock).toHaveBeenCalledWith(commonLabels.genericErrorToastMessage),
+    );
   });
 });

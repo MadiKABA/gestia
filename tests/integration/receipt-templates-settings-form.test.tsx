@@ -6,7 +6,7 @@ import {
   DEFAULT_WHATSAPP_RECEIPT_FINAL_TEMPLATE,
   DEFAULT_WHATSAPP_RECEIPT_PARTIAL_TEMPLATE,
 } from "@/presentation/shared/components/whatsapp-link";
-import { tenantSettingsLabels } from "@/presentation/shared/labels";
+import { commonLabels, tenantSettingsLabels } from "@/presentation/shared/labels";
 
 const updateTenantSettingsActionMock = vi.fn();
 const toastErrorMock = vi.fn();
@@ -153,7 +153,7 @@ describe("ReceiptTemplatesSettingsForm", () => {
     });
   });
 
-  it("notifie une erreur si la sauvegarde échoue", async () => {
+  it("notifie le message générique si la sauvegarde échoue (jamais le message brut du serveur)", async () => {
     updateTenantSettingsActionMock.mockRejectedValueOnce(new Error("Gabarit invalide"));
 
     render(
@@ -167,6 +167,8 @@ describe("ReceiptTemplatesSettingsForm", () => {
       screen.getByRole("button", { name: tenantSettingsLabels.saveButtonLabel }),
     );
 
-    await vi.waitFor(() => expect(toastErrorMock).toHaveBeenCalledWith("Gabarit invalide"));
+    await vi.waitFor(() =>
+      expect(toastErrorMock).toHaveBeenCalledWith(commonLabels.genericErrorToastMessage),
+    );
   });
 });

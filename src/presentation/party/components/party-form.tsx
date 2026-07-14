@@ -18,9 +18,10 @@ import {
 } from "@/presentation/shared/components/ui/select";
 import { PhoneInput } from "@/presentation/shared/components/phone-input";
 import { partyInputSchema, toPartyInput, type PartyFormInput } from "@/presentation/party/schemas";
-import { commonLabels, partyLabels } from "@/presentation/shared/labels";
+import { partyLabels } from "@/presentation/shared/labels";
 import { createPartyOfflineRepository } from "@/presentation/party/offline-repository";
 import { toastError, toastQueuedOffline, toastSuccess } from "@/presentation/shared/toast";
+import { resolveErrorMessage } from "@/presentation/shared/error-messages";
 
 const TYPE_OPTIONS = [
   { value: "CLIENT", label: partyLabels.typeClient },
@@ -109,7 +110,7 @@ export function PartyForm({
         // une création hors ligne.
         router.push("/tiers");
       } catch (err) {
-        toastError(err instanceof Error ? err.message : commonLabels.genericError);
+        toastError(resolveErrorMessage(err));
       }
     });
   }

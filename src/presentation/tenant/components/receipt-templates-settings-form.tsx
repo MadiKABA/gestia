@@ -13,6 +13,7 @@ import {
   renderWhatsappTemplate,
 } from "@/presentation/shared/components/whatsapp-link";
 import { commonLabels, tenantSettingsLabels } from "@/presentation/shared/labels";
+import { toastError, toastSuccess } from "@/presentation/shared/toast";
 
 const PARTIAL_TEMPLATE_VARIABLES = [
   "client",
@@ -55,8 +56,6 @@ export function ReceiptTemplatesSettingsForm({
   const [finalTemplate, setFinalTemplate] = useState(
     initialFinalTemplate ?? DEFAULT_WHATSAPP_RECEIPT_FINAL_TEMPLATE,
   );
-  const [error, setError] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
   const [saving, startSaving] = useTransition();
   const partialTemplateRef = useRef<HTMLTextAreaElement>(null);
   const finalTemplateRef = useRef<HTMLTextAreaElement>(null);
@@ -89,17 +88,15 @@ export function ReceiptTemplatesSettingsForm({
 
   function onSubmit(event: React.FormEvent) {
     event.preventDefault();
-    setError(null);
-    setSaved(false);
     startSaving(async () => {
       try {
         await updateTenantSettingsAction({
           whatsappReceiptPartialTemplate: partialTemplate.trim(),
           whatsappReceiptFinalTemplate: finalTemplate.trim(),
         });
-        setSaved(true);
+        toastSuccess(tenantSettingsLabels.savedMessage);
       } catch (err) {
-        setError(err instanceof Error ? err.message : commonLabels.genericError);
+        toastError(err instanceof Error ? err.message : commonLabels.genericError);
       }
     });
   }
@@ -107,8 +104,6 @@ export function ReceiptTemplatesSettingsForm({
   function onCancel() {
     setPartialTemplate(initialPartialTemplate ?? DEFAULT_WHATSAPP_RECEIPT_PARTIAL_TEMPLATE);
     setFinalTemplate(initialFinalTemplate ?? DEFAULT_WHATSAPP_RECEIPT_FINAL_TEMPLATE);
-    setError(null);
-    setSaved(false);
   }
 
   return (
@@ -192,8 +187,6 @@ export function ReceiptTemplatesSettingsForm({
         </div>
       </div>
 
-      {error ? <p className="text-destructive text-sm">{error}</p> : null}
-      {saved ? <p className="text-success text-sm">{tenantSettingsLabels.savedMessage}</p> : null}
       <div className="flex flex-col gap-2 lg:flex-row lg:justify-end lg:gap-3">
         <Button
           type="button"

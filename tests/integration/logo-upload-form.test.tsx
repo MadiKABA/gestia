@@ -4,15 +4,24 @@ import { LogoUploadForm } from "@/presentation/tenant/components/logo-upload-for
 import { tenantSettingsLabels } from "@/presentation/shared/labels";
 
 const uploadTenantLogoActionMock = vi.fn();
+const toastSuccessMock = vi.fn();
+const toastErrorMock = vi.fn();
 
 vi.mock("@/presentation/tenant/actions", () => ({
   uploadTenantLogoAction: (...args: unknown[]) => uploadTenantLogoActionMock(...args),
+}));
+
+vi.mock("@/presentation/shared/toast", () => ({
+  toastSuccess: (...args: unknown[]) => toastSuccessMock(...args),
+  toastError: (...args: unknown[]) => toastErrorMock(...args),
 }));
 
 beforeEach(() => {
   uploadTenantLogoActionMock.mockReset().mockResolvedValue({
     logoUrl: "https://res.cloudinary.com/gestia/logo.png",
   });
+  toastSuccessMock.mockReset();
+  toastErrorMock.mockReset();
 });
 
 function getFileInput(container: HTMLElement) {
@@ -70,14 +79,14 @@ describe("LogoUploadForm", () => {
     });
   });
 
-  it("affiche l'erreur renvoyée par le serveur en cas d'échec de l'upload", async () => {
+  it("notifie l'erreur renvoyée par le serveur en cas d'échec de l'upload", async () => {
     uploadTenantLogoActionMock.mockRejectedValue(new Error("Échec de l'upload"));
     const { container } = render(<LogoUploadForm logoUrl={null} />);
     const file = new File(["contenu"], "logo.png", { type: "image/png" });
 
     selectFile(getFileInput(container), file);
 
-    expect(await screen.findByText("Échec de l'upload")).toBeInTheDocument();
+    await vi.waitFor(() => expect(toastErrorMock).toHaveBeenCalledWith("Échec de l'upload"));
   });
 
   it("désactive le bouton pendant l'envoi", () => {

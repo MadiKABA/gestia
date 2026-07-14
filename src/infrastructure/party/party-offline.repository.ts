@@ -36,6 +36,12 @@ export type PartyOfflineDeps = {
    * Injecté plutôt qu'importé : infrastructure/ ne dépend jamais de
    * presentation/. */
   onSyncNeeded?: () => void;
+  /** Appelé uniquement quand la tentative en ligne échoue pour une raison
+   * transitoire et que la mutation retombe sur la queue de sync — jamais sur
+   * le chemin de succès en ligne. Permet à l'appelant (toast, voir
+   * presentation/shared/toast.ts) de distinguer les deux issues sans que
+   * cette couche connaisse la notion de toast. */
+  onOfflineFallback?: () => void;
 };
 
 /**
@@ -126,6 +132,7 @@ export class PartyOfflineRepository implements OfflineFirstRepository<
       createdById: this.deps.userId,
     });
     this.deps.onSyncNeeded?.();
+    this.deps.onOfflineFallback?.();
 
     return party;
   }
@@ -197,6 +204,7 @@ export class PartyOfflineRepository implements OfflineFirstRepository<
       createdById: this.deps.userId,
     });
     this.deps.onSyncNeeded?.();
+    this.deps.onOfflineFallback?.();
 
     return updated;
   }

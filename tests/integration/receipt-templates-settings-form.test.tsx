@@ -9,13 +9,20 @@ import {
 import { tenantSettingsLabels } from "@/presentation/shared/labels";
 
 const updateTenantSettingsActionMock = vi.fn();
+const toastErrorMock = vi.fn();
 
 vi.mock("@/presentation/tenant/actions", () => ({
   updateTenantSettingsAction: (...args: unknown[]) => updateTenantSettingsActionMock(...args),
 }));
 
+vi.mock("@/presentation/shared/toast", () => ({
+  toastSuccess: vi.fn(),
+  toastError: (...args: unknown[]) => toastErrorMock(...args),
+}));
+
 beforeEach(() => {
   updateTenantSettingsActionMock.mockReset().mockResolvedValue(undefined);
+  toastErrorMock.mockReset();
 });
 
 describe("ReceiptTemplatesSettingsForm", () => {
@@ -146,7 +153,7 @@ describe("ReceiptTemplatesSettingsForm", () => {
     });
   });
 
-  it("affiche une erreur si la sauvegarde échoue", async () => {
+  it("notifie une erreur si la sauvegarde échoue", async () => {
     updateTenantSettingsActionMock.mockRejectedValueOnce(new Error("Gabarit invalide"));
 
     render(
@@ -160,6 +167,6 @@ describe("ReceiptTemplatesSettingsForm", () => {
       screen.getByRole("button", { name: tenantSettingsLabels.saveButtonLabel }),
     );
 
-    expect(await screen.findByText("Gabarit invalide")).toBeInTheDocument();
+    await vi.waitFor(() => expect(toastErrorMock).toHaveBeenCalledWith("Gabarit invalide"));
   });
 });

@@ -15,6 +15,7 @@ import { ResponsivePanel } from "@/presentation/shared/components/responsive-pan
 import { createPaymentOfflineRepository } from "@/presentation/payment/offline-repository";
 import { PAYMENT_METHOD_LABEL } from "@/presentation/payment/components/payment-method-labels";
 import { commonLabels, paymentLabels, transactionLabels } from "@/presentation/shared/labels";
+import { toastError, toastQueuedOffline, toastSuccess } from "@/presentation/shared/toast";
 import type { Payment, PaymentMethod } from "@/domain/payment/payment.entity";
 import type { Transaction } from "@/domain/transaction/transaction.entity";
 
@@ -76,13 +77,21 @@ export function PaymentModal({
     }
     setError(null);
     setPending(true);
+    let wasQueuedOffline = false;
     try {
-      const repository = createPaymentOfflineRepository(tenantId, userId);
+      const repository = createPaymentOfflineRepository(tenantId, userId, () => {
+        wasQueuedOffline = true;
+      });
       const payment = await repository.create({ transactionId: transaction.id, amount, method });
+      if (wasQueuedOffline) {
+        toastQueuedOffline();
+      } else {
+        toastSuccess(paymentLabels.createdToastMessage);
+      }
       onOpenChange(false);
       onSuccess(payment);
     } catch (err) {
-      setError(err instanceof Error ? err.message : commonLabels.genericError);
+      toastError(err instanceof Error ? err.message : commonLabels.genericError);
     } finally {
       setPending(false);
     }

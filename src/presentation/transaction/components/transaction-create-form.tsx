@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/presentation/shared/components/ui/button";
 import { Input } from "@/presentation/shared/components/ui/input";
@@ -12,6 +12,7 @@ import {
 import { createTransactionOfflineRepository } from "@/presentation/transaction/offline-repository";
 import { BackLink } from "@/presentation/shared/components/back-link";
 import { commonLabels, transactionLabels } from "@/presentation/shared/labels";
+import { toastError, toastQueuedOffline, toastSuccess } from "@/presentation/shared/toast";
 import { cn } from "@/lib/utils";
 import type { TransactionType } from "@/domain/transaction/transaction.entity";
 
@@ -30,10 +31,6 @@ const QUICK_AMOUNTS = [500, 1000, 5000, 10000];
  */
 export function TransactionCreateForm({ tenantId, userId }: { tenantId: string; userId: string }) {
   const router = useRouter();
-  const repository = useMemo(
-    () => createTransactionOfflineRepository(tenantId, userId),
-    [tenantId, userId],
-  );
 
   const [type, setType] = useState<TransactionType>("CREANCE");
   const [party, setParty] = useState<PickedParty | null>(null);
@@ -69,7 +66,11 @@ export function TransactionCreateForm({ tenantId, userId }: { tenantId: string; 
       return;
     }
     startTransition(async () => {
+      let wasQueuedOffline = false;
       try {
+        const repository = createTransactionOfflineRepository(tenantId, userId, () => {
+          wasQueuedOffline = true;
+        });
         await repository.create({
           partyId: party.id,
           type,
@@ -78,9 +79,14 @@ export function TransactionCreateForm({ tenantId, userId }: { tenantId: string; 
           amount,
           dueDate: dueDate || null,
         });
+        if (wasQueuedOffline) {
+          toastQueuedOffline();
+        } else {
+          toastSuccess(transactionLabels.createdToastMessage);
+        }
         router.push("/transactions");
       } catch (err) {
-        setError(err instanceof Error ? err.message : commonLabels.genericError);
+        toastError(err instanceof Error ? err.message : commonLabels.genericError);
       }
     });
   }

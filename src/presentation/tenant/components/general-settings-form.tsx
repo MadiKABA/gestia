@@ -6,6 +6,7 @@ import { Input } from "@/presentation/shared/components/ui/input";
 import { Label } from "@/presentation/shared/components/ui/label";
 import { updateTenantSettingsAction } from "@/presentation/tenant/actions";
 import { commonLabels, tenantSettingsLabels } from "@/presentation/shared/labels";
+import { toastError, toastSuccess } from "@/presentation/shared/toast";
 
 /** Devise verrouillée en lecture seule en V1 (voir CLAUDE.md) : rien dans
  * l'app ne pilote de calcul monétaire sur cette valeur, la rendre modifiable
@@ -18,28 +19,22 @@ export function GeneralSettingsForm({
   currency: string;
 }) {
   const [displayName, setDisplayName] = useState(initialDisplayName ?? "");
-  const [error, setError] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
   const [saving, startSaving] = useTransition();
 
   function onSubmit(event: React.FormEvent) {
     event.preventDefault();
-    setError(null);
-    setSaved(false);
     startSaving(async () => {
       try {
         await updateTenantSettingsAction({ displayName: displayName.trim() || null });
-        setSaved(true);
+        toastSuccess(tenantSettingsLabels.savedMessage);
       } catch (err) {
-        setError(err instanceof Error ? err.message : commonLabels.genericError);
+        toastError(err instanceof Error ? err.message : commonLabels.genericError);
       }
     });
   }
 
   function onCancel() {
     setDisplayName(initialDisplayName ?? "");
-    setError(null);
-    setSaved(false);
   }
 
   return (
@@ -69,8 +64,6 @@ export function GeneralSettingsForm({
         </div>
       </div>
 
-      {error ? <p className="text-destructive text-sm">{error}</p> : null}
-      {saved ? <p className="text-success text-sm">{tenantSettingsLabels.savedMessage}</p> : null}
       <div className="flex flex-col gap-2 lg:flex-row lg:justify-end lg:gap-3">
         <Button
           type="button"

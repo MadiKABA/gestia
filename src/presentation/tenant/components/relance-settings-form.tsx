@@ -13,6 +13,7 @@ import {
   renderWhatsappTemplate,
 } from "@/presentation/shared/components/whatsapp-link";
 import { commonLabels, tenantSettingsLabels } from "@/presentation/shared/labels";
+import { toastError, toastSuccess } from "@/presentation/shared/toast";
 
 const REMINDER_DAYS_MIN = 1;
 const REMINDER_DAYS_MAX = 30;
@@ -47,8 +48,6 @@ export function RelanceSettingsForm({
 }) {
   const [reminderDays, setReminderDays] = useState(String(initialReminderDays));
   const [template, setTemplate] = useState(initialTemplate ?? DEFAULT_WHATSAPP_TEMPLATE);
-  const [error, setError] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
   const [saving, startSaving] = useTransition();
   const templateRef = useRef<HTMLTextAreaElement>(null);
 
@@ -74,17 +73,15 @@ export function RelanceSettingsForm({
 
   function onSubmit(event: React.FormEvent) {
     event.preventDefault();
-    setError(null);
-    setSaved(false);
     startSaving(async () => {
       try {
         await updateTenantSettingsAction({
           reminderDays: Number(reminderDays),
           whatsappTemplate: template.trim(),
         });
-        setSaved(true);
+        toastSuccess(tenantSettingsLabels.savedMessage);
       } catch (err) {
-        setError(err instanceof Error ? err.message : commonLabels.genericError);
+        toastError(err instanceof Error ? err.message : commonLabels.genericError);
       }
     });
   }
@@ -92,8 +89,6 @@ export function RelanceSettingsForm({
   function onCancel() {
     setReminderDays(String(initialReminderDays));
     setTemplate(initialTemplate ?? DEFAULT_WHATSAPP_TEMPLATE);
-    setError(null);
-    setSaved(false);
   }
 
   return (
@@ -152,8 +147,6 @@ export function RelanceSettingsForm({
         </div>
       </div>
 
-      {error ? <p className="text-destructive text-sm">{error}</p> : null}
-      {saved ? <p className="text-success text-sm">{tenantSettingsLabels.savedMessage}</p> : null}
       <div className="flex flex-col gap-2 lg:flex-row lg:justify-end lg:gap-3">
         <Button
           type="button"

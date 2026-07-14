@@ -21,12 +21,14 @@ const ENTITY = "party";
 export function createPartyOfflineRepository(
   tenantId: string,
   userId: string,
+  onOfflineFallback?: () => void,
 ): PartyOfflineRepository {
   return new PartyOfflineRepository({
     tenantId,
     userId,
     syncTransport,
     onSyncNeeded: () => triggerBackgroundSync(tenantId),
+    onOfflineFallback,
   });
 }
 

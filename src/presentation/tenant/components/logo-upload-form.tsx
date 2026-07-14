@@ -7,6 +7,7 @@ import { Button } from "@/presentation/shared/components/ui/button";
 import { uploadTenantLogoAction } from "@/presentation/tenant/actions";
 import { LOGO_ALLOWED_MIME_TYPES, LOGO_MAX_SIZE_BYTES } from "@/domain/tenant-settings/logo-file";
 import { commonLabels, tenantSettingsLabels } from "@/presentation/shared/labels";
+import { toastError, toastSuccess } from "@/presentation/shared/toast";
 
 export function LogoUploadForm({ logoUrl: initialLogoUrl }: { logoUrl: string | null }) {
   const [logoUrl, setLogoUrl] = useState(initialLogoUrl);
@@ -37,8 +38,9 @@ export function LogoUploadForm({ logoUrl: initialLogoUrl }: { logoUrl: string | 
       try {
         const updated = await uploadTenantLogoAction(formData);
         setLogoUrl(updated.logoUrl);
+        toastSuccess(tenantSettingsLabels.logoUpdatedToastMessage);
       } catch (err) {
-        setError(err instanceof Error ? err.message : commonLabels.genericError);
+        toastError(err instanceof Error ? err.message : commonLabels.genericError);
       }
     });
   }

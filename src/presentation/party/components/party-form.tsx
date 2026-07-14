@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -20,6 +20,7 @@ import { PhoneInput } from "@/presentation/shared/components/phone-input";
 import { partyInputSchema, toPartyInput, type PartyFormInput } from "@/presentation/party/schemas";
 import { commonLabels, partyLabels } from "@/presentation/shared/labels";
 import { createPartyOfflineRepository } from "@/presentation/party/offline-repository";
+import { toastError, toastQueuedOffline, toastSuccess } from "@/presentation/shared/toast";
 
 const TYPE_OPTIONS = [
   { value: "CLIENT", label: partyLabels.typeClient },
@@ -59,12 +60,7 @@ export function PartyForm({
   submitLabel: string;
 }) {
   const router = useRouter();
-  const repository = useMemo(
-    () => createPartyOfflineRepository(tenantId, userId),
-    [tenantId, userId],
-  );
   const [pending, startTransition] = useTransition();
-  const [submitError, setSubmitError] = useState<string | null>(null);
   const {
     control,
     register,
@@ -88,14 +84,24 @@ export function PartyForm({
   }, [trigger]);
 
   function submit(values: PartyFormInput) {
-    setSubmitError(null);
     startTransition(async () => {
+      let wasQueuedOffline = false;
       try {
+        const repository = createPartyOfflineRepository(tenantId, userId, () => {
+          wasQueuedOffline = true;
+        });
         const input = toPartyInput(values);
         if (mode === "create") {
           await repository.create(input);
         } else {
           await repository.update(partyId!, input);
+        }
+        if (wasQueuedOffline) {
+          toastQueuedOffline();
+        } else {
+          toastSuccess(
+            mode === "create" ? partyLabels.createdToastMessage : partyLabels.updatedToastMessage,
+          );
         }
         // Retour à la liste plutôt qu'à la page détail : celle-ci est déjà
         // chargée/en cache, contrairement à /tiers/[id] qui nécessite un
@@ -103,7 +109,7 @@ export function PartyForm({
         // une création hors ligne.
         router.push("/tiers");
       } catch (err) {
-        setSubmitError(err instanceof Error ? err.message : commonLabels.genericError);
+        toastError(err instanceof Error ? err.message : commonLabels.genericError);
       }
     });
   }
@@ -236,7 +242,6 @@ export function PartyForm({
         <Textarea id="note" {...register("note")} />
       </div>
 
-      {submitError ? <p className="text-destructive text-sm">{submitError}</p> : null}
       <Button type="submit" className="w-full" disabled={pending || !isValid}>
         {pending ? "Enregistrement..." : submitLabel}
       </Button>

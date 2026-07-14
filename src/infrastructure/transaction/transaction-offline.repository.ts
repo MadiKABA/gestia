@@ -30,6 +30,8 @@ export type TransactionOfflineDeps = {
   syncTransport?: SyncTransport;
   /** Non bloquant, jamais attendu par l'appelant — voir PartyOfflineRepository. */
   onSyncNeeded?: () => void;
+  /** Appelé uniquement en repli sur la queue de sync — voir PartyOfflineRepository. */
+  onOfflineFallback?: () => void;
 };
 
 /**
@@ -130,6 +132,7 @@ export class TransactionOfflineRepository implements OfflineFirstRepository<
       createdById: this.deps.userId,
     });
     this.deps.onSyncNeeded?.();
+    this.deps.onOfflineFallback?.();
 
     return transaction;
   }
@@ -200,6 +203,7 @@ export class TransactionOfflineRepository implements OfflineFirstRepository<
       createdById: this.deps.userId,
     });
     this.deps.onSyncNeeded?.();
+    this.deps.onOfflineFallback?.();
 
     return updated;
   }

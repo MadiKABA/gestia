@@ -7,6 +7,7 @@ import { Label } from "@/presentation/shared/components/ui/label";
 import { ResponsivePanel } from "@/presentation/shared/components/responsive-panel";
 import { updateVendeurAction } from "@/presentation/auth/actions";
 import { commonLabels, authLabels } from "@/presentation/shared/labels";
+import { toastError, toastSuccess } from "@/presentation/shared/toast";
 
 /**
  * Modale de modification d'un vendeur — nom uniquement, jamais le téléphone
@@ -25,7 +26,6 @@ export function EditVendeurModal({
   onUpdated: (vendeurId: string, name: string) => void;
 }) {
   const [name, setName] = useState(vendeur?.name ?? "");
-  const [error, setError] = useState<string | null>(null);
   const [saving, startSave] = useTransition();
 
   // Se resynchronise à chaque nouvelle cible/ouverture — même pattern que
@@ -35,7 +35,6 @@ export function EditVendeurModal({
   if (open && vendeur && vendeur.id !== prevVendeurId) {
     setPrevVendeurId(vendeur.id);
     setName(vendeur.name);
-    setError(null);
   }
 
   const isFormValid = name.trim() !== "";
@@ -43,13 +42,13 @@ export function EditVendeurModal({
   function onSubmit(event: React.FormEvent) {
     event.preventDefault();
     if (!vendeur) return;
-    setError(null);
     startSave(async () => {
       try {
         await updateVendeurAction({ vendeurId: vendeur.id, name });
+        toastSuccess(authLabels.vendeurUpdatedToastMessage);
         onUpdated(vendeur.id, name);
       } catch (err) {
-        setError(err instanceof Error ? err.message : commonLabels.genericError);
+        toastError(err instanceof Error ? err.message : commonLabels.genericError);
       }
     });
   }
@@ -65,7 +64,6 @@ export function EditVendeurModal({
           <Label htmlFor="edit-vendeur-name">{authLabels.vendeurNameField}</Label>
           <Input id="edit-vendeur-name" value={name} onValueChange={setName} required />
         </div>
-        {error ? <p className="text-destructive text-sm">{error}</p> : null}
         <Button type="submit" className="w-full" disabled={saving || !isFormValid}>
           {saving ? authLabels.savingVendeurButtonLabel : authLabels.saveVendeurButtonLabel}
         </Button>

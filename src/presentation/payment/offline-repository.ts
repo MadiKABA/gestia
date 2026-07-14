@@ -13,12 +13,14 @@ const ENTITY = "payment";
 export function createPaymentOfflineRepository(
   tenantId: string,
   userId: string,
+  onOfflineFallback?: () => void,
 ): PaymentOfflineRepository {
   return new PaymentOfflineRepository({
     tenantId,
     userId,
     syncTransport,
     onSyncNeeded: () => triggerBackgroundSync(tenantId),
+    onOfflineFallback,
   });
 }
 

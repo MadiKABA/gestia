@@ -5,13 +5,22 @@ import { GeneralSettingsForm } from "@/presentation/tenant/components/general-se
 import { tenantSettingsLabels } from "@/presentation/shared/labels";
 
 const updateTenantSettingsActionMock = vi.fn();
+const toastSuccessMock = vi.fn();
+const toastErrorMock = vi.fn();
 
 vi.mock("@/presentation/tenant/actions", () => ({
   updateTenantSettingsAction: (...args: unknown[]) => updateTenantSettingsActionMock(...args),
 }));
 
+vi.mock("@/presentation/shared/toast", () => ({
+  toastSuccess: (...args: unknown[]) => toastSuccessMock(...args),
+  toastError: (...args: unknown[]) => toastErrorMock(...args),
+}));
+
 beforeEach(() => {
   updateTenantSettingsActionMock.mockReset().mockResolvedValue(undefined);
+  toastSuccessMock.mockReset();
+  toastErrorMock.mockReset();
 });
 
 describe("GeneralSettingsForm", () => {
@@ -30,11 +39,13 @@ describe("GeneralSettingsForm", () => {
       screen.getByRole("button", { name: tenantSettingsLabels.saveButtonLabel }),
     );
 
-    expect(await screen.findByText(tenantSettingsLabels.savedMessage)).toBeInTheDocument();
+    await vi.waitFor(() =>
+      expect(toastSuccessMock).toHaveBeenCalledWith(tenantSettingsLabels.savedMessage),
+    );
     expect(updateTenantSettingsActionMock).toHaveBeenCalledWith({ displayName: "Boutique Awa" });
   });
 
-  it("affiche l'erreur renvoyée par l'action en cas d'échec", async () => {
+  it("notifie l'erreur renvoyée par l'action en cas d'échec", async () => {
     updateTenantSettingsActionMock.mockRejectedValue(new Error("Échec réseau"));
     render(<GeneralSettingsForm displayName="Nom" currency="FCFA" />);
 
@@ -42,6 +53,6 @@ describe("GeneralSettingsForm", () => {
       screen.getByRole("button", { name: tenantSettingsLabels.saveButtonLabel }),
     );
 
-    expect(await screen.findByText("Échec réseau")).toBeInTheDocument();
+    await vi.waitFor(() => expect(toastErrorMock).toHaveBeenCalledWith("Échec réseau"));
   });
 });

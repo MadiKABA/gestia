@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/presentation/shared/components/ui/button";
 import { Input } from "@/presentation/shared/components/ui/input";
@@ -8,6 +8,7 @@ import { Label } from "@/presentation/shared/components/ui/label";
 import { createCashMovementOfflineRepository } from "@/presentation/cash-movement/offline-repository";
 import { BackLink } from "@/presentation/shared/components/back-link";
 import { commonLabels, cashMovementLabels } from "@/presentation/shared/labels";
+import { toastError, toastQueuedOffline, toastSuccess } from "@/presentation/shared/toast";
 import { cn } from "@/lib/utils";
 import type { CashMovementType } from "@/domain/cash-movement/cash-movement.entity";
 
@@ -19,10 +20,6 @@ import type { CashMovementType } from "@/domain/cash-movement/cash-movement.enti
  */
 export function CashMovementCreateForm({ tenantId, userId }: { tenantId: string; userId: string }) {
   const router = useRouter();
-  const repository = useMemo(
-    () => createCashMovementOfflineRepository(tenantId, userId),
-    [tenantId, userId],
-  );
 
   const [type, setType] = useState<CashMovementType>("ENTREE");
   const [amount, setAmount] = useState(0);
@@ -43,11 +40,20 @@ export function CashMovementCreateForm({ tenantId, userId }: { tenantId: string;
       return;
     }
     startTransition(async () => {
+      let wasQueuedOffline = false;
       try {
+        const repository = createCashMovementOfflineRepository(tenantId, userId, () => {
+          wasQueuedOffline = true;
+        });
         await repository.create({ type, amount, reason: reason.trim() });
+        if (wasQueuedOffline) {
+          toastQueuedOffline();
+        } else {
+          toastSuccess(cashMovementLabels.createdToastMessage);
+        }
         router.push("/caisse");
       } catch (err) {
-        setError(err instanceof Error ? err.message : commonLabels.genericError);
+        toastError(err instanceof Error ? err.message : commonLabels.genericError);
       }
     });
   }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -21,6 +21,7 @@ import {
 } from "@/presentation/transaction/schemas";
 import { commonLabels, transactionLabels } from "@/presentation/shared/labels";
 import { createTransactionOfflineRepository } from "@/presentation/transaction/offline-repository";
+import { toastError, toastQueuedOffline, toastSuccess } from "@/presentation/shared/toast";
 
 const TYPE_OPTIONS = [
   { value: "CREANCE", label: transactionLabels.owedToMeLabel },
@@ -63,12 +64,7 @@ export function TransactionForm({
   submitLabel: string;
 }) {
   const router = useRouter();
-  const repository = useMemo(
-    () => createTransactionOfflineRepository(tenantId, userId),
-    [tenantId, userId],
-  );
   const [pending, startTransition] = useTransition();
-  const [submitError, setSubmitError] = useState<string | null>(null);
   const {
     control,
     handleSubmit,
@@ -88,16 +84,24 @@ export function TransactionForm({
   }, [trigger]);
 
   function submit(values: TransactionFormInput) {
-    setSubmitError(null);
     startTransition(async () => {
+      let wasQueuedOffline = false;
       try {
+        const repository = createTransactionOfflineRepository(tenantId, userId, () => {
+          wasQueuedOffline = true;
+        });
         const input = toTransactionInput(values);
         await repository.update(transactionId, input);
+        if (wasQueuedOffline) {
+          toastQueuedOffline();
+        } else {
+          toastSuccess(transactionLabels.updatedToastMessage);
+        }
         // Retour à la liste plutôt qu'à la page détail — même raison que
         // party-form.tsx : indisponible juste après une modification hors ligne.
         router.push("/transactions");
       } catch (err) {
-        setSubmitError(err instanceof Error ? err.message : commonLabels.genericError);
+        toastError(err instanceof Error ? err.message : commonLabels.genericError);
       }
     });
   }
@@ -224,7 +228,6 @@ export function TransactionForm({
         />
       </div>
 
-      {submitError ? <p className="text-destructive text-sm">{submitError}</p> : null}
       <Button type="submit" className="w-full" disabled={pending || !isValid}>
         {pending ? "Enregistrement..." : submitLabel}
       </Button>

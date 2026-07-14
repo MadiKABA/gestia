@@ -19,6 +19,12 @@ export const commonLabels = {
   // Fermeture générique d'une card dismissible (voir vendeurs-panel.tsx,
   // transactions-list.tsx) — même mot partout plutôt qu'un "Fermer" par écran.
   close: "Fermer",
+
+  // Toast affiché quand une mutation en ligne échoue pour une raison
+  // transitoire et retombe sur la queue de sync (jamais présenté comme une
+  // erreur — cf. CLAUDE.md "Sync offline") — même message partout, la saisie
+  // est déjà enregistrée localement, seule la confirmation serveur diffère.
+  queuedOfflineMessage: "Enregistré. Sera synchronisé dès que possible.",
 };
 
 export const partyLabels = {
@@ -79,6 +85,9 @@ export const partyLabels = {
   pickerCreateNewPhoneField: "Téléphone",
   pickerTypeQuestion: "Client ou fournisseur ?",
   pickerContinueLabel: "Continuer",
+
+  createdToastMessage: "Client ajouté",
+  updatedToastMessage: "Client modifié",
 };
 
 export const transactionLabels = {
@@ -163,6 +172,9 @@ export const transactionLabels = {
   // Badge "à relancer" (transactions-list.tsx, transaction-detail.tsx) —
   // dérivé de TenantSettings.reminderDays, jamais saisi par l'utilisateur.
   reminderBadgeLabel: "À relancer",
+
+  createdToastMessage: "Opération enregistrée",
+  updatedToastMessage: "Modifications enregistrées",
 };
 
 export const paymentLabels = {
@@ -185,6 +197,8 @@ export const paymentLabels = {
   // (transactions-list.tsx) — même contenu que le fil du détail, wording
   // en plus pour la carte elle-même.
   receiptPromptTitle: "Paiement enregistré — envoyer un reçu ?",
+
+  createdToastMessage: "Paiement enregistré",
 };
 
 export const cashMovementLabels = {
@@ -213,6 +227,8 @@ export const cashMovementLabels = {
 
   amountInvalidError: "Le montant doit être supérieur à zéro",
   reasonRequiredError: "Le motif est obligatoire",
+
+  createdToastMessage: "Mouvement de caisse enregistré",
 };
 
 export const authLabels = {
@@ -260,6 +276,8 @@ export const authLabels = {
   vendeurPhoneField: "Numéro de téléphone",
   invitingButtonLabel: "Invitation...",
   inviteButtonLabel: "Inviter",
+  invitedToastMessage: "Vendeur invité",
+  vendeurUpdatedToastMessage: "Vendeur modifié",
 
   vendeurInvitedTitle: "Invitation envoyée",
   vendeurInvitedDescription:
@@ -329,6 +347,7 @@ export const tenantSettingsLabels = {
   saveButtonLabel: "Enregistrer",
   savingButtonLabel: "Enregistrement...",
   savedMessage: "Paramètres enregistrés.",
+  logoUpdatedToastMessage: "Logo mis à jour",
 };
 
 export const pwaLabels = {

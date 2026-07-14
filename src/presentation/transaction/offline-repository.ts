@@ -13,12 +13,14 @@ const ENTITY = "transaction";
 export function createTransactionOfflineRepository(
   tenantId: string,
   userId: string,
+  onOfflineFallback?: () => void,
 ): TransactionOfflineRepository {
   return new TransactionOfflineRepository({
     tenantId,
     userId,
     syncTransport,
     onSyncNeeded: () => triggerBackgroundSync(tenantId),
+    onOfflineFallback,
   });
 }
 

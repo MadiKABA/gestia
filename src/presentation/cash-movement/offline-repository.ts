@@ -19,12 +19,14 @@ const ENTITY = "cashMovement";
 export function createCashMovementOfflineRepository(
   tenantId: string,
   userId: string,
+  onOfflineFallback?: () => void,
 ): CashMovementOfflineRepository {
   return new CashMovementOfflineRepository({
     tenantId,
     userId,
     syncTransport,
     onSyncNeeded: () => triggerBackgroundSync(tenantId),
+    onOfflineFallback,
   });
 }
 

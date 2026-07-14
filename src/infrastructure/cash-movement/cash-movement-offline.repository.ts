@@ -31,6 +31,8 @@ export type CashMovementOfflineDeps = {
   syncTransport?: SyncTransport;
   /** Non bloquant, jamais attendu par l'appelant — voir TransactionOfflineRepository. */
   onSyncNeeded?: () => void;
+  /** Appelé uniquement en repli sur la queue de sync — voir PartyOfflineRepository. */
+  onOfflineFallback?: () => void;
 };
 
 /**
@@ -125,6 +127,7 @@ export class CashMovementOfflineRepository {
       createdById: this.deps.userId,
     });
     this.deps.onSyncNeeded?.();
+    this.deps.onOfflineFallback?.();
 
     return movement;
   }

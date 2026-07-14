@@ -8,6 +8,7 @@ import { PhoneInput } from "@/presentation/shared/components/phone-input";
 import { ResponsivePanel } from "@/presentation/shared/components/responsive-panel";
 import { inviteVendeurAction } from "@/presentation/auth/actions";
 import { commonLabels, authLabels } from "@/presentation/shared/labels";
+import { toastError, toastSuccess } from "@/presentation/shared/toast";
 
 /**
  * Conteneur modal du formulaire d'invitation — même logique/validation
@@ -27,23 +28,22 @@ export function InviteVendeurModal({
 }) {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [error, setError] = useState<string | null>(null);
   const [inviting, startInvite] = useTransition();
 
   const isFormValid = name.trim() !== "" && phone.trim() !== "";
 
   function onSubmit(event: React.FormEvent) {
     event.preventDefault();
-    setError(null);
     const invitedPhone = phone;
     startInvite(async () => {
       try {
         await inviteVendeurAction({ name, phone: invitedPhone });
+        toastSuccess(authLabels.invitedToastMessage);
         setName("");
         setPhone("");
         onInvited(invitedPhone);
       } catch (err) {
-        setError(err instanceof Error ? err.message : commonLabels.genericError);
+        toastError(err instanceof Error ? err.message : commonLabels.genericError);
       }
     });
   }
@@ -63,7 +63,6 @@ export function InviteVendeurModal({
           <Label htmlFor="vendeur-phone">{authLabels.vendeurPhoneField}</Label>
           <PhoneInput id="vendeur-phone" value={phone} onValueChange={setPhone} required />
         </div>
-        {error ? <p className="text-destructive text-sm">{error}</p> : null}
         <Button type="submit" className="w-full" disabled={inviting || !isFormValid}>
           {inviting ? authLabels.invitingButtonLabel : authLabels.inviteButtonLabel}
         </Button>

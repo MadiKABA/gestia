@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizePhoneToE164, validatePhoneFormat } from "@/domain/shared/phone";
+import { normalizePhoneToE164, toWhatsappDigits, validatePhoneFormat } from "@/domain/shared/phone";
 import { ValidationError } from "@/domain/shared/errors";
 
 describe("validatePhoneFormat", () => {
@@ -39,5 +39,16 @@ describe("normalizePhoneToE164", () => {
 
   it("rejette un numéro invalide", () => {
     expect(() => normalizePhoneToE164("+2217")).toThrow(ValidationError);
+  });
+});
+
+describe("toWhatsappDigits", () => {
+  it("retire le + d'un numéro E.164 stocké en base — cas de non-régression wa.me", () => {
+    expect(toWhatsappDigits("+221771234567")).toBe("221771234567");
+  });
+
+  it("retire aussi les espaces et les tirets", () => {
+    expect(toWhatsappDigits("+221 77 123 45 67")).toBe("221771234567");
+    expect(toWhatsappDigits("221-77-123-45-67")).toBe("221771234567");
   });
 });

@@ -5,7 +5,6 @@ import {
   DEFAULT_WHATSAPP_RECEIPT_FINAL_TEMPLATE,
   buildWhatsappUrl,
   renderWhatsappTemplate,
-  toWhatsappDigits,
 } from "@/presentation/shared/components/whatsapp-link";
 
 describe("renderWhatsappTemplate", () => {
@@ -76,16 +75,15 @@ describe("renderWhatsappTemplate", () => {
   });
 });
 
-describe("toWhatsappDigits", () => {
-  it("retire le préfixe +, les espaces et les tirets", () => {
-    expect(toWhatsappDigits("+221 77 123 45 67")).toBe("221771234567");
-    expect(toWhatsappDigits("221-77-123-45-67")).toBe("221771234567");
-  });
-});
-
 describe("buildWhatsappUrl", () => {
   it("construit un lien wa.me avec le message encodé", () => {
     const url = buildWhatsappUrl("+221771234567", "Bonjour, test");
     expect(url).toBe("https://wa.me/221771234567?text=Bonjour%2C%20test");
+  });
+
+  it("retire le + du numéro E.164 stocké en base — wa.me ne l'accepte pas", () => {
+    const url = buildWhatsappUrl("+221771234567", "Salam");
+    expect(url).toContain("wa.me/221771234567");
+    expect(url).not.toContain("wa.me/+");
   });
 });

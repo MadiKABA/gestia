@@ -3,6 +3,7 @@ import { Button } from "@/presentation/shared/components/ui/button";
 import { WhatsappMessagePreview } from "@/presentation/shared/components/whatsapp-message-preview";
 import { transactionLabels } from "@/presentation/shared/labels";
 import { formatLongDateFr } from "@/presentation/shared/date-format";
+import { toWhatsappDigits } from "@/domain/shared/phone";
 
 /** Gabarit par défaut si le tenant n'a jamais personnalisé
  * `TenantSettings.whatsappTemplate` — placeholders remplacés par
@@ -28,12 +29,6 @@ export function renderWhatsappTemplate(template: string, vars: Record<string, st
     (message, [key, value]) => message.replaceAll(`{${key}}`, value),
     template,
   );
-}
-
-/** Ne garde que les chiffres — wa.me n'accepte ni "+", ni espaces, ni
- * tirets, quel que soit le format saisi côté fiche client. */
-export function toWhatsappDigits(phone: string): string {
-  return phone.replace(/\D/g, "");
 }
 
 export function buildWhatsappUrl(phone: string, message: string): string {

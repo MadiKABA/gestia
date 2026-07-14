@@ -400,3 +400,13 @@ export const landingLabels = {
   dashboardButtonLabel: "Aller au tableau de bord",
   registerLinkLabel: "Pas encore de compte ? Créer ma boutique",
 };
+
+/**
+ * Page 404 (`app/not-found.tsx` et `app/(dashboard)/[...slug]/not-found.tsx`)
+ * — même contenu dans les deux cas, seul le wrapping (AppShell ou non)
+ * diffère selon la présence d'une session (voir not-found-content.tsx).
+ */
+export const notFoundLabels = {
+  title: "Cette page n'existe pas",
+  description: "L'adresse saisie ne correspond à aucune page de Gestia.",
+};

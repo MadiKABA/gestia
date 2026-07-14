@@ -30,6 +30,8 @@ export function InviteVendeurModal({
   const [error, setError] = useState<string | null>(null);
   const [inviting, startInvite] = useTransition();
 
+  const isFormValid = name.trim() !== "" && phone.trim() !== "";
+
   function onSubmit(event: React.FormEvent) {
     event.preventDefault();
     setError(null);
@@ -62,7 +64,7 @@ export function InviteVendeurModal({
           <PhoneInput id="vendeur-phone" value={phone} onValueChange={setPhone} required />
         </div>
         {error ? <p className="text-destructive text-sm">{error}</p> : null}
-        <Button type="submit" className="w-full" disabled={inviting}>
+        <Button type="submit" className="w-full" disabled={inviting || !isFormValid}>
           {inviting ? authLabels.invitingButtonLabel : authLabels.inviteButtonLabel}
         </Button>
       </form>

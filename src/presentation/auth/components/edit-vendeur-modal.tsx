@@ -38,6 +38,8 @@ export function EditVendeurModal({
     setError(null);
   }
 
+  const isFormValid = name.trim() !== "";
+
   function onSubmit(event: React.FormEvent) {
     event.preventDefault();
     if (!vendeur) return;
@@ -64,7 +66,7 @@ export function EditVendeurModal({
           <Input id="edit-vendeur-name" value={name} onValueChange={setName} required />
         </div>
         {error ? <p className="text-destructive text-sm">{error}</p> : null}
-        <Button type="submit" className="w-full" disabled={saving}>
+        <Button type="submit" className="w-full" disabled={saving || !isFormValid}>
           {saving ? authLabels.savingVendeurButtonLabel : authLabels.saveVendeurButtonLabel}
         </Button>
       </form>

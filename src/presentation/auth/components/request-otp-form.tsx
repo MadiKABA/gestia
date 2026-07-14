@@ -43,6 +43,8 @@ export function RequestOtpForm({
     setIdentifier("");
   }
 
+  const isFormValid = identifier.trim() !== "";
+
   function onSubmit(event: React.FormEvent) {
     event.preventDefault();
     setError(null);
@@ -88,7 +90,7 @@ export function RequestOtpForm({
         )}
       </div>
       {error ? <p className="text-destructive text-sm">{error}</p> : null}
-      <Button type="submit" className="w-full" disabled={pending}>
+      <Button type="submit" className="w-full" disabled={pending || !isFormValid}>
         {pending ? "Envoi en cours..." : submitLabel}
       </Button>
     </form>

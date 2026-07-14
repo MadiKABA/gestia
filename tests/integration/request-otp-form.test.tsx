@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { RequestOtpForm } from "@/presentation/auth/components/request-otp-form";
 
 vi.mock("next/navigation", () => ({
@@ -30,5 +31,21 @@ describe("RequestOtpForm", () => {
     );
 
     expect(screen.getByLabelText("Numéro de téléphone")).toHaveValue("");
+  });
+
+  it("désactive le bouton tant que le téléphone est vide, le réactive une fois rempli", async () => {
+    render(
+      <RequestOtpForm
+        action={vi.fn()}
+        nextPathBase="/reset-pin/confirm"
+        submitLabel="Recevoir le code"
+      />,
+    );
+    const submitButton = screen.getByRole("button", { name: "Recevoir le code" });
+    expect(submitButton).toBeDisabled();
+
+    await userEvent.type(screen.getByLabelText("Numéro de téléphone"), "771234567");
+
+    expect(submitButton).toBeEnabled();
   });
 });

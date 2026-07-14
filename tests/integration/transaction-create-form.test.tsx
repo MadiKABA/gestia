@@ -68,15 +68,30 @@ describe("TransactionCreateForm", () => {
     expect(screen.getByText("party-picker-stub")).toBeInTheDocument();
   });
 
-  it("bloque l'enregistrement sans tiers sélectionné", async () => {
+  it("désactive le bouton d'enregistrement sans tiers sélectionné", async () => {
     render(<TransactionCreateForm tenantId="tenant-1" userId="user-1" />);
 
-    await userEvent.click(
+    expect(
       screen.getByRole("button", { name: transactionLabels.createSubmitLabel }),
+    ).toBeDisabled();
+    expect(createMock).not.toHaveBeenCalled();
+  });
+
+  it("réactive le bouton d'enregistrement une fois les champs requis remplis", async () => {
+    render(<TransactionCreateForm tenantId="tenant-1" userId="user-1" />);
+    const submitButton = screen.getByRole("button", { name: transactionLabels.createSubmitLabel });
+    expect(submitButton).toBeDisabled();
+
+    await userEvent.click(screen.getByText("party-picker-stub"));
+    await userEvent.type(
+      screen.getByLabelText(transactionLabels.descriptionField),
+      "Sac de riz 50kg",
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: transactionLabels.quickAmountAriaLabel(1000) }),
     );
 
-    expect(await screen.findByText(transactionLabels.partyRequiredError)).toBeInTheDocument();
-    expect(createMock).not.toHaveBeenCalled();
+    expect(submitButton).toBeEnabled();
   });
 
   it("enregistre et redirige vers la liste avec le payload attendu (échéance optionnelle absente)", async () => {

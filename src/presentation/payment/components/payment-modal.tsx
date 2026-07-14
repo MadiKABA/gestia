@@ -63,6 +63,7 @@ export function PaymentModal({
   }
 
   const title = paymentLabels.payButtonLabel(transaction.type);
+  const isFormValid = amount > 0 && amount <= remainingBalance;
 
   async function onSubmit() {
     if (!(amount > 0)) {
@@ -123,7 +124,11 @@ export function PaymentModal({
           </Select>
         </div>
         {error ? <p className="text-destructive text-sm">{error}</p> : null}
-        <Button className="w-full" disabled={pending} onClick={() => void onSubmit()}>
+        <Button
+          className="w-full"
+          disabled={pending || !isFormValid}
+          onClick={() => void onSubmit()}
+        >
           {title}
         </Button>
       </div>

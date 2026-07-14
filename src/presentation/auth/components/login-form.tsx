@@ -8,6 +8,7 @@ import { PhoneInput } from "@/presentation/shared/components/phone-input";
 import { PinInput } from "@/presentation/shared/components/pin-input";
 import { IdentifierToggle } from "@/presentation/auth/components/identifier-toggle";
 import { commonLabels } from "@/presentation/shared/labels";
+import { PIN_LENGTH } from "@/domain/auth/pin-policy";
 
 type Channel = "PHONE" | "EMAIL";
 
@@ -43,6 +44,8 @@ export function LoginForm({
     submit(pin);
   }
 
+  const isFormValid = identifier.trim() !== "" && pin.length === PIN_LENGTH;
+
   return (
     <form onSubmit={onSubmit} className="space-y-4">
       <IdentifierToggle value={channel} onChange={onChannelChange} />
@@ -76,7 +79,7 @@ export function LoginForm({
         <PinInput id="pin" value={pin} onValueChange={setPin} onComplete={submit} />
       </div>
       {error ? <p className="text-destructive text-sm">{error}</p> : null}
-      <Button type="submit" className="w-full" disabled={pending}>
+      <Button type="submit" className="w-full" disabled={pending || !isFormValid}>
         {pending ? "Connexion..." : "Se connecter"}
       </Button>
     </form>

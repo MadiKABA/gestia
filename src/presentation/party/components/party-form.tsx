@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -70,13 +70,22 @@ export function PartyForm({
     register,
     handleSubmit,
     watch,
-    formState: { errors },
+    trigger,
+    formState: { errors, isValid },
   } = useForm<PartyFormInput>({
     resolver: zodResolver(partyInputSchema),
     defaultValues: { ...DEFAULT_VALUES, ...defaultValues },
+    mode: "onChange",
   });
 
   const isCompany = watch("isCompany");
+
+  // `isValid` ne reflète l'état réel qu'après une première validation —
+  // en mode édition, les valeurs par défaut sont déjà valides mais le
+  // bouton resterait désactivé tant qu'aucun champ n'est touché sans ceci.
+  useEffect(() => {
+    void trigger();
+  }, [trigger]);
 
   function submit(values: PartyFormInput) {
     setSubmitError(null);
@@ -228,7 +237,7 @@ export function PartyForm({
       </div>
 
       {submitError ? <p className="text-destructive text-sm">{submitError}</p> : null}
-      <Button type="submit" className="w-full" disabled={pending}>
+      <Button type="submit" className="w-full" disabled={pending || !isValid}>
         {pending ? "Enregistrement..." : submitLabel}
       </Button>
     </form>

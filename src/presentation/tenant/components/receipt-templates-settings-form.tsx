@@ -61,6 +61,8 @@ export function ReceiptTemplatesSettingsForm({
   const partialTemplateRef = useRef<HTMLTextAreaElement>(null);
   const finalTemplateRef = useRef<HTMLTextAreaElement>(null);
 
+  const isFormValid = partialTemplate.trim() !== "" && finalTemplate.trim() !== "";
+
   function insertPartialVariable(token: string) {
     const el = partialTemplateRef.current;
     const start = el?.selectionStart ?? partialTemplate.length;
@@ -202,7 +204,7 @@ export function ReceiptTemplatesSettingsForm({
         >
           {commonLabels.cancel}
         </Button>
-        <Button type="submit" disabled={saving} className="w-full lg:w-auto">
+        <Button type="submit" disabled={saving || !isFormValid} className="w-full lg:w-auto">
           {saving ? tenantSettingsLabels.savingButtonLabel : tenantSettingsLabels.saveButtonLabel}
         </Button>
       </div>

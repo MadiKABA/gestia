@@ -7,6 +7,8 @@ import { Label } from "@/presentation/shared/components/ui/label";
 import { OtpInput } from "@/presentation/shared/components/otp-input";
 import { PinInput } from "@/presentation/shared/components/pin-input";
 import { commonLabels } from "@/presentation/shared/labels";
+import { OTP_LENGTH } from "@/domain/auth/otp";
+import { PIN_LENGTH } from "@/domain/auth/pin-policy";
 
 export function CompleteRegistrationForm({
   initialPhone,
@@ -54,6 +56,14 @@ export function CompleteRegistrationForm({
     event.preventDefault();
     submit(pin);
   }
+
+  // Email volontairement absent de ce calcul — champ optionnel.
+  const isFormValid =
+    phone.trim() !== "" &&
+    otp.length === OTP_LENGTH &&
+    patronName.trim() !== "" &&
+    tenantName.trim() !== "" &&
+    pin.length === PIN_LENGTH;
 
   return (
     <form onSubmit={onSubmit} className="space-y-4">
@@ -108,7 +118,7 @@ export function CompleteRegistrationForm({
         <PinInput id="pin" value={pin} onValueChange={setPin} onComplete={submit} />
       </div>
       {error ? <p className="text-destructive text-sm">{error}</p> : null}
-      <Button type="submit" className="w-full" disabled={pending}>
+      <Button type="submit" className="w-full" disabled={pending || !isFormValid}>
         {pending ? "Création..." : "Créer mon compte"}
       </Button>
     </form>

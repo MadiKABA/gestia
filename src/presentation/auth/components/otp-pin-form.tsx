@@ -9,6 +9,8 @@ import { PhoneInput } from "@/presentation/shared/components/phone-input";
 import { OtpInput } from "@/presentation/shared/components/otp-input";
 import { PinInput } from "@/presentation/shared/components/pin-input";
 import { commonLabels } from "@/presentation/shared/labels";
+import { OTP_LENGTH } from "@/domain/auth/otp";
+import { PIN_LENGTH } from "@/domain/auth/pin-policy";
 
 type Channel = "PHONE" | "EMAIL";
 
@@ -59,6 +61,9 @@ export function OtpPinForm({
     submit(newPin);
   }
 
+  const isFormValid =
+    identifier.trim() !== "" && otp.length === OTP_LENGTH && newPin.length === PIN_LENGTH;
+
   return (
     <form onSubmit={onSubmit} className="space-y-4">
       <div className="space-y-1.5">
@@ -108,7 +113,7 @@ export function OtpPinForm({
         />
       </div>
       {error ? <p className="text-destructive text-sm">{error}</p> : null}
-      <Button type="submit" className="w-full" disabled={pending}>
+      <Button type="submit" className="w-full" disabled={pending || !isFormValid}>
         {pending ? "Validation..." : submitLabel}
       </Button>
     </form>

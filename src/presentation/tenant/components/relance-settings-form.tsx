@@ -52,6 +52,14 @@ export function RelanceSettingsForm({
   const [saving, startSaving] = useTransition();
   const templateRef = useRef<HTMLTextAreaElement>(null);
 
+  const reminderDaysValue = Number(reminderDays);
+  const isFormValid =
+    reminderDays.trim() !== "" &&
+    Number.isInteger(reminderDaysValue) &&
+    reminderDaysValue >= REMINDER_DAYS_MIN &&
+    reminderDaysValue <= REMINDER_DAYS_MAX &&
+    template.trim() !== "";
+
   function insertVariable(token: string) {
     const el = templateRef.current;
     const start = el?.selectionStart ?? template.length;
@@ -156,7 +164,7 @@ export function RelanceSettingsForm({
         >
           {commonLabels.cancel}
         </Button>
-        <Button type="submit" disabled={saving} className="w-full lg:w-auto">
+        <Button type="submit" disabled={saving || !isFormValid} className="w-full lg:w-auto">
           {saving ? tenantSettingsLabels.savingButtonLabel : tenantSettingsLabels.saveButtonLabel}
         </Button>
       </div>

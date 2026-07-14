@@ -30,6 +30,8 @@ export function CashMovementCreateForm({ tenantId, userId }: { tenantId: string;
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
+  const isFormValid = amount > 0 && reason.trim() !== "";
+
   function submit() {
     setError(null);
     if (!(amount > 0)) {
@@ -105,7 +107,7 @@ export function CashMovementCreateForm({ tenantId, userId }: { tenantId: string;
       </div>
 
       {error ? <p className="text-destructive text-sm">{error}</p> : null}
-      <Button className="w-full" disabled={pending} onClick={submit}>
+      <Button className="w-full" disabled={pending || !isFormValid} onClick={submit}>
         {cashMovementLabels.createSubmitLabel}
       </Button>
     </div>

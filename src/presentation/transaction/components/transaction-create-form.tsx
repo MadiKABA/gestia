@@ -43,6 +43,8 @@ export function TransactionCreateForm({ tenantId, userId }: { tenantId: string; 
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
+  const isFormValid = party !== null && description.trim() !== "" && amount > 0;
+
   function changeType(nextType: TransactionType) {
     if (nextType === type) return;
     setType(nextType);
@@ -186,7 +188,7 @@ export function TransactionCreateForm({ tenantId, userId }: { tenantId: string; 
       </div>
 
       {error ? <p className="text-destructive text-sm">{error}</p> : null}
-      <Button className="w-full" disabled={pending} onClick={submit}>
+      <Button className="w-full" disabled={pending || !isFormValid} onClick={submit}>
         {transactionLabels.createSubmitLabel}
       </Button>
     </div>

@@ -91,7 +91,7 @@ describe("PaymentModal", () => {
     ).toBeInTheDocument();
   });
 
-  it("bloque un montant supérieur au solde restant sans jamais appeler le repository", async () => {
+  it("désactive le bouton pour un montant supérieur au solde restant, sans jamais appeler le repository", async () => {
     render(
       <PaymentModal
         transaction={creance}
@@ -106,11 +106,10 @@ describe("PaymentModal", () => {
     const amountInput = screen.getByLabelText(transactionLabels.amountField);
     await userEvent.clear(amountInput);
     await userEvent.type(amountInput, "6001");
-    await userEvent.click(
-      screen.getByRole("button", { name: paymentLabels.payButtonLabel("CREANCE") }),
-    );
 
-    expect(await screen.findByText(paymentLabels.amountExceedsRemainingError)).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: paymentLabels.payButtonLabel("CREANCE") }),
+    ).toBeDisabled();
     expect(createMock).not.toHaveBeenCalled();
   });
 

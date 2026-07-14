@@ -1,4 +1,4 @@
-import { validatePhoneFormat } from "@/domain/auth/phone";
+import { validatePhoneFormat } from "@/domain/shared/phone";
 import { validateEmailFormat } from "@/domain/auth/email";
 import { validatePinFormat } from "@/domain/auth/pin-policy";
 import { isOtpAttemptsExceeded, isOtpExpired } from "@/domain/auth/otp";

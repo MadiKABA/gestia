@@ -1,4 +1,4 @@
-import { validatePhoneFormat } from "@/domain/auth/phone";
+import { validatePhoneFormat } from "@/domain/shared/phone";
 import {
   OTP_EXPIRY_MS,
   OTP_LENGTH,

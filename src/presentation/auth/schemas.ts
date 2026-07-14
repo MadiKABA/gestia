@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { validatePhoneFormat } from "@/domain/auth/phone";
+import { validatePhoneFormat } from "@/domain/shared/phone";
 import { validateEmailFormat } from "@/domain/auth/email";
 import { validatePinFormat } from "@/domain/auth/pin-policy";
 import { OTP_LENGTH } from "@/domain/auth/otp";

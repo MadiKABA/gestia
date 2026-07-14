@@ -33,7 +33,7 @@ describe("use cases tenant-settings", () => {
   });
 
   async function registerTenant() {
-    const phone = `+22176${Date.now().toString().slice(-7)}${Math.floor(Math.random() * 10)}`;
+    const phone = `+22176${Date.now().toString().slice(-6)}${Math.floor(Math.random() * 10)}`;
     const otpCode = "123456";
     await prisma.otpCode.create({
       data: {

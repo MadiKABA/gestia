@@ -3,7 +3,7 @@ import {
   isLockedOut,
   isLockoutThresholdReached,
 } from "@/domain/auth/pin-policy";
-import { validatePhoneFormat } from "@/domain/auth/phone";
+import { validatePhoneFormat } from "@/domain/shared/phone";
 import { validateEmailFormat } from "@/domain/auth/email";
 import type { OtpChannel } from "@/domain/auth/otp";
 import { ForbiddenError, ValidationError } from "@/domain/shared/errors";

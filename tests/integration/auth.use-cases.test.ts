@@ -207,7 +207,7 @@ describe("use cases auth", () => {
       // (`incrementFailedAttempts`), Postgres sérialise les écritures
       // concurrentes sur la ligne : chaque tentative relit la valeur déjà
       // committée par la précédente.
-      const phone = `+22178${Date.now().toString().slice(-6)}9${Math.floor(Math.random() * 10)}`;
+      const phone = `+22178${Date.now().toString().slice(-5)}9${Math.floor(Math.random() * 10)}`;
       const patron = await registerTenant(phone);
 
       const attempts = Array.from({ length: 10 }, () =>

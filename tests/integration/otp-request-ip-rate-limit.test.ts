@@ -38,7 +38,7 @@ vi.mock("next/headers", () => ({
 // jamais de User (seulement un OtpCode), mais `findUserByPhone` doit trouver
 // zéro résultat pour que chaque appel de la boucle passe la vérification
 // "numéro déjà associé à un compte" et exerce réellement le rate limiting.
-const PHONE_TEST_BASE = Date.now().toString().slice(-6);
+const PHONE_TEST_BASE = Date.now().toString().slice(-4);
 function fakePhone(n: number): string {
   return `+22176${PHONE_TEST_BASE}${String(n).padStart(3, "0")}`;
 }

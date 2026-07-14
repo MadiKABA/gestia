@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { validatePartyInput, type PartyInput } from "@/domain/party/party.entity";
 import { ValidationError } from "@/domain/shared/errors";
+import { validatePhoneFormat } from "@/domain/shared/phone";
 import { partyLabels } from "@/presentation/shared/labels";
 
 /** Le formulaire délègue la règle de contact (téléphone OU whatsapp) à
@@ -18,6 +19,26 @@ export const partyInputSchema = z
     note: z.string().trim().optional().or(z.literal("")),
   })
   .superRefine((input, ctx) => {
+    // Erreurs de format attachées au bon champ avant la règle croisée
+    // ci-dessous, qui ne revalidera donc jamais un format déjà en faute.
+    if (input.phone?.trim()) {
+      try {
+        validatePhoneFormat(input.phone.trim());
+      } catch (error) {
+        if (error instanceof ValidationError) {
+          ctx.addIssue({ code: "custom", message: error.message, path: ["phone"] });
+        }
+      }
+    }
+    if (input.whatsappNumber?.trim()) {
+      try {
+        validatePhoneFormat(input.whatsappNumber.trim());
+      } catch (error) {
+        if (error instanceof ValidationError) {
+          ctx.addIssue({ code: "custom", message: error.message, path: ["whatsappNumber"] });
+        }
+      }
+    }
     try {
       validatePartyInput({
         name: input.name,

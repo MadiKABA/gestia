@@ -27,7 +27,9 @@ export function ParametresTabs({
           aria-selected={active === tab.key}
           onClick={() => onChange(tab.key)}
           className={cn(
-            "rounded-md border-b-2 px-3 py-1.5 text-sm font-medium whitespace-nowrap transition-colors",
+            // ~44px de hauteur cliquable (WCAG 2.5.5) — boutons natifs, hors
+            // buttonVariants (voir ui/button.tsx pour le composant Button).
+            "rounded-md border-b-2 px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors",
             active === tab.key
               ? "border-primary bg-background text-foreground shadow-xs"
               : "text-muted-foreground hover:text-foreground border-transparent",

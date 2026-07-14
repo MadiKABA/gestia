@@ -14,6 +14,7 @@ import {
 } from "@/presentation/shared/components/ui/select";
 import { createPartyOfflineRepository } from "@/presentation/party/offline-repository";
 import { commonLabels, partyLabels } from "@/presentation/shared/labels";
+import { isValidPhoneNumber } from "@/domain/shared/phone";
 import type { PartyType } from "@/domain/party/party.entity";
 
 const NEW_PARTY_TYPE_LABEL: Record<"CLIENT" | "SUPPLIER", string> = {
@@ -61,6 +62,11 @@ export function PartyPickerStep({
   const [newType, setNewType] = useState<"CLIENT" | "SUPPLIER">(filterType ?? "CLIENT");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+
+  // whatsappNumber n'est jamais proposé dans ce flux rapide (toujours null,
+  // voir confirmNewParty) : le téléphone est donc de fait le seul moyen de
+  // contact possible, contrairement à party-form.tsx où les deux coexistent.
+  const isNewPartyFormValid = newName.trim() !== "" && isValidPhoneNumber(newPhone);
 
   useEffect(() => {
     let cancelled = false;
@@ -143,7 +149,11 @@ export function PartyPickerStep({
           <Button variant="outline" className="flex-1" onClick={() => setCreating(false)}>
             {commonLabels.cancel}
           </Button>
-          <Button className="flex-1" disabled={pending} onClick={() => void confirmNewParty()}>
+          <Button
+            className="flex-1"
+            disabled={pending || !isNewPartyFormValid}
+            onClick={() => void confirmNewParty()}
+          >
             {partyLabels.pickerContinueLabel}
           </Button>
         </div>

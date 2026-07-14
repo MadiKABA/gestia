@@ -20,6 +20,7 @@ import {
 import { BalanceSummaryCards } from "@/presentation/transaction/components/balance-summary-cards";
 import { PaymentModal } from "@/presentation/payment/components/payment-modal";
 import { WhatsappReceiptLink } from "@/presentation/payment/components/whatsapp-receipt-link";
+import { resolveWhatsappNumber } from "@/presentation/shared/components/whatsapp-link";
 import {
   isEligibleForReminder,
   type Transaction,
@@ -199,7 +200,7 @@ export function TransactionsList({
     if (!updated || updated.type !== "CREANCE" || updated.status === "EN_COURS") return;
 
     const party = partyById.get(updated.partyId);
-    const whatsappNumber = party?.whatsappNumber ?? party?.phone ?? null;
+    const whatsappNumber = resolveWhatsappNumber(party?.phone, party?.whatsappNumber);
     if (!whatsappNumber) return;
 
     setReceiptContext({

@@ -5,6 +5,7 @@ import {
   DEFAULT_WHATSAPP_RECEIPT_FINAL_TEMPLATE,
   buildWhatsappUrl,
   renderWhatsappTemplate,
+  resolveWhatsappNumber,
 } from "@/presentation/shared/components/whatsapp-link";
 
 describe("renderWhatsappTemplate", () => {
@@ -85,5 +86,38 @@ describe("buildWhatsappUrl", () => {
     const url = buildWhatsappUrl("+221771234567", "Salam");
     expect(url).toContain("wa.me/221771234567");
     expect(url).not.toContain("wa.me/+");
+  });
+});
+
+describe("resolveWhatsappNumber", () => {
+  it("préfère whatsappNumber quand il est renseigné et valide", () => {
+    expect(resolveWhatsappNumber("+221771234567", "+221781112233")).toBe("+221781112233");
+  });
+
+  it("retombe sur phone quand whatsappNumber est absent", () => {
+    expect(resolveWhatsappNumber("+221771234567", null)).toBe("+221771234567");
+  });
+
+  /** Régression : une ligne Party créée avant l'introduction de la
+   * validation de téléphone (ou tout autre bug d'écriture) peut avoir un
+   * whatsappNumber non-vide mais invalide (ex. "+221", un indicatif seul
+   * historiquement produit par PhoneInput). Le préférer aveuglément au
+   * phone correct produit un lien wa.me qui ne pointe vers aucun contact
+   * réel — WhatsApp retombe alors sur la conversation de l'utilisateur
+   * plutôt que d'ouvrir celle du client. */
+  it("ignore whatsappNumber s'il est invalide et retombe sur phone", () => {
+    expect(resolveWhatsappNumber("+221771234567", "+221")).toBe("+221771234567");
+  });
+
+  it("retourne null si ni phone ni whatsappNumber ne sont valides", () => {
+    expect(resolveWhatsappNumber("+221", "+221")).toBeNull();
+    expect(resolveWhatsappNumber(null, null)).toBeNull();
+  });
+
+  it("ne mélange jamais deux clients : chacun garde son propre numéro", () => {
+    const clientA = { phone: "+221700000001", whatsappNumber: null };
+    const clientB = { phone: "+221700000002", whatsappNumber: null };
+    expect(resolveWhatsappNumber(clientA.phone, clientA.whatsappNumber)).toBe("+221700000001");
+    expect(resolveWhatsappNumber(clientB.phone, clientB.whatsappNumber)).toBe("+221700000002");
   });
 });

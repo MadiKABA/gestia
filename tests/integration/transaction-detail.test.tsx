@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { act, render, screen } from "@testing-library/react";
 import { TransactionDetail } from "@/presentation/transaction/components/transaction-detail";
-import { paymentLabels } from "@/presentation/shared/labels";
+import { paymentLabels, transactionLabels } from "@/presentation/shared/labels";
 import type { Transaction } from "@/domain/transaction/transaction.entity";
 import type { Payment } from "@/domain/payment/payment.entity";
 
@@ -271,5 +271,78 @@ describe("TransactionDetail", () => {
     expect(
       screen.queryByRole("button", { name: paymentLabels.sendReceiptButtonLabel }),
     ).not.toBeInTheDocument();
+  });
+
+  /**
+   * Régression wa.me : deux clients distincts, deux numéros clairement
+   * différents dans le même run — vérifie que le lien de relance de chacun
+   * pointe exactement vers SON numéro, jamais celui de l'autre ni un numéro
+   * lié à la session (tenantId/userId ne sont que des identifiants opaques
+   * ici, jamais des numéros de téléphone).
+   */
+  it("génère un lien wa.me différent pour deux clients distincts, sans jamais les mélanger", () => {
+    const { unmount } = render(
+      <TransactionDetail
+        transaction={transaction}
+        party={{ name: "Client A", phone: "+221700000001", whatsappNumber: null }}
+        whatsappTemplate={null}
+        whatsappReceiptTemplates={emptyReceiptTemplates}
+        boutique="Boutique Awa"
+        reminderDays={7}
+        tenantId="tenant-1"
+        userId="user-1"
+        canDelete={true}
+        initialPayments={[firstPayment]}
+      />,
+    );
+    const linkA = screen.getByRole("button", { name: transactionLabels.whatsappButtonLabel });
+    expect(linkA).toHaveAttribute("href", expect.stringContaining("wa.me/221700000001"));
+    unmount();
+
+    render(
+      <TransactionDetail
+        transaction={transaction}
+        party={{ name: "Client B", phone: "+221700000002", whatsappNumber: null }}
+        whatsappTemplate={null}
+        whatsappReceiptTemplates={emptyReceiptTemplates}
+        boutique="Boutique Awa"
+        reminderDays={7}
+        tenantId="tenant-1"
+        userId="user-1"
+        canDelete={true}
+        initialPayments={[firstPayment]}
+      />,
+    );
+    const linkB = screen.getByRole("button", { name: transactionLabels.whatsappButtonLabel });
+    expect(linkB).toHaveAttribute("href", expect.stringContaining("wa.me/221700000002"));
+    expect(linkB).not.toHaveAttribute("href", expect.stringContaining("221700000001"));
+  });
+
+  /**
+   * Régression concrète du bug rapporté : un whatsappNumber non-vide mais
+   * invalide (ex. une ligne créée avant l'introduction de la validation de
+   * téléphone, ou un indicatif seul comme "+221" historiquement produit par
+   * PhoneInput) ne doit jamais être préféré au phone correct — sinon le lien
+   * wa.me pointe vers aucun contact réel, WhatsApp retombant sur la
+   * conversation de l'utilisateur plutôt que d'ouvrir celle du client.
+   */
+  it("ignore un whatsappNumber invalide et utilise le phone correct pour le lien de relance", () => {
+    render(
+      <TransactionDetail
+        transaction={transaction}
+        party={{ name: "Fatou Diop", phone: "+221771234567", whatsappNumber: "+221" }}
+        whatsappTemplate={null}
+        whatsappReceiptTemplates={emptyReceiptTemplates}
+        boutique="Boutique Awa"
+        reminderDays={7}
+        tenantId="tenant-1"
+        userId="user-1"
+        canDelete={true}
+        initialPayments={[firstPayment]}
+      />,
+    );
+
+    const link = screen.getByRole("button", { name: transactionLabels.whatsappButtonLabel });
+    expect(link).toHaveAttribute("href", expect.stringContaining("wa.me/221771234567"));
   });
 });

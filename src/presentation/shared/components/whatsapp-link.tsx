@@ -3,7 +3,7 @@ import { Button } from "@/presentation/shared/components/ui/button";
 import { WhatsappMessagePreview } from "@/presentation/shared/components/whatsapp-message-preview";
 import { transactionLabels } from "@/presentation/shared/labels";
 import { formatLongDateFr } from "@/presentation/shared/date-format";
-import { toWhatsappDigits } from "@/domain/shared/phone";
+import { isValidPhoneNumber, toWhatsappDigits } from "@/domain/shared/phone";
 
 /** Gabarit par défaut si le tenant n'a jamais personnalisé
  * `TenantSettings.whatsappTemplate` — placeholders remplacés par
@@ -33,6 +33,26 @@ export function renderWhatsappTemplate(template: string, vars: Record<string, st
 
 export function buildWhatsappUrl(phone: string, message: string): string {
   return `https://wa.me/${toWhatsappDigits(phone)}?text=${encodeURIComponent(message)}`;
+}
+
+/**
+ * Choisit le numéro de contact à utiliser pour un lien wa.me : `whatsappNumber`
+ * si renseigné ET valide, sinon `phone` si valide, sinon aucun. Ne fait
+ * jamais confiance à `whatsappNumber` sans revalider son format — une ligne
+ * `Party` créée avant l'introduction de la validation de téléphone (ou toute
+ * autre voie d'écriture directe) peut contenir une valeur non-vide mais
+ * invalide (ex. un indicatif seul comme "+221", produit historiquement par un
+ * bug de PhoneInput, voir git blame) ; la préférer aveuglément au `phone`
+ * correct produirait un lien wa.me vers aucun contact réel plutôt que de
+ * replier sur le numéro fiable.
+ */
+export function resolveWhatsappNumber(
+  phone: string | null | undefined,
+  whatsappNumber: string | null | undefined,
+): string | null {
+  if (whatsappNumber && isValidPhoneNumber(whatsappNumber)) return whatsappNumber;
+  if (phone && isValidPhoneNumber(phone)) return phone;
+  return null;
 }
 
 /**

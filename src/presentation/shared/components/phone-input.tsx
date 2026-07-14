@@ -117,13 +117,19 @@ export function PhoneInput({
 }) {
   const { country, local } = splitPhone(value || DEFAULT_COUNTRY.dialCode);
 
+  // Tant qu'aucun chiffre local n'est saisi, la valeur exposée au parent
+  // reste "" (jamais un indicatif seul, ex. "+221") — sinon le simple fait
+  // d'ouvrir/sélectionner le pays sans rien taper transforme un champ vide en
+  // valeur "remplie", qui passe la règle "au moins un contact" côté domaine
+  // tout en étant un numéro invalide (voir régression wa.me).
   function handleCountryChange(dialCode: string | null) {
     if (!dialCode) return;
-    onValueChange(`${dialCode}${local}`);
+    onValueChange(local ? `${dialCode}${local}` : "");
   }
 
   function handleLocalChange(nextLocal: string) {
-    onValueChange(`${country.dialCode}${nextLocal.replace(/\D/g, "")}`);
+    const digits = nextLocal.replace(/\D/g, "");
+    onValueChange(digits ? `${country.dialCode}${digits}` : "");
   }
 
   return (

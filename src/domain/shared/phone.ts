@@ -11,6 +11,14 @@ export function validatePhoneFormat(phone: string): void {
   }
 }
 
+/** Variante non-levante de `validatePhoneFormat` — utile pour un filtre
+ * d'affichage/lien (ex. choisir quel numéro de contact utiliser) où lever
+ * une exception serait disproportionné. */
+export function isValidPhoneNumber(phone: string): boolean {
+  const parsed = parsePhoneNumberFromString(phone);
+  return Boolean(parsed?.isValid());
+}
+
 /** Filet de sécurité avant persistance : le stockage reste E.164
  * (`+221771234567`), format déjà émis par `PhoneInput` en amont. */
 export function normalizePhoneToE164(phone: string): string {

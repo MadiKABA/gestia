@@ -12,7 +12,10 @@ import {
 import { PaymentModal } from "@/presentation/payment/components/payment-modal";
 import { PaymentHistory } from "@/presentation/payment/components/payment-history";
 import { seedPaymentCache } from "@/presentation/payment/offline-repository";
-import { WhatsappLink } from "@/presentation/shared/components/whatsapp-link";
+import {
+  WhatsappLink,
+  resolveWhatsappNumber,
+} from "@/presentation/shared/components/whatsapp-link";
 import { WhatsappReceiptLink } from "@/presentation/payment/components/whatsapp-receipt-link";
 import { Badge } from "@/presentation/shared/components/ui/badge";
 import {
@@ -105,7 +108,7 @@ export function TransactionDetail({
 
   const signedAmount = transaction.type === "CREANCE" ? transaction.amount : -transaction.amount;
   const amountColorClass = transaction.type === "CREANCE" ? "text-[#1B7A5A]" : "text-[#0F2A4A]";
-  const whatsappNumber = party?.whatsappNumber ?? party?.phone ?? null;
+  const whatsappNumber = resolveWhatsappNumber(party?.phone, party?.whatsappNumber);
 
   return (
     <div className="mx-auto w-full max-w-md space-y-6 p-4 lg:max-w-2xl">

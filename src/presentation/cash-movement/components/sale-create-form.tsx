@@ -16,7 +16,7 @@ import {
   PAYMENT_METHOD_ICON,
   PAYMENT_METHOD_LABEL,
 } from "@/presentation/payment/components/payment-method-labels";
-import { cashMovementLabels, paymentLabels } from "@/presentation/shared/labels";
+import { cashMovementLabels, paymentLabels, transactionLabels } from "@/presentation/shared/labels";
 import { toastError, toastQueuedOffline, toastSuccess } from "@/presentation/shared/toast";
 import { resolveErrorMessage } from "@/presentation/shared/error-messages";
 import { cn } from "@/lib/utils";
@@ -117,6 +117,7 @@ export function SaleCreateForm({ tenantId, userId }: { tenantId: string; userId:
                 type="button"
                 variant="outline"
                 size="sm"
+                aria-label={transactionLabels.quickAmountAriaLabel(increment)}
                 onClick={() => setAmount((current) => current + increment)}
               >
                 +{increment.toLocaleString("fr-FR")}

@@ -68,6 +68,37 @@ describe("validatePartyInput", () => {
       }),
     ).toThrow(ValidationError);
   });
+
+  // contactOptional (vente au comptant, sale-client-picker.tsx uniquement) :
+  // jamais fourni par party-picker-step.tsx, comportement par défaut inchangé.
+  it("accepte un tiers sans aucun contact quand contactOptional est true", () => {
+    expect(() =>
+      validatePartyInput({ name: "Fatou Diop", type: "CLIENT", contactOptional: true }),
+    ).not.toThrow();
+  });
+
+  it("rejette toujours un tiers sans contact quand contactOptional est absent (non-régression)", () => {
+    expect(() => validatePartyInput({ name: "Fatou Diop", type: "CLIENT" })).toThrow(
+      ValidationError,
+    );
+  });
+
+  it("rejette toujours un tiers sans contact quand contactOptional vaut explicitement false", () => {
+    expect(() =>
+      validatePartyInput({ name: "Fatou Diop", type: "CLIENT", contactOptional: false }),
+    ).toThrow(ValidationError);
+  });
+
+  it("valide quand même le format du téléphone si contactOptional est true mais un numéro est fourni", () => {
+    expect(() =>
+      validatePartyInput({
+        name: "Fatou Diop",
+        phone: "+2217",
+        type: "CLIENT",
+        contactOptional: true,
+      }),
+    ).toThrow(ValidationError);
+  });
 });
 
 describe("normalizePartyInput", () => {

@@ -10,6 +10,9 @@ import { syncMutation } from "@/application/offline/sync-mutation.use-case";
 import { syncQueue } from "@/infrastructure/offline/sync-engine";
 import { listPendingMutations } from "@/infrastructure/offline/mutation-queue.store";
 import { CashMovementOfflineRepository } from "@/infrastructure/cash-movement/cash-movement-offline.repository";
+import { partyMutationHandler } from "@/infrastructure/party/party-mutation-handler";
+import { partySyncPayloadSchema } from "@/infrastructure/party/party-mutation.schema";
+import { PartyOfflineRepository } from "@/infrastructure/party/party-offline.repository";
 import { ValidationError, ForbiddenError } from "@/domain/shared/errors";
 import type { TenantContext } from "@/domain/shared/tenant-context";
 import type { QueuedMutation } from "@/application/offline/mutation-handler";
@@ -33,6 +36,8 @@ describe("CashMovement offline-first : bout en bout", () => {
   beforeAll(async () => {
     registerMutationHandler("cashMovement", cashMovementMutationHandler);
     registerMutationSchema("cashMovement", cashMovementSyncPayloadSchema);
+    registerMutationHandler("party", partyMutationHandler);
+    registerMutationSchema("party", partySyncPayloadSchema);
 
     await prisma.tenant.create({
       data: { id: tenantId, name: "Tenant de test offline cash-movement" },
@@ -83,6 +88,31 @@ describe("CashMovement offline-first : bout en bout", () => {
       },
     });
     expect(log).not.toBeNull();
+  });
+
+  it("vente au comptant créée hors ligne : partyId/method préservés après sync", async () => {
+    const partyRepo = new PartyOfflineRepository({ tenantId, userId: context.userId });
+    const party = await partyRepo.create({
+      name: "Fatou Diop",
+      phone: "+221771111303",
+      type: "CLIENT",
+    });
+
+    const repository = new CashMovementOfflineRepository({ tenantId, userId: context.userId });
+    const created = await repository.create({
+      type: "ENTREE",
+      amount: 12000,
+      reason: "2 sacs de riz",
+      method: "WAVE",
+      partyId: party.id,
+    });
+
+    const result = await syncQueue({ tenantId, syncTransport });
+    expect(result.failed).toBe(false);
+
+    const inDb = await prisma.cashMovement.findUnique({ where: { id: created.id } });
+    expect(inDb?.partyId).toBe(party.id);
+    expect(inDb?.method).toBe("WAVE");
   });
 
   it("retry d'un mouvement déjà appliqué : rejoué sans erreur, sans doublon", async () => {

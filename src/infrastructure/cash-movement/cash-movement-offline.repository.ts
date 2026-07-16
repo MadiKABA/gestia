@@ -85,6 +85,8 @@ export class CashMovementOfflineRepository {
       amount: input.amount,
       reason: input.reason,
       linkedPaymentId: null,
+      partyId: input.partyId ?? null,
+      method: input.method ?? null,
       createdById: this.deps.userId,
       date: now,
     };

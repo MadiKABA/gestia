@@ -19,6 +19,8 @@ export function toDomainCashMovement(row: CashMovementRow): CashMovement {
     amount: row.amount.toNumber(),
     reason: row.reason,
     linkedPaymentId: row.linkedPaymentId,
+    partyId: row.partyId,
+    method: row.method,
     createdById: row.createdById,
     date: row.date,
   };
@@ -64,6 +66,8 @@ export class PrismaCashMovementRepository
         type: input.type,
         amount: new Decimal(input.amount),
         reason: input.reason,
+        partyId: input.partyId ?? null,
+        method: input.method ?? null,
         createdById,
       },
     });

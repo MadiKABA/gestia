@@ -266,7 +266,8 @@ model Party {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  transactions Transaction[]
+  transactions  Transaction[]
+  cashMovements CashMovement[]
 
   @@index([tenantId])
   @@index([tenantId, name])
@@ -365,6 +366,12 @@ model CashMovement {
   linkedPaymentId String?  @unique
   linkedPayment   Payment? @relation(fields: [linkedPaymentId], references: [id], onDelete: SetNull)
 
+  // Vente au comptant uniquement : client et mode de paiement optionnels,
+  // restent `null` pour un mouvement de caisse manuel classique.
+  partyId String?
+  party   Party?         @relation(fields: [partyId], references: [id], onDelete: SetNull)
+  method  PaymentMethod?
+
   createdById String
   createdBy   User   @relation("CashMovementCreator", fields: [createdById], references: [id])
 
@@ -377,6 +384,7 @@ model CashMovement {
   @@index([tenantId])
   @@index([tenantId, date])
   @@index([tenantId, createdAt])
+  @@index([tenantId, partyId])
   @@map("cash_movements")
 }
 

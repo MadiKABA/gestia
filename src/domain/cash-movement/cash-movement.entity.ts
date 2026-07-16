@@ -1,4 +1,4 @@
-import type { PaymentDirection } from "@/domain/payment/payment.entity";
+import type { PaymentDirection, PaymentMethod } from "@/domain/payment/payment.entity";
 import { ValidationError } from "@/domain/shared/errors";
 
 export type CashMovementType = "ENTREE" | "SORTIE";
@@ -10,6 +10,8 @@ export type CashMovement = {
   amount: number;
   reason: string;
   linkedPaymentId: string | null;
+  partyId: string | null;
+  method: PaymentMethod | null;
   createdById: string;
   date: Date;
 };
@@ -18,12 +20,17 @@ export type CashMovement = {
  * Entrée manuelle uniquement (cahier des charges §7) : un mouvement issu
  * d'un paiement CASH est généré automatiquement par
  * register-payment.use-case.ts, jamais via ce type d'entrée — `reason` y est
- * imposé par `buildAutoReason`, jamais saisi.
+ * imposé par `buildAutoReason`, jamais saisi. `partyId`/`method` restent
+ * `null` pour un mouvement de caisse manuel classique — seule la vente au
+ * comptant (`presentation/cash-movement/components/sale-create-form.tsx`)
+ * les renseigne.
  */
 export type CashMovementInput = {
   type: CashMovementType;
   amount: number;
   reason: string;
+  partyId?: string | null;
+  method?: PaymentMethod;
 };
 
 /**

@@ -13,4 +13,8 @@ export const cashMovementSyncPayloadSchema = z.object({
   amount: z.number().positive(),
   // Plafonné (voir party-mutation.schema.ts pour le raisonnement complet).
   reason: z.string().trim().min(1).max(1000),
+  // Vente au comptant uniquement — `null`/absent pour un mouvement manuel
+  // classique (voir cash-movement.entity.ts).
+  partyId: z.string().trim().min(1).nullable().optional(),
+  method: z.enum(["CASH", "WAVE", "ORANGE_MONEY", "AUTRE"]).optional(),
 });

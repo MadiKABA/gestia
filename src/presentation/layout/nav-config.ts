@@ -1,10 +1,12 @@
 import {
+  ArrowLeftRight,
   ClipboardList,
   Home,
   MessageCircle,
   PlusCircle,
   Receipt,
   Settings,
+  ShoppingCart,
   UserCircle,
   UserCog,
   Users,
@@ -12,7 +14,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import type { TenantContext } from "@/domain/shared/tenant-context";
-import { partyLabels, transactionLabels } from "@/presentation/shared/labels";
+import { cashMovementLabels, partyLabels, transactionLabels } from "@/presentation/shared/labels";
 
 export type NavRole = TenantContext["role"];
 
@@ -135,10 +137,12 @@ export const BOTTOM_TAB_ITEMS: Record<NavRole, BottomTabItem[]> = {
 
 /**
  * Items du menu rapide ouvert par le bouton central "+" de la bottom tab
- * bar (bottom sheet / popover) — mêmes actions pour les deux rôles, chacun
- * navigue vers sa page dédiée (voir quick-action-sheet.tsx). "Mouvement de
- * caisse" a été retiré : le module Caisse n'existe pas encore
- * (page/use-case/repository à construire, chantier séparé).
+ * bar (bottom sheet / popover) — chacun navigue vers sa page dédiée (voir
+ * quick-action-sheet.tsx, grille 2×2 déjà pilotée par ce tableau). "Mouvement
+ * de caisse" et "Vente" sont réservés à PATRON (même garde que
+ * createCashMovement — jamais de trésorerie globale pour un vendeur, cf.
+ * CLAUDE.md "Rôles") : le menu VENDEUR reste à 2 entrées, seul celui de
+ * PATRON forme une grille 2×2 complète.
  */
 export type QuickActionItem = {
   key: string;
@@ -162,6 +166,20 @@ export const QUICK_ACTION_ITEMS: QuickActionItem[] = [
     href: "/paiements/nouveau",
     icon: Wallet,
     roles: ["PATRON", "VENDEUR"],
+  },
+  {
+    key: "mouvement-caisse",
+    label: cashMovementLabels.newButtonLabel,
+    href: "/caisse/nouveau",
+    icon: ArrowLeftRight,
+    roles: ["PATRON"],
+  },
+  {
+    key: "nouvelle-vente",
+    label: cashMovementLabels.saleQuickActionLabel,
+    href: "/ventes/new",
+    icon: ShoppingCart,
+    roles: ["PATRON"],
   },
 ];
 

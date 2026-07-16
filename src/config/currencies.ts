@@ -14,6 +14,13 @@ export type CurrencyCode = (typeof SUPPORTED_CURRENCIES)[number]["code"];
 
 export const DEFAULT_CURRENCY: CurrencyCode = "FCFA";
 
+/** Tuple (pas juste `CurrencyCode[]`) pour être directement utilisable par
+ * `z.enum(...)` (presentation/tenant/schemas.ts). */
+export const CURRENCY_CODES = SUPPORTED_CURRENCIES.map((currency) => currency.code) as [
+  CurrencyCode,
+  ...CurrencyCode[],
+];
+
 const CURRENCY_CODE_SET: ReadonlySet<string> = new Set(
   SUPPORTED_CURRENCIES.map((currency) => currency.code),
 );

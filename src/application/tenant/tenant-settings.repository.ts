@@ -1,4 +1,5 @@
 import type { TenantSettingsUpdateInput } from "@/domain/tenant-settings/tenant-settings.entity";
+import type { CurrencyCode } from "@/config/currencies";
 
 /** Objet settings complet — à la différence de TenantBrandingRepository/
  * TenantMessagingRepository (lectures étroites, ouvertes au VENDEUR), cette
@@ -6,7 +7,7 @@ import type { TenantSettingsUpdateInput } from "@/domain/tenant-settings/tenant-
  * tous les champs à la fois. */
 export type TenantSettingsFull = {
   displayName: string | null;
-  currency: string;
+  currency: CurrencyCode;
   reminderDays: number;
   whatsappTemplate: string | null;
   whatsappReceiptPartialTemplate: string | null;

@@ -1,5 +1,6 @@
 import { ValidationError } from "@/domain/shared/errors";
 import { BRAND_PRESET_VALUES } from "@/config/brand-presets";
+import { isCurrencyCode, type CurrencyCode } from "@/config/currencies";
 
 const REMINDER_DAYS_MIN = 1;
 const REMINDER_DAYS_MAX = 30;
@@ -22,7 +23,7 @@ const WHATSAPP_RECEIPT_FINAL_PLACEHOLDERS = ["{client}", "{montantPaye}"] as con
  */
 export type TenantSettingsUpdateInput = Partial<{
   displayName: string | null;
-  currency: string;
+  currency: CurrencyCode;
   reminderDays: number;
   whatsappTemplate: string | null;
   whatsappReceiptPartialTemplate: string | null;
@@ -102,7 +103,7 @@ export function validateTenantSettingsInput(input: TenantSettingsUpdateInput): v
     throw new ValidationError("Le nom affiché ne peut pas être vide");
   }
 
-  if (input.currency != null && !input.currency.trim()) {
-    throw new ValidationError("La devise ne peut pas être vide");
+  if (input.currency != null && !isCurrencyCode(input.currency)) {
+    throw new ValidationError("La devise doit faire partie des devises proposées");
   }
 }

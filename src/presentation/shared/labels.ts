@@ -339,7 +339,8 @@ export const tenantSettingsLabels = {
   displayNameField: "Nom affiché",
   displayNameHelperText: "Utilisé à la place du nom légal dans l'app si renseigné.",
   currencyField: "Devise",
-  currencyReadOnlyHelperText: "FCFA uniquement pour le moment.",
+  currencyHelperText:
+    "Change uniquement l'affichage des montants — les montants déjà enregistrés ne sont pas convertis.",
 
   relanceSectionTitle: "Relances",
   reminderDaysField: "Délai de relance (jours)",

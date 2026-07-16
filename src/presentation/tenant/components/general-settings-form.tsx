@@ -4,29 +4,35 @@ import { useState, useTransition } from "react";
 import { Button } from "@/presentation/shared/components/ui/button";
 import { Input } from "@/presentation/shared/components/ui/input";
 import { Label } from "@/presentation/shared/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/presentation/shared/components/ui/select";
 import { updateTenantSettingsAction } from "@/presentation/tenant/actions";
 import { commonLabels, tenantSettingsLabels } from "@/presentation/shared/labels";
 import { toastError, toastSuccess } from "@/presentation/shared/toast";
 import { resolveErrorMessage } from "@/presentation/shared/error-messages";
+import { SUPPORTED_CURRENCIES, type CurrencyCode } from "@/config/currencies";
 
-/** Devise verrouillée en lecture seule en V1 (voir CLAUDE.md) : rien dans
- * l'app ne pilote de calcul monétaire sur cette valeur, la rendre modifiable
- * créerait un champ qui a l'air fonctionnel sans rien changer réellement. */
 export function GeneralSettingsForm({
   displayName: initialDisplayName,
-  currency,
+  currency: initialCurrency,
 }: {
   displayName: string | null;
-  currency: string;
+  currency: CurrencyCode;
 }) {
   const [displayName, setDisplayName] = useState(initialDisplayName ?? "");
+  const [currency, setCurrency] = useState<CurrencyCode>(initialCurrency);
   const [saving, startSaving] = useTransition();
 
   function onSubmit(event: React.FormEvent) {
     event.preventDefault();
     startSaving(async () => {
       try {
-        await updateTenantSettingsAction({ displayName: displayName.trim() || null });
+        await updateTenantSettingsAction({ displayName: displayName.trim() || null, currency });
         toastSuccess(tenantSettingsLabels.savedMessage);
       } catch (err) {
         toastError(resolveErrorMessage(err));
@@ -36,6 +42,7 @@ export function GeneralSettingsForm({
 
   function onCancel() {
     setDisplayName(initialDisplayName ?? "");
+    setCurrency(initialCurrency);
   }
 
   return (
@@ -58,10 +65,23 @@ export function GeneralSettingsForm({
 
         <div className="space-y-1.5">
           <Label htmlFor="currency">{tenantSettingsLabels.currencyField}</Label>
-          <Input id="currency" value={currency} disabled />
-          <p className="text-muted-foreground text-sm">
-            {tenantSettingsLabels.currencyReadOnlyHelperText}
-          </p>
+          <Select value={currency} onValueChange={(value) => setCurrency(value as CurrencyCode)}>
+            <SelectTrigger id="currency" className="w-full">
+              <SelectValue>
+                {(value: string) =>
+                  SUPPORTED_CURRENCIES.find((option) => option.code === value)?.label ?? value
+                }
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {SUPPORTED_CURRENCIES.map((option) => (
+                <SelectItem key={option.code} value={option.code}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-muted-foreground text-sm">{tenantSettingsLabels.currencyHelperText}</p>
         </div>
       </div>
 

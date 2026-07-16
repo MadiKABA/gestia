@@ -72,6 +72,15 @@ enum OtpChannel {
   EMAIL
 }
 
+/** Devises supportées (`TenantSettings.currency`) — liste fermée, cohérente
+ * avec `src/config/currencies.ts` (source de vérité applicative pour le
+ * libellé affiché de chaque devise). Chaque tenant reste isolé sur la
+ * sienne : ce n'est pas un système de conversion entre devises. */
+enum Currency {
+  FCFA
+  GNF
+}
+
 // ---------------------------------------------------------------------------
 // Admin — comptes du backoffice SaaS (hors périmètre tenant, auth email+mdp)
 // ---------------------------------------------------------------------------
@@ -396,7 +405,7 @@ model TenantSettings {
   tenantId String @id
   tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
-  currency         String  @default("FCFA")
+  currency         Currency @default(FCFA)
   reminderDays     Int     @default(7)
   whatsappTemplate String?
   whatsappReceiptPartialTemplate String?

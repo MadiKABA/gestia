@@ -232,6 +232,24 @@ export const cashMovementLabels = {
   reasonRequiredError: "Le motif est obligatoire",
 
   createdToastMessage: "Mouvement de caisse enregistré",
+
+  // Vente au comptant (sale-create-form.tsx, sale-client-picker.tsx) : reste
+  // conceptuellement un mouvement de caisse (entrée), pas un module séparé.
+  saleQuickActionLabel: "Vente",
+  saleNewButtonLabel: "Nouvelle vente",
+  saleNewPageTitle: "Nouvelle vente",
+  saleDescriptionField: "Description",
+  saleDescriptionPlaceholder: "Ex : 2 sacs de riz, coupe de cheveux...",
+  saleDescriptionRequiredError: "La description est obligatoire",
+  saleSubmitLabel: "Enregistrer la vente",
+  saleCreatedToastMessage: "Vente enregistrée",
+
+  // Bloc client optionnel — vocabulaire distinct de partyLabels.picker* :
+  // ce flux n'exige jamais de téléphone, contrairement à la création de
+  // tiers depuis la page transaction (party-picker-step.tsx).
+  salePartyField: "Client (optionnel)",
+  salePartyAddButtonLabel: "Ajouter un client (optionnel)",
+  salePartyPhoneField: "Téléphone (optionnel)",
 };
 
 export const authLabels = {

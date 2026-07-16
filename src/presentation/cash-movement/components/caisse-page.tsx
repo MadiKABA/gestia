@@ -69,11 +69,16 @@ export function CaissePage({
 
   return (
     <div className="mx-auto w-full max-w-md space-y-6 p-4 lg:max-w-2xl">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-foreground text-lg font-semibold">{cashMovementLabels.listTitle}</h1>
-        <Button render={<Link href="/caisse/nouveau" />} nativeButton={false}>
-          {cashMovementLabels.newButtonLabel}
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" render={<Link href="/caisse/nouveau" />} nativeButton={false}>
+            {cashMovementLabels.newButtonLabel}
+          </Button>
+          <Button render={<Link href="/ventes/new" />} nativeButton={false}>
+            {cashMovementLabels.saleNewButtonLabel}
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">

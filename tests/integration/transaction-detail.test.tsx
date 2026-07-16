@@ -102,6 +102,7 @@ describe("TransactionDetail", () => {
         whatsappTemplate={null}
         whatsappReceiptTemplates={emptyReceiptTemplates}
         boutique="Boutique Awa"
+        currency="FCFA"
         reminderDays={7}
         tenantId="tenant-1"
         userId="user-1"
@@ -127,6 +128,7 @@ describe("TransactionDetail", () => {
         whatsappTemplate={null}
         whatsappReceiptTemplates={emptyReceiptTemplates}
         boutique="Boutique Awa"
+        currency="FCFA"
         reminderDays={7}
         tenantId="tenant-1"
         userId="user-1"
@@ -160,6 +162,7 @@ describe("TransactionDetail", () => {
         whatsappTemplate={null}
         whatsappReceiptTemplates={emptyReceiptTemplates}
         boutique="Boutique Awa"
+        currency="FCFA"
         reminderDays={7}
         tenantId="tenant-1"
         userId="user-1"
@@ -196,6 +199,7 @@ describe("TransactionDetail", () => {
         whatsappTemplate={null}
         whatsappReceiptTemplates={emptyReceiptTemplates}
         boutique="Boutique Awa"
+        currency="FCFA"
         reminderDays={7}
         tenantId="tenant-1"
         userId="user-1"
@@ -227,6 +231,7 @@ describe("TransactionDetail", () => {
         whatsappTemplate={null}
         whatsappReceiptTemplates={emptyReceiptTemplates}
         boutique="Boutique Awa"
+        currency="FCFA"
         reminderDays={7}
         tenantId="tenant-1"
         userId="user-1"
@@ -255,6 +260,7 @@ describe("TransactionDetail", () => {
         whatsappTemplate={null}
         whatsappReceiptTemplates={emptyReceiptTemplates}
         boutique="Boutique Awa"
+        currency="FCFA"
         reminderDays={7}
         tenantId="tenant-1"
         userId="user-1"
@@ -288,6 +294,7 @@ describe("TransactionDetail", () => {
         whatsappTemplate={null}
         whatsappReceiptTemplates={emptyReceiptTemplates}
         boutique="Boutique Awa"
+        currency="FCFA"
         reminderDays={7}
         tenantId="tenant-1"
         userId="user-1"
@@ -306,6 +313,7 @@ describe("TransactionDetail", () => {
         whatsappTemplate={null}
         whatsappReceiptTemplates={emptyReceiptTemplates}
         boutique="Boutique Awa"
+        currency="FCFA"
         reminderDays={7}
         tenantId="tenant-1"
         userId="user-1"
@@ -334,6 +342,7 @@ describe("TransactionDetail", () => {
         whatsappTemplate={null}
         whatsappReceiptTemplates={emptyReceiptTemplates}
         boutique="Boutique Awa"
+        currency="FCFA"
         reminderDays={7}
         tenantId="tenant-1"
         userId="user-1"
@@ -344,5 +353,27 @@ describe("TransactionDetail", () => {
 
     const link = screen.getByRole("button", { name: transactionLabels.whatsappButtonLabel });
     expect(link).toHaveAttribute("href", expect.stringContaining("wa.me/221771234567"));
+  });
+
+  it("un tenant en GNF affiche le montant et génère un message WhatsApp de relance sans aucune trace de FCFA", () => {
+    render(
+      <TransactionDetail
+        transaction={transaction}
+        party={{ name: "Fatou Diop", phone: "+221771234567", whatsappNumber: null }}
+        whatsappTemplate={null}
+        whatsappReceiptTemplates={emptyReceiptTemplates}
+        boutique="Boutique Awa"
+        currency="GNF"
+        reminderDays={7}
+        tenantId="tenant-1"
+        userId="user-1"
+        canDelete={true}
+        initialPayments={[firstPayment]}
+      />,
+    );
+
+    expect(screen.getByText(/6 000 GNF/)).toBeInTheDocument();
+    expect(screen.getAllByText(/GNF/).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/FCFA/)).not.toBeInTheDocument();
   });
 });

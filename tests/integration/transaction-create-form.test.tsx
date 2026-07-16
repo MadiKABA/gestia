@@ -39,7 +39,7 @@ beforeEach(() => {
 
 describe("TransactionCreateForm", () => {
   it("démarre sur 'On me doit' (créance) par défaut", () => {
-    render(<TransactionCreateForm tenantId="tenant-1" userId="user-1" />);
+    render(<TransactionCreateForm tenantId="tenant-1" userId="user-1" currency="FCFA" />);
 
     expect(screen.getByText(transactionLabels.newPageTitleCreance)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: transactionLabels.owedToMeLabel })).toHaveAttribute(
@@ -49,7 +49,7 @@ describe("TransactionCreateForm", () => {
   });
 
   it("propose un lien de retour explicite vers la liste des opérations", () => {
-    render(<TransactionCreateForm tenantId="tenant-1" userId="user-1" />);
+    render(<TransactionCreateForm tenantId="tenant-1" userId="user-1" currency="FCFA" />);
 
     expect(screen.getByRole("link", { name: commonLabels.back })).toHaveAttribute(
       "href",
@@ -58,7 +58,7 @@ describe("TransactionCreateForm", () => {
   });
 
   it("bascule sur 'Je dois' (dette) et réinitialise le tiers déjà choisi", async () => {
-    render(<TransactionCreateForm tenantId="tenant-1" userId="user-1" />);
+    render(<TransactionCreateForm tenantId="tenant-1" userId="user-1" currency="FCFA" />);
 
     await userEvent.click(screen.getByText("party-picker-stub"));
     await userEvent.click(screen.getByRole("button", { name: transactionLabels.owedByMeLabel }));
@@ -69,7 +69,7 @@ describe("TransactionCreateForm", () => {
   });
 
   it("désactive le bouton d'enregistrement sans tiers sélectionné", async () => {
-    render(<TransactionCreateForm tenantId="tenant-1" userId="user-1" />);
+    render(<TransactionCreateForm tenantId="tenant-1" userId="user-1" currency="FCFA" />);
 
     expect(
       screen.getByRole("button", { name: transactionLabels.createSubmitLabel }),
@@ -78,7 +78,7 @@ describe("TransactionCreateForm", () => {
   });
 
   it("réactive le bouton d'enregistrement une fois les champs requis remplis", async () => {
-    render(<TransactionCreateForm tenantId="tenant-1" userId="user-1" />);
+    render(<TransactionCreateForm tenantId="tenant-1" userId="user-1" currency="FCFA" />);
     const submitButton = screen.getByRole("button", { name: transactionLabels.createSubmitLabel });
     expect(submitButton).toBeDisabled();
 
@@ -88,7 +88,7 @@ describe("TransactionCreateForm", () => {
       "Sac de riz 50kg",
     );
     await userEvent.click(
-      screen.getByRole("button", { name: transactionLabels.quickAmountAriaLabel(1000) }),
+      screen.getByRole("button", { name: transactionLabels.quickAmountAriaLabel(1000, "FCFA") }),
     );
 
     expect(submitButton).toBeEnabled();
@@ -96,7 +96,7 @@ describe("TransactionCreateForm", () => {
 
   it("enregistre et redirige vers la liste avec le payload attendu (échéance optionnelle absente)", async () => {
     createMock.mockResolvedValue({} as Transaction);
-    render(<TransactionCreateForm tenantId="tenant-1" userId="user-1" />);
+    render(<TransactionCreateForm tenantId="tenant-1" userId="user-1" currency="FCFA" />);
 
     await userEvent.click(screen.getByText("party-picker-stub"));
     await userEvent.type(
@@ -104,7 +104,7 @@ describe("TransactionCreateForm", () => {
       "Sac de riz 50kg",
     );
     await userEvent.click(
-      screen.getByRole("button", { name: transactionLabels.quickAmountAriaLabel(1000) }),
+      screen.getByRole("button", { name: transactionLabels.quickAmountAriaLabel(1000, "FCFA") }),
     );
     await userEvent.click(
       screen.getByRole("button", { name: transactionLabels.createSubmitLabel }),

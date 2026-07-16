@@ -101,6 +101,7 @@ function renderList(transaction: Transaction) {
       lastPaymentMethodByTransactionId={{}}
       whatsappReceiptTemplates={receiptTemplates}
       boutique="Boutique Awa"
+      currency="FCFA"
       reminderDays={7}
     />,
   );
@@ -167,6 +168,7 @@ describe("TransactionsList — reçu WhatsApp après paiement rapide", () => {
         lastPaymentMethodByTransactionId={{}}
         whatsappReceiptTemplates={receiptTemplates}
         boutique="Boutique Awa"
+        currency="FCFA"
         reminderDays={7}
       />,
     );

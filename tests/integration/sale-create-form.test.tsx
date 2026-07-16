@@ -47,7 +47,7 @@ beforeEach(() => {
 
 describe("SaleCreateForm", () => {
   it("propose un lien de retour explicite vers la caisse", () => {
-    render(<SaleCreateForm tenantId="tenant-1" userId="user-1" />);
+    render(<SaleCreateForm tenantId="tenant-1" userId="user-1" currency="FCFA" />);
 
     expect(screen.getByRole("link", { name: commonLabels.back })).toHaveAttribute(
       "href",
@@ -56,7 +56,7 @@ describe("SaleCreateForm", () => {
   });
 
   it("sélectionne Espèces (CASH) par défaut", () => {
-    render(<SaleCreateForm tenantId="tenant-1" userId="user-1" />);
+    render(<SaleCreateForm tenantId="tenant-1" userId="user-1" currency="FCFA" />);
 
     expect(
       screen.getByRole("button", { name: new RegExp(paymentLabels.methodCash) }),
@@ -64,7 +64,7 @@ describe("SaleCreateForm", () => {
   });
 
   it("désactive le bouton d'enregistrement tant que la description ou le montant manquent", async () => {
-    render(<SaleCreateForm tenantId="tenant-1" userId="user-1" />);
+    render(<SaleCreateForm tenantId="tenant-1" userId="user-1" currency="FCFA" />);
     const submitButton = screen.getByRole("button", { name: cashMovementLabels.saleSubmitLabel });
     expect(submitButton).toBeDisabled();
 
@@ -75,20 +75,20 @@ describe("SaleCreateForm", () => {
     expect(submitButton).toBeDisabled();
 
     await userEvent.click(
-      screen.getByRole("button", { name: transactionLabels.quickAmountAriaLabel(1000) }),
+      screen.getByRole("button", { name: transactionLabels.quickAmountAriaLabel(1000, "FCFA") }),
     );
     expect(submitButton).toBeEnabled();
   });
 
   it("n'exige jamais de client pour activer le bouton d'enregistrement", async () => {
-    render(<SaleCreateForm tenantId="tenant-1" userId="user-1" />);
+    render(<SaleCreateForm tenantId="tenant-1" userId="user-1" currency="FCFA" />);
 
     await userEvent.type(
       screen.getByLabelText(cashMovementLabels.saleDescriptionField),
       "2 sacs de riz",
     );
     await userEvent.click(
-      screen.getByRole("button", { name: transactionLabels.quickAmountAriaLabel(1000) }),
+      screen.getByRole("button", { name: transactionLabels.quickAmountAriaLabel(1000, "FCFA") }),
     );
 
     expect(screen.getByRole("button", { name: cashMovementLabels.saleSubmitLabel })).toBeEnabled();
@@ -96,14 +96,14 @@ describe("SaleCreateForm", () => {
 
   it("enregistre et redirige vers /caisse avec le payload attendu (sans client, CASH par défaut)", async () => {
     createMock.mockResolvedValue({} as CashMovement);
-    render(<SaleCreateForm tenantId="tenant-1" userId="user-1" />);
+    render(<SaleCreateForm tenantId="tenant-1" userId="user-1" currency="FCFA" />);
 
     await userEvent.type(
       screen.getByLabelText(cashMovementLabels.saleDescriptionField),
       "2 sacs de riz",
     );
     await userEvent.click(
-      screen.getByRole("button", { name: transactionLabels.quickAmountAriaLabel(1000) }),
+      screen.getByRole("button", { name: transactionLabels.quickAmountAriaLabel(1000, "FCFA") }),
     );
     await userEvent.click(screen.getByRole("button", { name: cashMovementLabels.saleSubmitLabel }));
 
@@ -119,14 +119,14 @@ describe("SaleCreateForm", () => {
 
   it("transmet le partyId choisi et le mode de paiement sélectionné", async () => {
     createMock.mockResolvedValue({} as CashMovement);
-    render(<SaleCreateForm tenantId="tenant-1" userId="user-1" />);
+    render(<SaleCreateForm tenantId="tenant-1" userId="user-1" currency="FCFA" />);
 
     await userEvent.type(
       screen.getByLabelText(cashMovementLabels.saleDescriptionField),
       "Coupe de cheveux",
     );
     await userEvent.click(
-      screen.getByRole("button", { name: transactionLabels.quickAmountAriaLabel(500) }),
+      screen.getByRole("button", { name: transactionLabels.quickAmountAriaLabel(500, "FCFA") }),
     );
     await userEvent.click(
       screen.getByRole("button", { name: new RegExp(paymentLabels.methodWave) }),

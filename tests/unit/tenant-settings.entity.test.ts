@@ -107,7 +107,18 @@ describe("validateTenantSettingsInput", () => {
     expect(() => validateTenantSettingsInput({ displayName: null })).not.toThrow();
   });
 
-  it("rejette currency vide", () => {
-    expect(() => validateTenantSettingsInput({ currency: "  " })).toThrow(ValidationError);
+  it("accepte les devises de la liste fermée (FCFA, GNF)", () => {
+    expect(() => validateTenantSettingsInput({ currency: "FCFA" })).not.toThrow();
+    expect(() => validateTenantSettingsInput({ currency: "GNF" })).not.toThrow();
+  });
+
+  it("rejette une devise hors de la liste fermée", () => {
+    // `as never` : simule une valeur qui a contourné le typage statique
+    // (ex. payload externe non typé) — la validation runtime doit rester la
+    // dernière ligne de défense, même si Zod/Prisma filtrent déjà en amont.
+    expect(() => validateTenantSettingsInput({ currency: "USD" as never })).toThrow(
+      ValidationError,
+    );
+    expect(() => validateTenantSettingsInput({ currency: "" as never })).toThrow(ValidationError);
   });
 });

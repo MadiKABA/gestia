@@ -17,14 +17,14 @@ beforeEach(() => {
 
 describe("RelanceSettingsForm", () => {
   it("le champ délai respecte les bornes [1, 30]", () => {
-    render(<RelanceSettingsForm reminderDays={7} whatsappTemplate={null} />);
+    render(<RelanceSettingsForm reminderDays={7} whatsappTemplate={null} currency="FCFA" />);
     const input = screen.getByLabelText(tenantSettingsLabels.reminderDaysField);
     expect(input).toHaveAttribute("min", "1");
     expect(input).toHaveAttribute("max", "30");
   });
 
   it("affiche un aperçu du message qui se met à jour en direct", async () => {
-    render(<RelanceSettingsForm reminderDays={7} whatsappTemplate={null} />);
+    render(<RelanceSettingsForm reminderDays={7} whatsappTemplate={null} currency="FCFA" />);
     // Le template par défaut est prérempli quand aucun n'a été personnalisé,
     // avec toutes les nouvelles variables déjà résolues dans l'aperçu.
     expect(
@@ -48,7 +48,9 @@ describe("RelanceSettingsForm", () => {
   });
 
   it("un clic sur une variable l'insère dans le champ à la position du curseur", async () => {
-    render(<RelanceSettingsForm reminderDays={7} whatsappTemplate="Salam {client} !" />);
+    render(
+      <RelanceSettingsForm reminderDays={7} whatsappTemplate="Salam {client} !" currency="FCFA" />,
+    );
 
     const textarea = screen.getByLabelText<HTMLTextAreaElement>(
       tenantSettingsLabels.whatsappTemplateField,
@@ -62,7 +64,11 @@ describe("RelanceSettingsForm", () => {
 
   it("le bouton de réinitialisation restaure le modèle par défaut", async () => {
     render(
-      <RelanceSettingsForm reminderDays={7} whatsappTemplate="Message personnalisé {client}" />,
+      <RelanceSettingsForm
+        reminderDays={7}
+        whatsappTemplate="Message personnalisé {client}"
+        currency="FCFA"
+      />,
     );
 
     await userEvent.click(
@@ -75,7 +81,7 @@ describe("RelanceSettingsForm", () => {
   });
 
   it("soumet le délai et le template modifiés", async () => {
-    render(<RelanceSettingsForm reminderDays={7} whatsappTemplate={null} />);
+    render(<RelanceSettingsForm reminderDays={7} whatsappTemplate={null} currency="FCFA" />);
 
     const daysInput = screen.getByLabelText(tenantSettingsLabels.reminderDaysField);
     await userEvent.clear(daysInput);
@@ -89,5 +95,15 @@ describe("RelanceSettingsForm", () => {
       reminderDays: 10,
       whatsappTemplate: DEFAULT_WHATSAPP_TEMPLATE,
     });
+  });
+
+  it("un tenant en GNF affiche un aperçu du gabarit par défaut sans aucune trace de FCFA", () => {
+    render(<RelanceSettingsForm reminderDays={7} whatsappTemplate={null} currency="GNF" />);
+
+    expect(
+      screen.getByText(
+        "Salam Awa Diop, j'espère que tu vas bien. Ici Boutique Awa. Selon mon cahier du 12 juillet 2026, tu as pris 3 sacs de riz pour un total de 25 000 GNF (réf. CR-1042). Il te reste 15 000 GNF à régler. Merci et bonne journée !",
+      ),
+    ).toBeInTheDocument();
   });
 });

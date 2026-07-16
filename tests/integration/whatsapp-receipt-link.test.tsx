@@ -11,6 +11,7 @@ const baseProps = {
   remainingBalance: 4000,
   totalAmount: 6000,
   boutique: "Boutique Fatou",
+  currency: "FCFA" as const,
   date: new Date("2026-07-12T10:00:00Z"),
   partialTemplate: null,
   finalTemplate: null,
@@ -73,5 +74,12 @@ describe("WhatsappReceiptLink", () => {
     render(<WhatsappReceiptLink {...baseProps} status="PARTIELLE" method="WAVE" />);
 
     expect(screen.getByText(/par Wave/)).toBeInTheDocument();
+  });
+
+  it("un tenant en GNF ne laisse plus aucune trace de FCFA dans le reçu généré", () => {
+    render(<WhatsappReceiptLink {...baseProps} status="PARTIELLE" currency="GNF" />);
+
+    expect(screen.getByText(/6 000 GNF/)).toBeInTheDocument();
+    expect(screen.queryByText(/FCFA/)).not.toBeInTheDocument();
   });
 });

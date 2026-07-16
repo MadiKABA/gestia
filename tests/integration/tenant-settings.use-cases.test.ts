@@ -79,6 +79,36 @@ describe("use cases tenant-settings", () => {
       ).rejects.toThrow(ValidationError);
     });
 
+    it("persiste la devise sélectionnée (round-trip Postgres, FCFA -> GNF)", async () => {
+      const patron = await registerTenant();
+      const repository = new PrismaTenantSettingsRepository(patron.tenantId);
+      const context = { tenantId: patron.tenantId, userId: patron.id, role: "PATRON" as const };
+
+      const beforeUpdate = await repository.findFull();
+      expect(beforeUpdate?.currency).toBe("FCFA");
+
+      await updateTenantSettings(context, { repository, auditLogger }, { currency: "GNF" });
+
+      const afterUpdate = await repository.findFull();
+      expect(afterUpdate?.currency).toBe("GNF");
+    });
+
+    it("rejette une devise hors de la liste fermée (FCFA, GNF)", async () => {
+      const patron = await registerTenant();
+      const repository = new PrismaTenantSettingsRepository(patron.tenantId);
+
+      await expect(
+        updateTenantSettings(
+          { tenantId: patron.tenantId, userId: patron.id, role: "PATRON" },
+          { repository, auditLogger },
+          // `as never` : simule une valeur qui a contourné le typage statique
+          // (ex. payload externe non typé) — la validation domaine doit
+          // rester la dernière ligne de défense.
+          { currency: "USD" as never },
+        ),
+      ).rejects.toThrow(ValidationError);
+    });
+
     it("rejette brandColor hors des presets", async () => {
       const patron = await registerTenant();
       const repository = new PrismaTenantSettingsRepository(patron.tenantId);

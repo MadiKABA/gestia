@@ -18,7 +18,7 @@ describe("renderWhatsappTemplate", () => {
     expect(result).toBe("Bonjour Fatou Diop, CR-2026-00125 : 15 000 FCFA");
   });
 
-  it("le gabarit de relance par défaut remplace toutes ses variables, y compris boutique/montant total/date", () => {
+  it("le gabarit de relance par défaut remplace toutes ses variables, y compris boutique/montant total/date/devise", () => {
     const result = renderWhatsappTemplate(DEFAULT_WHATSAPP_TEMPLATE, {
       client: "Fatou",
       montant: "1 000",
@@ -27,6 +27,7 @@ describe("renderWhatsappTemplate", () => {
       reference: "CR-2026-00001",
       boutique: "Boutique Awa",
       description: "3 sacs de riz",
+      devise: "FCFA",
       date: "12 juillet 2026",
     });
     expect(result).not.toMatch(/\{[a-zA-Z]+\}/);
@@ -37,9 +38,10 @@ describe("renderWhatsappTemplate", () => {
     expect(result).toContain("Boutique Awa");
     expect(result).toContain("3 sacs de riz");
     expect(result).toContain("12 juillet 2026");
+    expect(result).toContain("FCFA");
   });
 
-  it("remplace des clés arbitraires (gabarit reçu partiel), y compris boutique/montant total/date", () => {
+  it("remplace des clés arbitraires (gabarit reçu partiel), y compris boutique/montant total/date/devise", () => {
     const result = renderWhatsappTemplate(DEFAULT_WHATSAPP_RECEIPT_PARTIAL_TEMPLATE, {
       client: "Fatou",
       montantPaye: "5 000",
@@ -47,6 +49,7 @@ describe("renderWhatsappTemplate", () => {
       montantRestant: "10 000",
       montantTotal: "15 000",
       boutique: "Boutique Awa",
+      devise: "FCFA",
       date: "12 juillet 2026",
     });
     expect(result).not.toMatch(/\{[a-zA-Z]+\}/);
@@ -57,14 +60,16 @@ describe("renderWhatsappTemplate", () => {
     expect(result).toContain("15 000");
     expect(result).toContain("Boutique Awa");
     expect(result).toContain("12 juillet 2026");
+    expect(result).toContain("FCFA");
   });
 
-  it("remplace des clés arbitraires (gabarit reçu final), y compris boutique/montant total/date", () => {
+  it("remplace des clés arbitraires (gabarit reçu final), y compris boutique/montant total/date/devise", () => {
     const result = renderWhatsappTemplate(DEFAULT_WHATSAPP_RECEIPT_FINAL_TEMPLATE, {
       client: "Fatou",
       montantPaye: "15 000",
       montantTotal: "15 000",
       boutique: "Boutique Awa",
+      devise: "FCFA",
       date: "12 juillet 2026",
     });
     expect(result).not.toMatch(/\{[a-zA-Z]+\}/);
@@ -73,6 +78,33 @@ describe("renderWhatsappTemplate", () => {
     expect(result).toContain("Boutique Awa");
     expect(result).toContain("12 juillet 2026");
     expect(result).toContain("Safi");
+    expect(result).toContain("FCFA");
+  });
+
+  it("un tenant en GNF ne laisse plus aucune trace de FCFA dans les 3 gabarits générés", () => {
+    const commonVars = {
+      client: "Fatou",
+      montant: "1 000",
+      montantPaye: "1 000",
+      montantRestant: "1 000",
+      montantTotal: "5 000",
+      reference: "CR-2026-00001",
+      modePaiement: "Wave",
+      boutique: "Boutique Awa",
+      description: "3 sacs de riz",
+      devise: "GNF",
+      date: "12 juillet 2026",
+    };
+
+    for (const template of [
+      DEFAULT_WHATSAPP_TEMPLATE,
+      DEFAULT_WHATSAPP_RECEIPT_PARTIAL_TEMPLATE,
+      DEFAULT_WHATSAPP_RECEIPT_FINAL_TEMPLATE,
+    ]) {
+      const result = renderWhatsappTemplate(template, commonVars);
+      expect(result).not.toContain("FCFA");
+      expect(result).toContain("GNF");
+    }
   });
 });
 

@@ -62,16 +62,34 @@ describe("PaymentModal", () => {
         transaction={creance}
         tenantId="tenant-1"
         userId="user-1"
+        currency="FCFA"
         open={true}
         onOpenChange={vi.fn()}
         onSuccess={vi.fn()}
       />,
     );
 
-    expect(screen.getByLabelText(transactionLabels.amountField)).toHaveValue(6000);
+    expect(screen.getByLabelText(transactionLabels.amountField("FCFA"))).toHaveValue(6000);
     expect(
       screen.getByRole("button", { name: paymentLabels.payButtonLabel("CREANCE") }),
     ).toBeInTheDocument();
+  });
+
+  it("affiche le champ montant et le solde restant dans la devise du tenant (GNF)", () => {
+    render(
+      <PaymentModal
+        transaction={creance}
+        tenantId="tenant-1"
+        userId="user-1"
+        currency="GNF"
+        open={true}
+        onOpenChange={vi.fn()}
+        onSuccess={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByLabelText(transactionLabels.amountField("GNF"))).toHaveValue(6000);
+    expect(screen.getByText(/Solde restant : 6 000 GNF/)).toBeInTheDocument();
   });
 
   it("libelle le bouton 'Rembourser' pour une dette", () => {
@@ -80,6 +98,7 @@ describe("PaymentModal", () => {
         transaction={{ ...creance, type: "DETTE" }}
         tenantId="tenant-1"
         userId="user-1"
+        currency="FCFA"
         open={true}
         onOpenChange={vi.fn()}
         onSuccess={vi.fn()}
@@ -97,13 +116,14 @@ describe("PaymentModal", () => {
         transaction={creance}
         tenantId="tenant-1"
         userId="user-1"
+        currency="FCFA"
         open={true}
         onOpenChange={vi.fn()}
         onSuccess={vi.fn()}
       />,
     );
 
-    const amountInput = screen.getByLabelText(transactionLabels.amountField);
+    const amountInput = screen.getByLabelText(transactionLabels.amountField("FCFA"));
     await userEvent.clear(amountInput);
     await userEvent.type(amountInput, "6001");
 
@@ -134,13 +154,14 @@ describe("PaymentModal", () => {
         transaction={creance}
         tenantId="tenant-1"
         userId="user-1"
+        currency="FCFA"
         open={true}
         onOpenChange={onOpenChange}
         onSuccess={onSuccess}
       />,
     );
 
-    const amountInput = screen.getByLabelText(transactionLabels.amountField);
+    const amountInput = screen.getByLabelText(transactionLabels.amountField("FCFA"));
     await userEvent.clear(amountInput);
     await userEvent.type(amountInput, "2000");
     await userEvent.click(
@@ -165,12 +186,13 @@ describe("PaymentModal", () => {
         transaction={creance}
         tenantId="tenant-1"
         userId="user-1"
+        currency="FCFA"
         open={true}
         onOpenChange={vi.fn()}
         onSuccess={vi.fn()}
       />,
     );
-    expect(screen.getByLabelText(transactionLabels.amountField)).toHaveValue(6000);
+    expect(screen.getByLabelText(transactionLabels.amountField("FCFA"))).toHaveValue(6000);
 
     // Fermeture après un premier paiement partiel de 4000 (paidAmount passe
     // de 4000 à 8000), instance conservée.
@@ -179,6 +201,7 @@ describe("PaymentModal", () => {
         transaction={{ ...creance, paidAmount: 8000 }}
         tenantId="tenant-1"
         userId="user-1"
+        currency="FCFA"
         open={false}
         onOpenChange={vi.fn()}
         onSuccess={vi.fn()}
@@ -193,12 +216,13 @@ describe("PaymentModal", () => {
         transaction={{ ...creance, paidAmount: 8000 }}
         tenantId="tenant-1"
         userId="user-1"
+        currency="FCFA"
         open={true}
         onOpenChange={vi.fn()}
         onSuccess={vi.fn()}
       />,
     );
 
-    expect(screen.getByLabelText(transactionLabels.amountField)).toHaveValue(2000);
+    expect(screen.getByLabelText(transactionLabels.amountField("FCFA"))).toHaveValue(2000);
   });
 });

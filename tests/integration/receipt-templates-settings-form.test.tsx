@@ -31,6 +31,7 @@ describe("ReceiptTemplatesSettingsForm", () => {
       <ReceiptTemplatesSettingsForm
         whatsappReceiptPartialTemplate="Merci {client}, reste {montantRestant} FCFA par {modePaiement}"
         whatsappReceiptFinalTemplate="Merci {client}, Safi pour {montantPaye} FCFA"
+        currency="FCFA"
       />,
     );
 
@@ -47,6 +48,7 @@ describe("ReceiptTemplatesSettingsForm", () => {
       <ReceiptTemplatesSettingsForm
         whatsappReceiptPartialTemplate={null}
         whatsappReceiptFinalTemplate={null}
+        currency="FCFA"
       />,
     );
 
@@ -63,6 +65,7 @@ describe("ReceiptTemplatesSettingsForm", () => {
       <ReceiptTemplatesSettingsForm
         whatsappReceiptPartialTemplate={null}
         whatsappReceiptFinalTemplate={null}
+        currency="FCFA"
       />,
     );
 
@@ -97,6 +100,7 @@ describe("ReceiptTemplatesSettingsForm", () => {
       <ReceiptTemplatesSettingsForm
         whatsappReceiptPartialTemplate="Salam {client} !"
         whatsappReceiptFinalTemplate="Safi {client} !"
+        currency="FCFA"
       />,
     );
 
@@ -119,6 +123,7 @@ describe("ReceiptTemplatesSettingsForm", () => {
       <ReceiptTemplatesSettingsForm
         whatsappReceiptPartialTemplate="Message partiel personnalisé {client}"
         whatsappReceiptFinalTemplate="Message final personnalisé {client}"
+        currency="FCFA"
       />,
     );
 
@@ -140,6 +145,7 @@ describe("ReceiptTemplatesSettingsForm", () => {
       <ReceiptTemplatesSettingsForm
         whatsappReceiptPartialTemplate={null}
         whatsappReceiptFinalTemplate={null}
+        currency="FCFA"
       />,
     );
 
@@ -160,6 +166,7 @@ describe("ReceiptTemplatesSettingsForm", () => {
       <ReceiptTemplatesSettingsForm
         whatsappReceiptPartialTemplate={null}
         whatsappReceiptFinalTemplate={null}
+        currency="FCFA"
       />,
     );
 
@@ -170,5 +177,18 @@ describe("ReceiptTemplatesSettingsForm", () => {
     await vi.waitFor(() =>
       expect(toastErrorMock).toHaveBeenCalledWith(commonLabels.genericErrorToastMessage),
     );
+  });
+
+  it("un tenant en GNF affiche un aperçu des deux gabarits par défaut sans aucune trace de FCFA", () => {
+    render(
+      <ReceiptTemplatesSettingsForm
+        whatsappReceiptPartialTemplate={null}
+        whatsappReceiptFinalTemplate={null}
+        currency="GNF"
+      />,
+    );
+
+    expect(screen.getAllByText(/GNF/).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/FCFA/)).not.toBeInTheDocument();
   });
 });

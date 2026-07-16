@@ -169,7 +169,7 @@ export const QUICK_ACTION_ITEMS: QuickActionItem[] = [
   },
   {
     key: "mouvement-caisse",
-    label: cashMovementLabels.newButtonLabel,
+    label: cashMovementLabels.quickActionLabel,
     href: "/caisse/nouveau",
     icon: ArrowLeftRight,
     roles: ["PATRON"],

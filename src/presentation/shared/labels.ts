@@ -236,6 +236,11 @@ export const cashMovementLabels = {
   // Vente au comptant (sale-create-form.tsx, sale-client-picker.tsx) : reste
   // conceptuellement un mouvement de caisse (entrée), pas un module séparé.
   saleQuickActionLabel: "Vente",
+  // Menu du bouton central (quick-action-sheet.tsx) : badge circulaire à
+  // largeur fixe — "Nouveau mouvement" (newButtonLabel, utilisé ailleurs
+  // comme titre de page/bouton) passe à deux lignes et déborde dans ce
+  // contexte précis, contrairement aux 3 autres entrées du menu.
+  quickActionLabel: "Mouvement",
   saleNewButtonLabel: "Nouvelle vente",
   saleNewPageTitle: "Nouvelle vente",
   saleDescriptionField: "Description",

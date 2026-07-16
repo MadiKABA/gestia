@@ -26,6 +26,8 @@ import {
 } from "@/presentation/shared/labels";
 import { isEligibleForReminder, type Transaction } from "@/domain/transaction/transaction.entity";
 import type { Payment } from "@/domain/payment/payment.entity";
+import { formatAmount } from "@/presentation/shared/format-amount";
+import type { CurrencyCode } from "@/config/currencies";
 
 type PartyContact = { name: string; phone: string | null; whatsappNumber: string | null };
 
@@ -46,6 +48,7 @@ export function TransactionDetail({
   whatsappTemplate,
   whatsappReceiptTemplates,
   boutique,
+  currency,
   reminderDays,
   tenantId,
   userId,
@@ -59,6 +62,7 @@ export function TransactionDetail({
   /** Nom affiché à insérer dans les messages WhatsApp — voir
    * `TenantBranding.displayName ?? tenantName`. */
   boutique: string;
+  currency: CurrencyCode;
   /** `TenantSettings.reminderDays` — sert uniquement au badge "à relancer". */
   reminderDays: number;
   tenantId: string;
@@ -120,7 +124,7 @@ export function TransactionDetail({
           </p>
         </div>
         <span className={`text-sm font-medium tabular-nums ${amountColorClass}`}>
-          {signedAmount.toLocaleString("fr-FR")} FCFA
+          {formatAmount(signedAmount, currency)}
         </span>
       </div>
 
@@ -160,7 +164,7 @@ export function TransactionDetail({
         </Button>
       ) : null}
 
-      {payments.length > 1 ? <PaymentHistory payments={payments} /> : null}
+      {payments.length > 1 ? <PaymentHistory payments={payments} currency={currency} /> : null}
 
       {transaction.status !== "REGLEE" && transaction.type === "CREANCE" && whatsappNumber ? (
         <WhatsappLink
@@ -231,6 +235,7 @@ export function TransactionDetail({
         transaction={transaction}
         tenantId={tenantId}
         userId={userId}
+        currency={currency}
         open={paymentOpen}
         onOpenChange={setPaymentOpen}
         onSuccess={(payment) => void onPaymentSuccess(payment)}

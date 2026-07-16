@@ -23,6 +23,7 @@ import { transactionLabels } from "@/presentation/shared/labels";
 import { createTransactionOfflineRepository } from "@/presentation/transaction/offline-repository";
 import { toastError, toastQueuedOffline, toastSuccess } from "@/presentation/shared/toast";
 import { resolveErrorMessage } from "@/presentation/shared/error-messages";
+import type { CurrencyCode } from "@/config/currencies";
 
 const TYPE_OPTIONS = [
   { value: "CREANCE", label: transactionLabels.owedToMeLabel },
@@ -56,6 +57,7 @@ export function TransactionForm({
   parties,
   defaultValues,
   submitLabel,
+  currency,
 }: {
   transactionId: string;
   tenantId: string;
@@ -63,6 +65,7 @@ export function TransactionForm({
   parties: { id: string; name: string }[];
   defaultValues?: Partial<TransactionFormInput>;
   submitLabel: string;
+  currency: CurrencyCode;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -181,7 +184,7 @@ export function TransactionForm({
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="amount">{transactionLabels.amountField}</Label>
+        <Label htmlFor="amount">{transactionLabels.amountField(currency)}</Label>
         <Controller
           control={control}
           name="amount"

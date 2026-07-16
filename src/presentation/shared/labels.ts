@@ -6,6 +6,9 @@
  * vers la présentation, jamais l'inverse.
  */
 
+import type { CurrencyCode } from "@/config/currencies";
+import { formatAmount } from "@/presentation/shared/format-amount";
+
 export const commonLabels = {
   cancel: "Annuler",
   confirm: "Confirmer",
@@ -123,7 +126,7 @@ export const transactionLabels = {
 
   partyField: "Client",
   descriptionField: "Qu'est-ce qui a été pris ?",
-  amountField: "Montant (FCFA)",
+  amountField: (currency: CurrencyCode) => `Montant (${currency})`,
   quantityField: "Quantité (optionnel)",
   dueDateField: "Échéance (optionnel)",
   referenceLabel: "Référence",
@@ -160,7 +163,8 @@ export const transactionLabels = {
 
   // Parcours de création unifié (wizard).
   amountFieldShort: "Montant",
-  quickAmountAriaLabel: (amount: number) => `Ajouter ${amount.toLocaleString("fr-FR")} FCFA`,
+  quickAmountAriaLabel: (amount: number, currency: CurrencyCode) =>
+    `Ajouter ${formatAmount(amount, currency)}`,
   stepPersonTitle: "Qui est concerné ?",
   stepAmountTitle: "Montant et description",
   stepSituationTitle: "Situation",
@@ -187,8 +191,8 @@ export const paymentLabels = {
   methodWave: "Wave",
   methodOrangeMoney: "Orange Money",
   methodOther: "Autre",
-  amountRemainingHint: (remaining: number) =>
-    `Solde restant : ${remaining.toLocaleString("fr-FR")} FCFA`,
+  amountRemainingHint: (remaining: number, currency: CurrencyCode) =>
+    `Solde restant : ${formatAmount(remaining, currency)}`,
   historyTitle: "Historique des paiements",
   amountExceedsRemainingError: "Le montant ne peut pas dépasser le solde restant",
   amountInvalidError: "Le montant doit être supérieur à zéro",
@@ -218,7 +222,7 @@ export const cashMovementLabels = {
   totalSortieLabel: "Total sorties",
 
   typeField: "Type",
-  amountField: "Montant (FCFA)",
+  amountField: (currency: CurrencyCode) => `Montant (${currency})`,
   reasonField: "Motif",
 
   // Tableau desktop/tablette (caisse-page.tsx).

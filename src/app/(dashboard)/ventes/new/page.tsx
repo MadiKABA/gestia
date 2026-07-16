@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { requirePatron } from "@/presentation/auth/require-role";
 import { ForbiddenError } from "@/domain/shared/errors";
 import { SaleCreateForm } from "@/presentation/cash-movement/components/sale-create-form";
+import { getTenantBrandingAction } from "@/presentation/tenant/actions";
 
 export default async function NouvelleVentePage() {
   let context;
@@ -14,5 +15,13 @@ export default async function NouvelleVentePage() {
     throw error;
   }
 
-  return <SaleCreateForm tenantId={context.tenantId} userId={context.userId} />;
+  const branding = await getTenantBrandingAction();
+
+  return (
+    <SaleCreateForm
+      tenantId={context.tenantId}
+      userId={context.userId}
+      currency={branding.currency}
+    />
+  );
 }

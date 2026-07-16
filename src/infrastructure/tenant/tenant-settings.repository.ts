@@ -9,6 +9,7 @@ import type {
 } from "@/application/tenant/tenant-settings.repository";
 import type { TenantSettingsUpdateInput } from "@/domain/tenant-settings/tenant-settings.entity";
 import { TenantScopedRepository } from "@/infrastructure/prisma/tenant-scoped-repository";
+import { DEFAULT_CURRENCY, isCurrencyCode } from "@/config/currencies";
 
 export class PrismaTenantSettingsRepository
   extends TenantScopedRepository
@@ -29,6 +30,10 @@ export class PrismaTenantSettingsRepository
       brandColor: tenant.settings?.brandColor ?? null,
       displayName: tenant.settings?.displayName ?? null,
       tenantName: tenant.name,
+      currency:
+        tenant.settings?.currency && isCurrencyCode(tenant.settings.currency)
+          ? tenant.settings.currency
+          : DEFAULT_CURRENCY,
     };
   }
 

@@ -21,6 +21,7 @@ import { toastError, toastQueuedOffline, toastSuccess } from "@/presentation/sha
 import { resolveErrorMessage } from "@/presentation/shared/error-messages";
 import { cn } from "@/lib/utils";
 import type { PaymentMethod } from "@/domain/payment/payment.entity";
+import type { CurrencyCode } from "@/config/currencies";
 
 const QUICK_AMOUNTS = [500, 1000, 5000, 10000];
 
@@ -35,7 +36,15 @@ const SALE_PAYMENT_METHODS: PaymentMethod[] = ["CASH", "WAVE", "ORANGE_MONEY"];
  * nature, un CashMovement (entrée) : mêmes champs qu'un mouvement manuel,
  * plus un mode de paiement et un client optionnel.
  */
-export function SaleCreateForm({ tenantId, userId }: { tenantId: string; userId: string }) {
+export function SaleCreateForm({
+  tenantId,
+  userId,
+  currency,
+}: {
+  tenantId: string;
+  userId: string;
+  currency: CurrencyCode;
+}) {
   const router = useRouter();
 
   const [description, setDescription] = useState("");
@@ -101,7 +110,7 @@ export function SaleCreateForm({ tenantId, userId }: { tenantId: string; userId:
 
       <div className="space-y-6 lg:grid lg:grid-cols-2 lg:items-start lg:gap-8 lg:space-y-0">
         <div className="space-y-1.5">
-          <Label htmlFor="sale-amount">{cashMovementLabels.amountField}</Label>
+          <Label htmlFor="sale-amount">{cashMovementLabels.amountField(currency)}</Label>
           <Input
             id="sale-amount"
             type="number"
@@ -117,7 +126,7 @@ export function SaleCreateForm({ tenantId, userId }: { tenantId: string; userId:
                 type="button"
                 variant="outline"
                 size="sm"
-                aria-label={transactionLabels.quickAmountAriaLabel(increment)}
+                aria-label={transactionLabels.quickAmountAriaLabel(increment, currency)}
                 onClick={() => setAmount((current) => current + increment)}
               >
                 +{increment.toLocaleString("fr-FR")}

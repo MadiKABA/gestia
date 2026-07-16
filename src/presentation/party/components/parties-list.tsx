@@ -19,6 +19,8 @@ import {
 import type { PartyType } from "@/domain/party/party.entity";
 import type { PartyWithBalance } from "@/application/party/party.repository";
 import { partyLabels } from "@/presentation/shared/labels";
+import { formatAmount } from "@/presentation/shared/format-amount";
+import type { CurrencyCode } from "@/config/currencies";
 
 const TYPE_FILTERS = [
   { value: "ALL", label: partyLabels.filterAll },
@@ -46,10 +48,12 @@ export function PartiesList({
   initialParties,
   tenantId,
   userId,
+  currency,
 }: {
   initialParties: PartyWithBalance[];
   tenantId: string;
   userId: string;
+  currency: CurrencyCode;
 }) {
   const [parties, setParties] = useState(initialParties);
   const [search, setSearch] = useState("");
@@ -195,7 +199,7 @@ export function PartiesList({
                   </p>
                 </div>
                 <span className={`text-sm font-medium tabular-nums ${balanceColorClass}`}>
-                  {party.balance.toLocaleString("fr-FR")} FCFA
+                  {formatAmount(party.balance, currency)}
                 </span>
               </Link>
             </li>
@@ -236,7 +240,7 @@ export function PartiesList({
                     {TYPE_LABEL[party.type]}
                   </td>
                   <td className={`px-3 py-2 whitespace-nowrap tabular-nums ${balanceColorClass}`}>
-                    {party.balance.toLocaleString("fr-FR")} FCFA
+                    {formatAmount(party.balance, currency)}
                   </td>
                   <td className="px-3 py-2">
                     <div className="flex items-center gap-1">

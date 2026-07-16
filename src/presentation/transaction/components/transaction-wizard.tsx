@@ -12,6 +12,7 @@ import { createTransactionOfflineRepository } from "@/presentation/transaction/o
 import { commonLabels, transactionLabels } from "@/presentation/shared/labels";
 import { cn } from "@/lib/utils";
 import type { TransactionType } from "@/domain/transaction/transaction.entity";
+import type { CurrencyCode } from "@/config/currencies";
 
 const QUICK_AMOUNTS = [500, 1000, 5000, 10000];
 
@@ -37,12 +38,14 @@ const STEP_TITLE: Record<Step, string> = {
 export function TransactionWizard({
   tenantId,
   userId,
+  currency,
   initialParty,
   initialType,
   onDone,
 }: {
   tenantId: string;
   userId: string;
+  currency: CurrencyCode;
   initialParty?: PickedParty;
   initialType?: TransactionType;
   onDone: () => void;
@@ -122,7 +125,7 @@ export function TransactionWizard({
           ) : null}
           {party ? <p className="text-foreground text-sm font-medium">{party.name}</p> : null}
           <div className="space-y-1.5">
-            <Label htmlFor="wizard-amount">{transactionLabels.amountField}</Label>
+            <Label htmlFor="wizard-amount">{transactionLabels.amountField(currency)}</Label>
             <Input
               id="wizard-amount"
               type="number"
@@ -139,7 +142,7 @@ export function TransactionWizard({
                   type="button"
                   variant="outline"
                   size="sm"
-                  aria-label={transactionLabels.quickAmountAriaLabel(increment)}
+                  aria-label={transactionLabels.quickAmountAriaLabel(increment, currency)}
                   onClick={() => setAmount((current) => current + increment)}
                 >
                   +{increment.toLocaleString("fr-FR")}

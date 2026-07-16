@@ -9,9 +9,11 @@ import {
 } from "@/presentation/cash-movement/offline-repository";
 import { listCashMovementsAction } from "@/presentation/cash-movement/actions";
 import { cashMovementLabels } from "@/presentation/shared/labels";
+import { formatAmount } from "@/presentation/shared/format-amount";
 import { cn } from "@/lib/utils";
 import type { CashMovement } from "@/domain/cash-movement/cash-movement.entity";
 import type { CashBalance } from "@/application/cash-movement/cash-movement.repository";
+import type { CurrencyCode } from "@/config/currencies";
 
 const PAGE_SIZE = 20;
 
@@ -34,11 +36,13 @@ export function CaissePage({
   initialMovements,
   initialTotal,
   initialBalance,
+  currency,
 }: {
   tenantId: string;
   initialMovements: CashMovement[];
   initialTotal: number;
   initialBalance: CashBalance;
+  currency: CurrencyCode;
 }) {
   const [movements, setMovements] = useState(initialMovements);
   const [page, setPage] = useState(1);
@@ -85,19 +89,19 @@ export function CaissePage({
         <div className="bg-card border-border rounded-xl border p-4 shadow-xs">
           <p className="text-muted-foreground text-sm">{cashMovementLabels.balanceLabel}</p>
           <p className="text-foreground mt-1 text-xl font-semibold tabular-nums">
-            {balance.toLocaleString("fr-FR")} FCFA
+            {formatAmount(balance, currency)}
           </p>
         </div>
         <div className="bg-card border-border rounded-xl border p-4 shadow-xs">
           <p className="text-muted-foreground text-sm">{cashMovementLabels.totalEntreeLabel}</p>
           <p className="mt-1 text-xl font-semibold text-[#1B7A5A] tabular-nums">
-            {cashBalance.totalEntree.toLocaleString("fr-FR")} FCFA
+            {formatAmount(cashBalance.totalEntree, currency)}
           </p>
         </div>
         <div className="bg-card border-border rounded-xl border p-4 shadow-xs">
           <p className="text-muted-foreground text-sm">{cashMovementLabels.totalSortieLabel}</p>
           <p className="mt-1 text-xl font-semibold text-[#C0392B] tabular-nums">
-            {cashBalance.totalSortie.toLocaleString("fr-FR")} FCFA
+            {formatAmount(cashBalance.totalSortie, currency)}
           </p>
         </div>
       </div>
@@ -127,7 +131,7 @@ export function CaissePage({
                 )}
               >
                 {movement.type === "ENTREE" ? "+" : "-"}
-                {movement.amount.toLocaleString("fr-FR")} FCFA
+                {formatAmount(movement.amount, currency)}
               </span>
             </li>
           ))}
@@ -156,7 +160,7 @@ export function CaissePage({
                   )}
                 >
                   {movement.type === "ENTREE" ? "+" : "-"}
-                  {movement.amount.toLocaleString("fr-FR")} FCFA
+                  {formatAmount(movement.amount, currency)}
                 </td>
                 <td className="text-muted-foreground px-3 py-2 whitespace-nowrap">
                   {movement.date.toLocaleDateString("fr-FR")}

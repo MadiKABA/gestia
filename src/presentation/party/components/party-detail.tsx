@@ -16,8 +16,10 @@ import {
   seedTransactionCache,
 } from "@/presentation/transaction/offline-repository";
 import { commonLabels, partyLabels, transactionLabels } from "@/presentation/shared/labels";
+import { formatAmount } from "@/presentation/shared/format-amount";
 import type { PartyWithBalance } from "@/application/party/party.repository";
 import type { Transaction, TransactionType } from "@/domain/transaction/transaction.entity";
+import type { CurrencyCode } from "@/config/currencies";
 
 const TYPE_LABELS: Record<PartyWithBalance["type"], string> = {
   CLIENT: partyLabels.typeClient,
@@ -35,12 +37,14 @@ export function PartyDetail({
   tenantId,
   userId,
   canDelete,
+  currency,
 }: {
   party: PartyWithBalance;
   transactions: Transaction[];
   tenantId: string;
   userId: string;
   canDelete: boolean;
+  currency: CurrencyCode;
 }) {
   const [transactions, setTransactions] = useState(initialTransactions);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
@@ -108,7 +112,7 @@ export function PartyDetail({
               <p className="text-muted-foreground text-sm">{TYPE_LABELS[party.type]}</p>
             </div>
             <span className={`text-sm font-medium tabular-nums ${balanceColorClass}`}>
-              {party.balance.toLocaleString("fr-FR")} FCFA
+              {formatAmount(party.balance, currency)}
             </span>
           </div>
 
@@ -205,7 +209,7 @@ export function PartyDetail({
                     >
                       <span className="text-foreground truncate">{transaction.description}</span>
                       <span className={`shrink-0 font-medium tabular-nums ${amountColorClass}`}>
-                        {signedAmount.toLocaleString("fr-FR")} FCFA
+                        {formatAmount(signedAmount, currency)}
                       </span>
                     </Link>
                   </li>
@@ -238,6 +242,7 @@ export function PartyDetail({
           <TransactionWizard
             tenantId={tenantId}
             userId={userId}
+            currency={currency}
             initialParty={{ id: party.id, name: party.name }}
             initialType={wizardType}
             onDone={() => {

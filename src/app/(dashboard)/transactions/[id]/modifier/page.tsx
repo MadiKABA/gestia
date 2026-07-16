@@ -3,6 +3,7 @@ import { requireTenantContext } from "@/infrastructure/auth/session";
 import { ForbiddenError, NotFoundError } from "@/domain/shared/errors";
 import { getTransactionByIdAction } from "@/presentation/transaction/actions";
 import { searchPartiesAction } from "@/presentation/party/actions";
+import { getTenantBrandingAction } from "@/presentation/tenant/actions";
 import { TransactionForm } from "@/presentation/transaction/components/transaction-form";
 import { BackLink } from "@/presentation/shared/components/back-link";
 import { transactionLabels } from "@/presentation/shared/labels";
@@ -39,7 +40,7 @@ export default async function ModifierTransactionPage({
     redirect(`/transactions/${id}`);
   }
 
-  const parties = await searchPartiesAction();
+  const [parties, branding] = await Promise.all([searchPartiesAction(), getTenantBrandingAction()]);
 
   return (
     <div className="mx-auto w-full max-w-md p-4 lg:max-w-lg">
@@ -51,6 +52,7 @@ export default async function ModifierTransactionPage({
         transactionId={id}
         tenantId={context.tenantId}
         userId={context.userId}
+        currency={branding.currency}
         parties={parties.map((party) => ({ id: party.id, name: party.name }))}
         defaultValues={{
           partyId: transaction.partyId,

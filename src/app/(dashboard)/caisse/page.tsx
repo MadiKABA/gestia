@@ -5,6 +5,7 @@ import {
   listCashMovementsAction,
   getCashBalanceAction,
 } from "@/presentation/cash-movement/actions";
+import { getTenantBrandingAction } from "@/presentation/tenant/actions";
 import { CaissePage } from "@/presentation/cash-movement/components/caisse-page";
 
 const PAGE_SIZE = 20;
@@ -20,9 +21,10 @@ export default async function CaisseRoutePage() {
     throw error;
   }
 
-  const [{ items, total }, balance] = await Promise.all([
+  const [{ items, total }, balance, branding] = await Promise.all([
     listCashMovementsAction({ page: 1, pageSize: PAGE_SIZE }),
     getCashBalanceAction(),
+    getTenantBrandingAction(),
   ]);
 
   return (
@@ -31,6 +33,7 @@ export default async function CaisseRoutePage() {
       initialMovements={items}
       initialTotal={total}
       initialBalance={balance}
+      currency={branding.currency}
     />
   );
 }

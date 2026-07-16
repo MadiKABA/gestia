@@ -16,6 +16,7 @@ import { toastError, toastQueuedOffline, toastSuccess } from "@/presentation/sha
 import { resolveErrorMessage } from "@/presentation/shared/error-messages";
 import { cn } from "@/lib/utils";
 import type { TransactionType } from "@/domain/transaction/transaction.entity";
+import type { CurrencyCode } from "@/config/currencies";
 
 const QUICK_AMOUNTS = [500, 1000, 5000, 10000];
 
@@ -30,7 +31,15 @@ const QUICK_AMOUNTS = [500, 1000, 5000, 10000];
  * remplace que pour le lien "Nouvelle opération" de la navigation
  * desktop/tablette (voir nav-config.ts).
  */
-export function TransactionCreateForm({ tenantId, userId }: { tenantId: string; userId: string }) {
+export function TransactionCreateForm({
+  tenantId,
+  userId,
+  currency,
+}: {
+  tenantId: string;
+  userId: string;
+  currency: CurrencyCode;
+}) {
   const router = useRouter();
 
   const [type, setType] = useState<TransactionType>("CREANCE");
@@ -162,7 +171,7 @@ export function TransactionCreateForm({ tenantId, userId }: { tenantId: string; 
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="create-amount">{transactionLabels.amountField}</Label>
+            <Label htmlFor="create-amount">{transactionLabels.amountField(currency)}</Label>
             <Input
               id="create-amount"
               type="number"
@@ -178,7 +187,7 @@ export function TransactionCreateForm({ tenantId, userId }: { tenantId: string; 
                   type="button"
                   variant="outline"
                   size="sm"
-                  aria-label={transactionLabels.quickAmountAriaLabel(increment)}
+                  aria-label={transactionLabels.quickAmountAriaLabel(increment, currency)}
                   onClick={() => setAmount((current) => current + increment)}
                 >
                   +{increment.toLocaleString("fr-FR")}

@@ -12,6 +12,7 @@ import { toastError, toastQueuedOffline, toastSuccess } from "@/presentation/sha
 import { resolveErrorMessage } from "@/presentation/shared/error-messages";
 import { cn } from "@/lib/utils";
 import type { CashMovementType } from "@/domain/cash-movement/cash-movement.entity";
+import type { CurrencyCode } from "@/config/currencies";
 
 /**
  * Page de création dédiée, pas de modale — même décision que
@@ -19,7 +20,15 @@ import type { CashMovementType } from "@/domain/cash-movement/cash-movement.enti
  * visibles d'un coup, bouton "Enregistrer" en bas de page qui redirige vers
  * la liste (/caisse).
  */
-export function CashMovementCreateForm({ tenantId, userId }: { tenantId: string; userId: string }) {
+export function CashMovementCreateForm({
+  tenantId,
+  userId,
+  currency,
+}: {
+  tenantId: string;
+  userId: string;
+  currency: CurrencyCode;
+}) {
   const router = useRouter();
 
   const [type, setType] = useState<CashMovementType>("ENTREE");
@@ -97,7 +106,7 @@ export function CashMovementCreateForm({ tenantId, userId }: { tenantId: string;
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="cash-movement-amount">{cashMovementLabels.amountField}</Label>
+        <Label htmlFor="cash-movement-amount">{cashMovementLabels.amountField(currency)}</Label>
         <Input
           id="cash-movement-amount"
           type="number"

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { requireTenantContext } from "@/infrastructure/auth/session";
 import { ForbiddenError } from "@/domain/shared/errors";
 import { TransactionCreateForm } from "@/presentation/transaction/components/transaction-create-form";
+import { getTenantBrandingAction } from "@/presentation/tenant/actions";
 
 export default async function NouvelleTransactionPage() {
   let context;
@@ -14,5 +15,13 @@ export default async function NouvelleTransactionPage() {
     throw error;
   }
 
-  return <TransactionCreateForm tenantId={context.tenantId} userId={context.userId} />;
+  const branding = await getTenantBrandingAction();
+
+  return (
+    <TransactionCreateForm
+      tenantId={context.tenantId}
+      userId={context.userId}
+      currency={branding.currency}
+    />
+  );
 }

@@ -19,6 +19,7 @@ import { toastError, toastQueuedOffline, toastSuccess } from "@/presentation/sha
 import { resolveErrorMessage } from "@/presentation/shared/error-messages";
 import type { Payment, PaymentMethod } from "@/domain/payment/payment.entity";
 import type { Transaction } from "@/domain/transaction/transaction.entity";
+import type { CurrencyCode } from "@/config/currencies";
 
 /**
  * Modale de paiement partagée par la liste (action directe desktop/tablette)
@@ -30,6 +31,7 @@ export function PaymentModal({
   transaction,
   tenantId,
   userId,
+  currency,
   open,
   onOpenChange,
   onSuccess,
@@ -37,6 +39,7 @@ export function PaymentModal({
   transaction: Transaction;
   tenantId: string;
   userId: string;
+  currency: CurrencyCode;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess: (payment: Payment) => void;
@@ -102,7 +105,7 @@ export function PaymentModal({
     <ResponsivePanel open={open} onOpenChange={onOpenChange} title={title}>
       <div className="space-y-4">
         <div className="space-y-1.5">
-          <Label htmlFor="payment-amount">{transactionLabels.amountField}</Label>
+          <Label htmlFor="payment-amount">{transactionLabels.amountField(currency)}</Label>
           <Input
             id="payment-amount"
             type="number"
@@ -114,7 +117,7 @@ export function PaymentModal({
             autoFocus
           />
           <p className="text-muted-foreground text-xs">
-            {paymentLabels.amountRemainingHint(remainingBalance)}
+            {paymentLabels.amountRemainingHint(remainingBalance, currency)}
           </p>
         </div>
         <div className="space-y-1.5">

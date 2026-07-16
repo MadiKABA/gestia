@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { requireTenantContext } from "@/infrastructure/auth/session";
 import { ForbiddenError } from "@/domain/shared/errors";
 import { searchPartiesAction } from "@/presentation/party/actions";
+import { getTenantBrandingAction } from "@/presentation/tenant/actions";
 import { PartiesList } from "@/presentation/party/components/parties-list";
 
 export default async function TiersPage() {
@@ -15,8 +16,13 @@ export default async function TiersPage() {
     throw error;
   }
 
-  const parties = await searchPartiesAction();
+  const [parties, branding] = await Promise.all([searchPartiesAction(), getTenantBrandingAction()]);
   return (
-    <PartiesList initialParties={parties} tenantId={context.tenantId} userId={context.userId} />
+    <PartiesList
+      initialParties={parties}
+      tenantId={context.tenantId}
+      userId={context.userId}
+      currency={branding.currency}
+    />
   );
 }

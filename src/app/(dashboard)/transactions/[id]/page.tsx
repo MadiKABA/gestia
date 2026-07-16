@@ -54,6 +54,7 @@ export default async function TransactionDetailPage({
       whatsappTemplate={whatsappTemplate}
       whatsappReceiptTemplates={whatsappReceiptTemplates}
       boutique={branding.displayName ?? branding.tenantName}
+      currency={branding.currency}
       reminderDays={reminderDays}
       tenantId={context.tenantId}
       userId={context.userId}

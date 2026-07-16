@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { requirePatron } from "@/presentation/auth/require-role";
 import { ForbiddenError } from "@/domain/shared/errors";
 import { getTransactionBalanceSummaryAction } from "@/presentation/transaction/actions";
+import { getTenantBrandingAction } from "@/presentation/tenant/actions";
 import { BalanceSummaryCards } from "@/presentation/transaction/components/balance-summary-cards";
 
 /** "Solde caisse"/"Échéances proches" restent en attente de données réelles
@@ -27,12 +28,19 @@ export default async function DashboardPage() {
     throw error;
   }
 
-  const summary = await getTransactionBalanceSummaryAction();
+  const [summary, branding] = await Promise.all([
+    getTransactionBalanceSummaryAction(),
+    getTenantBrandingAction(),
+  ]);
 
   return (
     <div className="space-y-4 p-4 sm:p-6">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <BalanceSummaryCards owedToMe={summary.owedToMe} owedByMe={summary.owedByMe} />
+        <BalanceSummaryCards
+          owedToMe={summary.owedToMe}
+          owedByMe={summary.owedByMe}
+          currency={branding.currency}
+        />
         {PLACEHOLDER_CARDS.map((title) => (
           <div
             key={title}

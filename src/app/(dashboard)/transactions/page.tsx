@@ -67,6 +67,7 @@ export default async function TransactionsPage({
       lastPaymentMethodByTransactionId={lastPaymentMethodByTransactionId}
       whatsappReceiptTemplates={whatsappReceiptTemplates}
       boutique={branding.displayName ?? branding.tenantName}
+      currency={branding.currency}
       reminderDays={reminderDays}
     />
   );

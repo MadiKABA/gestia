@@ -1,4 +1,6 @@
 import { transactionLabels } from "@/presentation/shared/labels";
+import { formatAmount } from "@/presentation/shared/format-amount";
+import type { CurrencyCode } from "@/config/currencies";
 
 /**
  * Bandeau résumé "On me doit" / "Je dois" — mêmes termes exacts que
@@ -13,9 +15,11 @@ import { transactionLabels } from "@/presentation/shared/labels";
 export function BalanceSummaryCards({
   owedToMe,
   owedByMe,
+  currency,
 }: {
   owedToMe: number;
   owedByMe: number;
+  currency: CurrencyCode;
 }) {
   return (
     <>
@@ -24,7 +28,7 @@ export function BalanceSummaryCards({
           <span aria-hidden>🤝</span> {transactionLabels.owedToMeLabel}
         </p>
         <p className="mt-1 text-xl font-semibold text-[#1B7A5A] tabular-nums">
-          {owedToMe.toLocaleString("fr-FR")} FCFA
+          {formatAmount(owedToMe, currency)}
         </p>
       </div>
       <div className="bg-card border-border rounded-xl border p-4 shadow-xs">
@@ -32,7 +36,7 @@ export function BalanceSummaryCards({
           <span aria-hidden>🚚</span> {transactionLabels.owedByMeLabel}
         </p>
         <p className="mt-1 text-xl font-semibold text-[#0F2A4A] tabular-nums">
-          {owedByMe.toLocaleString("fr-FR")} FCFA
+          {formatAmount(owedByMe, currency)}
         </p>
       </div>
     </>

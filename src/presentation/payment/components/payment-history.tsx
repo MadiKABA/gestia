@@ -1,5 +1,7 @@
 import { paymentLabels } from "@/presentation/shared/labels";
+import { formatAmount } from "@/presentation/shared/format-amount";
 import type { Payment, PaymentMethod } from "@/domain/payment/payment.entity";
+import type { CurrencyCode } from "@/config/currencies";
 
 const METHOD_LABEL: Record<PaymentMethod, string> = {
   CASH: paymentLabels.methodCash,
@@ -13,7 +15,13 @@ const METHOD_LABEL: Record<PaymentMethod, string> = {
  * charges : jamais affiché pour un règlement en un seul versement, quel que
  * soit le statut) — ce composant ne recontrôle pas cette condition lui-même.
  */
-export function PaymentHistory({ payments }: { payments: Payment[] }) {
+export function PaymentHistory({
+  payments,
+  currency,
+}: {
+  payments: Payment[];
+  currency: CurrencyCode;
+}) {
   return (
     <div className="space-y-2">
       <h2 className="text-foreground text-sm font-semibold">{paymentLabels.historyTitle}</h2>
@@ -25,7 +33,7 @@ export function PaymentHistory({ payments }: { payments: Payment[] }) {
               <p className="text-muted-foreground text-xs">{METHOD_LABEL[payment.method]}</p>
             </div>
             <span className="font-medium tabular-nums">
-              {payment.amount.toLocaleString("fr-FR")} FCFA
+              {formatAmount(payment.amount, currency)}
             </span>
           </li>
         ))}

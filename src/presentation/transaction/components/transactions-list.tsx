@@ -33,6 +33,8 @@ import {
   transactionLabels,
   syncLabels,
 } from "@/presentation/shared/labels";
+import { formatAmount } from "@/presentation/shared/format-amount";
+import type { CurrencyCode } from "@/config/currencies";
 
 type StatusFilter = "ALL" | Transaction["status"];
 
@@ -109,6 +111,7 @@ export function TransactionsList({
   lastPaymentMethodByTransactionId,
   whatsappReceiptTemplates,
   boutique,
+  currency,
   reminderDays,
 }: {
   initialTransactions: Transaction[];
@@ -131,6 +134,7 @@ export function TransactionsList({
   /** Nom affiché à insérer dans les messages WhatsApp — voir
    * `TenantBranding.displayName ?? tenantName`. */
   boutique: string;
+  currency: CurrencyCode;
   /** `TenantSettings.reminderDays` — sert uniquement au badge "à relancer"
    * (indicateur visuel, jamais une notification automatique, cf. CLAUDE.md
    * "Hors périmètre"). */
@@ -256,12 +260,20 @@ export function TransactionsList({
 
       {/* Mobile (< lg) : résumé 2 cases, design inchangé. */}
       <div className="grid grid-cols-2 gap-3 lg:hidden">
-        <BalanceSummaryCards owedToMe={summary.owedToMe} owedByMe={summary.owedByMe} />
+        <BalanceSummaryCards
+          owedToMe={summary.owedToMe}
+          owedByMe={summary.owedByMe}
+          currency={currency}
+        />
       </div>
 
       {/* Desktop/tablette (≥ lg) : résumé étendu à 4 cases. */}
       <div className="hidden gap-3 lg:grid lg:grid-cols-4">
-        <BalanceSummaryCards owedToMe={summary.owedToMe} owedByMe={summary.owedByMe} />
+        <BalanceSummaryCards
+          owedToMe={summary.owedToMe}
+          owedByMe={summary.owedByMe}
+          currency={currency}
+        />
         <div className="bg-card border-border rounded-xl border p-4 shadow-xs">
           <p className="text-muted-foreground text-sm">{transactionLabels.totalCountLabel}</p>
           <p className="text-foreground mt-1 text-xl font-semibold tabular-nums">
@@ -354,7 +366,7 @@ export function TransactionsList({
                   ) : null}
                 </div>
                 <span className={`shrink-0 text-sm font-medium tabular-nums ${amountColorClass}`}>
-                  {signedAmount.toLocaleString("fr-FR")} FCFA
+                  {formatAmount(signedAmount, currency)}
                 </span>
               </Link>
             </li>
@@ -396,10 +408,10 @@ export function TransactionsList({
                     ) : null}
                   </td>
                   <td className="px-3 py-2 whitespace-nowrap tabular-nums">
-                    {transaction.amount.toLocaleString("fr-FR")} FCFA
+                    {formatAmount(transaction.amount, currency)}
                   </td>
                   <td className="text-muted-foreground px-3 py-2 whitespace-nowrap tabular-nums">
-                    {transaction.paidAmount.toLocaleString("fr-FR")} FCFA
+                    {formatAmount(transaction.paidAmount, currency)}
                   </td>
                   <td className="text-muted-foreground px-3 py-2 whitespace-nowrap">
                     {lastMethod ? PAYMENT_METHOD_LABEL[lastMethod] : "—"}
@@ -504,6 +516,7 @@ export function TransactionsList({
           transaction={paymentTarget}
           tenantId={tenantId}
           userId={userId}
+          currency={currency}
           open={paymentTarget !== null}
           onOpenChange={(open) => setPaymentTarget(open ? paymentTarget : null)}
           onSuccess={(payment) => void onQuickPaymentSuccess(paymentTarget.id, payment)}

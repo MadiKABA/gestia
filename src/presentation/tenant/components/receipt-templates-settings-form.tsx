@@ -15,6 +15,7 @@ import {
 import { commonLabels, tenantSettingsLabels } from "@/presentation/shared/labels";
 import { toastError, toastSuccess } from "@/presentation/shared/toast";
 import { resolveErrorMessage } from "@/presentation/shared/error-messages";
+import type { CurrencyCode } from "@/config/currencies";
 
 const PARTIAL_TEMPLATE_VARIABLES = [
   "client",
@@ -23,34 +24,45 @@ const PARTIAL_TEMPLATE_VARIABLES = [
   "modePaiement",
   "montantTotal",
   "montantRestant",
+  "devise",
   "date",
 ];
-const FINAL_TEMPLATE_VARIABLES = ["client", "boutique", "montantPaye", "montantTotal", "date"];
-
-const PARTIAL_PREVIEW_VARS = {
-  client: "Awa Diop",
-  montantPaye: "5 000",
-  modePaiement: "Wave",
-  montantRestant: "10 000",
-  montantTotal: "15 000",
-  boutique: "Boutique Awa",
-  date: "12 juillet 2026",
-};
-const FINAL_PREVIEW_VARS = {
-  client: "Awa Diop",
-  montantPaye: "15 000",
-  montantTotal: "15 000",
-  boutique: "Boutique Awa",
-  date: "12 juillet 2026",
-};
+const FINAL_TEMPLATE_VARIABLES = [
+  "client",
+  "boutique",
+  "montantPaye",
+  "montantTotal",
+  "devise",
+  "date",
+];
 
 export function ReceiptTemplatesSettingsForm({
   whatsappReceiptPartialTemplate: initialPartialTemplate,
   whatsappReceiptFinalTemplate: initialFinalTemplate,
+  currency,
 }: {
   whatsappReceiptPartialTemplate: string | null;
   whatsappReceiptFinalTemplate: string | null;
+  currency: CurrencyCode;
 }) {
+  const partialPreviewVars = {
+    client: "Awa Diop",
+    montantPaye: "5 000",
+    modePaiement: "Wave",
+    montantRestant: "10 000",
+    montantTotal: "15 000",
+    boutique: "Boutique Awa",
+    devise: currency,
+    date: "12 juillet 2026",
+  };
+  const finalPreviewVars = {
+    client: "Awa Diop",
+    montantPaye: "15 000",
+    montantTotal: "15 000",
+    boutique: "Boutique Awa",
+    devise: currency,
+    date: "12 juillet 2026",
+  };
   const [partialTemplate, setPartialTemplate] = useState(
     initialPartialTemplate ?? DEFAULT_WHATSAPP_RECEIPT_PARTIAL_TEMPLATE,
   );
@@ -147,7 +159,7 @@ export function ReceiptTemplatesSettingsForm({
               {tenantSettingsLabels.whatsappPreviewLabel}
             </p>
             <p className="bg-muted rounded-lg p-3 text-sm">
-              {renderWhatsappTemplate(partialTemplate, PARTIAL_PREVIEW_VARS)}
+              {renderWhatsappTemplate(partialTemplate, partialPreviewVars)}
             </p>
           </div>
         </div>
@@ -182,7 +194,7 @@ export function ReceiptTemplatesSettingsForm({
               {tenantSettingsLabels.whatsappPreviewLabel}
             </p>
             <p className="bg-muted rounded-lg p-3 text-sm">
-              {renderWhatsappTemplate(finalTemplate, FINAL_PREVIEW_VARS)}
+              {renderWhatsappTemplate(finalTemplate, finalPreviewVars)}
             </p>
           </div>
         </div>

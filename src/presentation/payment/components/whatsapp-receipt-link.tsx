@@ -12,6 +12,7 @@ import { paymentLabels } from "@/presentation/shared/labels";
 import { formatLongDateFr } from "@/presentation/shared/date-format";
 import type { TransactionStatus } from "@/domain/transaction/transaction.entity";
 import type { PaymentMethod } from "@/domain/payment/payment.entity";
+import type { CurrencyCode } from "@/config/currencies";
 
 /**
  * Bouton d'envoi de reçu WhatsApp après un paiement — choisit seul le
@@ -30,6 +31,7 @@ export function WhatsappReceiptLink({
   remainingBalance,
   totalAmount,
   boutique,
+  currency,
   date,
   partialTemplate,
   finalTemplate,
@@ -42,6 +44,7 @@ export function WhatsappReceiptLink({
   remainingBalance: number;
   totalAmount: number;
   boutique: string;
+  currency: CurrencyCode;
   date: Date;
   partialTemplate: string | null;
   finalTemplate: string | null;
@@ -60,6 +63,7 @@ export function WhatsappReceiptLink({
     montantRestant: remainingBalance.toLocaleString("fr-FR"),
     montantTotal: totalAmount.toLocaleString("fr-FR"),
     boutique,
+    devise: currency,
     date: formatLongDateFr(date),
   });
   const href = buildWhatsappUrl(phone, message);

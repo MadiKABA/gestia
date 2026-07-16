@@ -15,6 +15,7 @@ import {
 import { commonLabels, tenantSettingsLabels } from "@/presentation/shared/labels";
 import { toastError, toastSuccess } from "@/presentation/shared/toast";
 import { resolveErrorMessage } from "@/presentation/shared/error-messages";
+import type { CurrencyCode } from "@/config/currencies";
 
 const REMINDER_DAYS_MIN = 1;
 const REMINDER_DAYS_MAX = 30;
@@ -26,31 +27,34 @@ const TEMPLATE_VARIABLES = [
   "montantRestant",
   "reference",
   "description",
+  "devise",
   "date",
 ];
-
-const PREVIEW_VARS = {
-  client: "Awa Diop",
-  montant: "15 000",
-  montantRestant: "15 000",
-  montantTotal: "25 000",
-  reference: "CR-1042",
-  boutique: "Boutique Awa",
-  description: "3 sacs de riz",
-  date: "12 juillet 2026",
-};
 
 export function RelanceSettingsForm({
   reminderDays: initialReminderDays,
   whatsappTemplate: initialTemplate,
+  currency,
 }: {
   reminderDays: number;
   whatsappTemplate: string | null;
+  currency: CurrencyCode;
 }) {
   const [reminderDays, setReminderDays] = useState(String(initialReminderDays));
   const [template, setTemplate] = useState(initialTemplate ?? DEFAULT_WHATSAPP_TEMPLATE);
   const [saving, startSaving] = useTransition();
   const templateRef = useRef<HTMLTextAreaElement>(null);
+  const previewVars = {
+    client: "Awa Diop",
+    montant: "15 000",
+    montantRestant: "15 000",
+    montantTotal: "25 000",
+    reference: "CR-1042",
+    boutique: "Boutique Awa",
+    description: "3 sacs de riz",
+    devise: currency,
+    date: "12 juillet 2026",
+  };
 
   const reminderDaysValue = Number(reminderDays);
   const isFormValid =
@@ -142,7 +146,7 @@ export function RelanceSettingsForm({
               {tenantSettingsLabels.whatsappPreviewLabel}
             </p>
             <p className="bg-muted rounded-lg p-3 text-sm">
-              {renderWhatsappTemplate(template, PREVIEW_VARS)}
+              {renderWhatsappTemplate(template, previewVars)}
             </p>
           </div>
         </div>

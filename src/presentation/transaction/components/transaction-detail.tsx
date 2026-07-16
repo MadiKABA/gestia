@@ -175,6 +175,7 @@ export function TransactionDetail({
           totalAmount={transaction.amount}
           reference={transaction.reference}
           boutique={boutique}
+          currency={currency}
           description={transaction.description}
           date={transaction.createdAt}
         />
@@ -193,6 +194,7 @@ export function TransactionDetail({
           remainingBalance={transaction.amount - transaction.paidAmount}
           totalAmount={transaction.amount}
           boutique={boutique}
+          currency={currency}
           date={transaction.createdAt}
           partialTemplate={whatsappReceiptTemplates.partial}
           finalTemplate={whatsappReceiptTemplates.final}

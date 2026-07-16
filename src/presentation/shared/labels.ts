@@ -366,6 +366,7 @@ export const tenantSettingsLabels = {
     date: "Date de création de la créance/dette",
     montantPaye: "Montant payé lors de ce règlement",
     modePaiement: "Mode de paiement utilisé",
+    devise: "Devise de la boutique",
   } as Record<string, string>,
 
   appearanceSectionTitle: "Apparence",

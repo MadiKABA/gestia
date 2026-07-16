@@ -504,6 +504,7 @@ export function TransactionsList({
             }
             totalAmount={receiptContext.transaction.amount}
             boutique={boutique}
+            currency={currency}
             date={receiptContext.transaction.createdAt}
             partialTemplate={whatsappReceiptTemplates.partial}
             finalTemplate={whatsappReceiptTemplates.final}

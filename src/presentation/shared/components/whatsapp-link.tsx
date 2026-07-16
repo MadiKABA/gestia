@@ -4,21 +4,25 @@ import { WhatsappMessagePreview } from "@/presentation/shared/components/whatsap
 import { transactionLabels } from "@/presentation/shared/labels";
 import { formatLongDateFr } from "@/presentation/shared/date-format";
 import { isValidPhoneNumber, toWhatsappDigits } from "@/domain/shared/phone";
+import type { CurrencyCode } from "@/config/currencies";
 
 /** Gabarit par défaut si le tenant n'a jamais personnalisé
  * `TenantSettings.whatsappTemplate` — placeholders remplacés par
- * `renderWhatsappTemplate`, jamais du HTML/markdown (message WhatsApp brut). */
+ * `renderWhatsappTemplate`, jamais du HTML/markdown (message WhatsApp brut).
+ * `{devise}` résolu avec `TenantSettings.currency` (jamais "FCFA" en dur) —
+ * un gabarit déjà personnalisé par un tenant existant avant l'introduction
+ * de cette variable n'est pas retouché automatiquement (voir CLAUDE.md). */
 export const DEFAULT_WHATSAPP_TEMPLATE =
-  "Salam {client}, j'espère que tu vas bien. Ici {boutique}. Selon mon cahier du {date}, tu as pris {description} pour un total de {montantTotal} FCFA (réf. {reference}). Il te reste {montantRestant} FCFA à régler. Merci et bonne journée !";
+  "Salam {client}, j'espère que tu vas bien. Ici {boutique}. Selon mon cahier du {date}, tu as pris {description} pour un total de {montantTotal} {devise} (réf. {reference}). Il te reste {montantRestant} {devise} à régler. Merci et bonne journée !";
 
 /** Gabarits par défaut des reçus de paiement — voir
  * `TenantSettings.whatsappReceiptPartialTemplate`/`whatsappReceiptFinalTemplate`,
  * consommés par `WhatsappReceiptLink` (presentation/payment). */
 export const DEFAULT_WHATSAPP_RECEIPT_PARTIAL_TEMPLATE =
-  "Salam {client}, ici {boutique}. J'ai bien enregistré ton paiement de {montantPaye} FCFA par {modePaiement} aujourd'hui. Sur ton total de {montantTotal} FCFA pris le {date}, il te reste maintenant {montantRestant} FCFA dans mon cahier. Merci et à bientôt !";
+  "Salam {client}, ici {boutique}. J'ai bien enregistré ton paiement de {montantPaye} {devise} par {modePaiement} aujourd'hui. Sur ton total de {montantTotal} {devise} pris le {date}, il te reste maintenant {montantRestant} {devise} dans mon cahier. Merci et à bientôt !";
 
 export const DEFAULT_WHATSAPP_RECEIPT_FINAL_TEMPLATE =
-  "Salam {client}, ici {boutique}. Merci beaucoup pour ton paiement de {montantPaye} FCFA. Ton total de {montantTotal} FCFA pris le {date} est maintenant soldé à 0 FCFA. C'est totalement réglé (Safi) ! Merci pour la confiance. 🙏";
+  "Salam {client}, ici {boutique}. Merci beaucoup pour ton paiement de {montantPaye} {devise}. Ton total de {montantTotal} {devise} pris le {date} est maintenant soldé à 0 {devise}. C'est totalement réglé (Safi) ! Merci pour la confiance. 🙏";
 
 /** Clés de gabarit arbitraires (relance : `{client}`, `{montant}`,
  * `{reference}` ; reçu : `{montantPaye}`, `{modePaiement}`, `{montantRestant}`
@@ -68,6 +72,7 @@ export function WhatsappLink({
   totalAmount,
   reference,
   boutique,
+  currency,
   description,
   date,
 }: {
@@ -78,6 +83,7 @@ export function WhatsappLink({
   totalAmount: number;
   reference: string | null;
   boutique: string;
+  currency: CurrencyCode;
   description: string;
   date: Date;
 }) {
@@ -90,6 +96,7 @@ export function WhatsappLink({
     montantTotal: totalAmount.toLocaleString("fr-FR"),
     reference: reference ?? "",
     boutique,
+    devise: currency,
     description,
     date: formatLongDateFr(date),
   });

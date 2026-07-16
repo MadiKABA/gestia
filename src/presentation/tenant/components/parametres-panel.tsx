@@ -42,10 +42,12 @@ export function ParametresPanel({ initialSettings }: { initialSettings: TenantSe
           <RelanceSettingsForm
             reminderDays={initialSettings.reminderDays}
             whatsappTemplate={initialSettings.whatsappTemplate}
+            currency={initialSettings.currency}
           />
           <ReceiptTemplatesSettingsForm
             whatsappReceiptPartialTemplate={initialSettings.whatsappReceiptPartialTemplate}
             whatsappReceiptFinalTemplate={initialSettings.whatsappReceiptFinalTemplate}
+            currency={initialSettings.currency}
           />
         </>
       ) : null}

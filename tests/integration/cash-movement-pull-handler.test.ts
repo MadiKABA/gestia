@@ -3,6 +3,7 @@ import { createId } from "@paralleldrive/cuid2";
 import { prisma } from "@/infrastructure/prisma/client";
 import { PrismaCashMovementRepository } from "@/infrastructure/cash-movement/cash-movement.repository";
 import { createCashMovement } from "@/application/cash-movement/create-cash-movement.use-case";
+import { PrismaPartyRepository } from "@/infrastructure/party/party.repository";
 import { PrismaAuditLogger } from "@/infrastructure/audit-log/audit-log.repository";
 import { cashMovementPullHandler } from "@/infrastructure/cash-movement/cash-movement-pull-handler";
 import { registerPullHandler } from "@/application/offline/pull-handler-registry";
@@ -15,6 +16,7 @@ describe("cashMovementPullHandler", () => {
   const tenantId = "test-tenant-cash-movement-pull-handler";
   const context: TenantContext = { tenantId, userId: "user-1", role: "PATRON" };
   let repository: PrismaCashMovementRepository;
+  let partyRepository: PrismaPartyRepository;
   const auditLogger = new PrismaAuditLogger();
 
   beforeAll(async () => {
@@ -34,6 +36,7 @@ describe("cashMovementPullHandler", () => {
     context.userId = user.id;
 
     repository = new PrismaCashMovementRepository(tenantId);
+    partyRepository = new PrismaPartyRepository(tenantId);
   });
 
   afterAll(async () => {
@@ -43,11 +46,16 @@ describe("cashMovementPullHandler", () => {
 
   it("renvoie le mouvement créé avec un montant en number", async () => {
     const since = new Date(Date.now() - 1000);
-    const movement = await createCashMovement(context, { repository, auditLogger }, createId(), {
-      type: "ENTREE",
-      amount: 9000,
-      reason: "Vente comptant pull",
-    });
+    const movement = await createCashMovement(
+      context,
+      { repository, partyRepository, auditLogger },
+      createId(),
+      {
+        type: "ENTREE",
+        amount: 9000,
+        reason: "Vente comptant pull",
+      },
+    );
 
     const result = await pullChanges(context, "cashMovement", since);
 

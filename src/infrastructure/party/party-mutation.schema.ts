@@ -28,6 +28,9 @@ export const partySyncPayloadSchema = z
     companyName: z.string().trim().max(200).nullable().optional(),
     contactName: z.string().trim().max(200).nullable().optional(),
     note: z.string().trim().max(1000).nullable().optional(),
+    // Voir PartyInput (party.entity.ts) : jamais persisté, seul
+    // sale-client-picker.tsx le positionne à `true`.
+    contactOptional: z.boolean().optional(),
   })
   .superRefine((input, ctx) => {
     try {

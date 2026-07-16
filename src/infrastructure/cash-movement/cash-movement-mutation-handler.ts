@@ -6,6 +6,7 @@ import type { CashMovementInput } from "@/domain/cash-movement/cash-movement.ent
 import { ValidationError } from "@/domain/shared/errors";
 import { createCashMovement } from "@/application/cash-movement/create-cash-movement.use-case";
 import { PrismaCashMovementRepository } from "@/infrastructure/cash-movement/cash-movement.repository";
+import { PrismaPartyRepository } from "@/infrastructure/party/party.repository";
 import { PrismaAuditLogger } from "@/infrastructure/audit-log/audit-log.repository";
 import { PrismaClientKnownRequestError } from "@/generated/prisma/internal/prismaNamespace";
 
@@ -30,9 +31,10 @@ export const cashMovementMutationHandler: MutationHandler<CashMovementInput> = {
     if (existing) return { updatedAt: existing.date.toISOString() };
 
     try {
+      const partyRepository = new PrismaPartyRepository(context.tenantId);
       const movement = await createCashMovement(
         context,
-        { repository, auditLogger },
+        { repository, partyRepository, auditLogger },
         clientGeneratedId,
         payload,
       );

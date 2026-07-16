@@ -27,13 +27,22 @@ export type PartyInput = {
   companyName?: string | null;
   contactName?: string | null;
   note?: string | null;
+  /**
+   * Instruction de validation ponctuelle, jamais persistée (absente de
+   * `Party` et de la table Prisma) : lève l'exigence de contact ci-dessous
+   * pour un client créé à la volée depuis la vente au comptant
+   * (`sale-client-picker.tsx`), seul appelant qui la positionne à `true`.
+   * La création de tiers depuis la page transaction (`party-picker-step.tsx`)
+   * ne la fournit jamais — comportement inchangé pour ce flux.
+   */
+  contactOptional?: boolean;
 };
 
 /**
  * Règles métier pures (cahier des charges §7) :
  * - nom obligatoire
  * - au moins un moyen de contact (téléphone OU whatsapp) — pas obligatoirement
- *   les deux
+ *   les deux, sauf `contactOptional` (voir PartyInput)
  * - companyName reste recommandé mais non bloquant quand isCompany est coché
  *   (décrit comme une "case entreprise optionnelle" au cahier des charges)
  */
@@ -41,7 +50,7 @@ export function validatePartyInput(input: PartyInput): void {
   if (!input.name.trim()) {
     throw new ValidationError("Le nom du tiers est obligatoire");
   }
-  if (!input.phone?.trim() && !input.whatsappNumber?.trim()) {
+  if (!input.contactOptional && !input.phone?.trim() && !input.whatsappNumber?.trim()) {
     throw new ValidationError("Un moyen de contact (téléphone ou WhatsApp) est obligatoire");
   }
   if (input.phone?.trim()) {

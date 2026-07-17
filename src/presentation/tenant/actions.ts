@@ -5,6 +5,7 @@ import { requireTenantContext } from "@/infrastructure/auth/session";
 import { requirePatron } from "@/presentation/auth/require-role";
 import { ValidationError } from "@/domain/shared/errors";
 import { PrismaTenantSettingsRepository } from "@/infrastructure/tenant/tenant-settings.repository";
+import { PrismaTenantRepository } from "@/infrastructure/tenant/tenant.repository";
 import { PrismaAuditLogger } from "@/infrastructure/audit-log/audit-log.repository";
 import { CloudinaryLogoUploader } from "@/infrastructure/external/cloudinary-client";
 import { getTenantBranding } from "@/application/tenant/get-tenant-branding.use-case";
@@ -14,15 +15,19 @@ import { getTenantReminderDays } from "@/application/tenant/get-tenant-reminder-
 import { getTenantSettingsForEdit } from "@/application/tenant/get-tenant-settings-for-edit.use-case";
 import { updateTenantSettings } from "@/application/tenant/update-tenant-settings.use-case";
 import { uploadTenantLogo } from "@/application/tenant/upload-tenant-logo.use-case";
+import { getTenantBusinessType } from "@/application/tenant/get-tenant-business-type.use-case";
+import { updateBusinessType } from "@/application/tenant/update-business-type.use-case";
 import {
   updateTenantSettingsSchema,
+  updateBusinessTypeSchema,
   type UpdateTenantSettingsInput,
+  type UpdateBusinessTypeInput,
 } from "@/presentation/tenant/schemas";
 
 // Stateless (aucun tenantId en constructeur) : singletons module-level
-// légitimes, contrairement à PrismaTenantSettingsRepository ci-dessous qui
-// doit être instancié dans chaque action une fois le tenantId du context
-// connu.
+// légitimes, contrairement à PrismaTenantSettingsRepository/PrismaTenantRepository
+// ci-dessous qui doivent être instanciés dans chaque action une fois le
+// tenantId du context connu.
 const auditLogger = new PrismaAuditLogger();
 const logoUploader = new CloudinaryLogoUploader();
 
@@ -68,6 +73,23 @@ export async function updateTenantSettingsAction(input: UpdateTenantSettingsInpu
   // (voir app/(dashboard)/layout.tsx) : sans "layout", ils resteraient
   // périmés après une sauvegarde tant qu'on ne navigue pas hors du dashboard.
   revalidatePath("/", "layout");
+  return updated;
+}
+
+export async function getTenantBusinessTypeAction() {
+  const context = await requirePatron();
+  const repository = new PrismaTenantRepository(context.tenantId);
+  return getTenantBusinessType(context, { repository });
+}
+
+export async function updateBusinessTypeAction(input: UpdateBusinessTypeInput) {
+  const context = await requirePatron();
+  const { businessType } = updateBusinessTypeSchema.parse(input);
+  const repository = new PrismaTenantRepository(context.tenantId);
+
+  const updated = await updateBusinessType(context, { repository, auditLogger }, businessType);
+
+  revalidatePath("/parametres");
   return updated;
 }
 

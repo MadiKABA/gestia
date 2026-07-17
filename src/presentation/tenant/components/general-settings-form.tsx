@@ -11,28 +11,39 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/presentation/shared/components/ui/select";
-import { updateTenantSettingsAction } from "@/presentation/tenant/actions";
+import {
+  updateTenantSettingsAction,
+  updateBusinessTypeAction,
+} from "@/presentation/tenant/actions";
 import { commonLabels, tenantSettingsLabels } from "@/presentation/shared/labels";
 import { toastError, toastSuccess } from "@/presentation/shared/toast";
 import { resolveErrorMessage } from "@/presentation/shared/error-messages";
 import { SUPPORTED_CURRENCIES, type CurrencyCode } from "@/config/currencies";
+import type { BusinessTypeCode } from "@/domain/tenant/business-type";
+import { BusinessTypeSelector } from "@/presentation/shared/components/business-type-selector";
 
 export function GeneralSettingsForm({
   displayName: initialDisplayName,
   currency: initialCurrency,
+  businessType: initialBusinessType,
 }: {
   displayName: string | null;
   currency: CurrencyCode;
+  businessType: BusinessTypeCode;
 }) {
   const [displayName, setDisplayName] = useState(initialDisplayName ?? "");
   const [currency, setCurrency] = useState<CurrencyCode>(initialCurrency);
+  const [businessType, setBusinessType] = useState<BusinessTypeCode>(initialBusinessType);
   const [saving, startSaving] = useTransition();
 
   function onSubmit(event: React.FormEvent) {
     event.preventDefault();
     startSaving(async () => {
       try {
-        await updateTenantSettingsAction({ displayName: displayName.trim() || null, currency });
+        await Promise.all([
+          updateTenantSettingsAction({ displayName: displayName.trim() || null, currency }),
+          updateBusinessTypeAction({ businessType }),
+        ]);
         toastSuccess(tenantSettingsLabels.savedMessage);
       } catch (err) {
         toastError(resolveErrorMessage(err));
@@ -43,6 +54,7 @@ export function GeneralSettingsForm({
   function onCancel() {
     setDisplayName(initialDisplayName ?? "");
     setCurrency(initialCurrency);
+    setBusinessType(initialBusinessType);
   }
 
   return (
@@ -83,6 +95,11 @@ export function GeneralSettingsForm({
           </Select>
           <p className="text-muted-foreground text-sm">{tenantSettingsLabels.currencyHelperText}</p>
         </div>
+      </div>
+
+      <div className="space-y-1.5">
+        <Label>{tenantSettingsLabels.businessTypeField}</Label>
+        <BusinessTypeSelector value={businessType} onChange={setBusinessType} disabled={saving} />
       </div>
 
       <div className="flex flex-col gap-2 lg:flex-row lg:justify-end lg:gap-3">

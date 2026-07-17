@@ -5,11 +5,13 @@ import { GeneralSettingsForm } from "@/presentation/tenant/components/general-se
 import { commonLabels, tenantSettingsLabels } from "@/presentation/shared/labels";
 
 const updateTenantSettingsActionMock = vi.fn();
+const updateBusinessTypeActionMock = vi.fn();
 const toastSuccessMock = vi.fn();
 const toastErrorMock = vi.fn();
 
 vi.mock("@/presentation/tenant/actions", () => ({
   updateTenantSettingsAction: (...args: unknown[]) => updateTenantSettingsActionMock(...args),
+  updateBusinessTypeAction: (...args: unknown[]) => updateBusinessTypeActionMock(...args),
 }));
 
 vi.mock("@/presentation/shared/toast", () => ({
@@ -19,18 +21,27 @@ vi.mock("@/presentation/shared/toast", () => ({
 
 beforeEach(() => {
   updateTenantSettingsActionMock.mockReset().mockResolvedValue(undefined);
+  updateBusinessTypeActionMock.mockReset().mockResolvedValue(undefined);
   toastSuccessMock.mockReset();
   toastErrorMock.mockReset();
 });
 
 describe("GeneralSettingsForm", () => {
   it("affiche la devise actuelle du tenant dans le sélecteur", () => {
-    render(<GeneralSettingsForm displayName={null} currency="GNF" />);
+    render(
+      <GeneralSettingsForm
+        displayName={null}
+        currency="GNF"
+        businessType="ALIMENTATION_GENERALE"
+      />,
+    );
     expect(screen.getByRole("combobox")).toHaveTextContent("GNF");
   });
 
-  it("soumet le nom affiché modifié avec la devise inchangée", async () => {
-    render(<GeneralSettingsForm displayName="Ancien nom" currency="FCFA" />);
+  it("soumet le nom affiché modifié avec la devise et le type de commerce inchangés", async () => {
+    render(
+      <GeneralSettingsForm displayName="Ancien nom" currency="FCFA" businessType="BOUCHERIE" />,
+    );
 
     const input = screen.getByLabelText(tenantSettingsLabels.displayNameField);
     await userEvent.clear(input);
@@ -46,10 +57,17 @@ describe("GeneralSettingsForm", () => {
       displayName: "Boutique Awa",
       currency: "FCFA",
     });
+    expect(updateBusinessTypeActionMock).toHaveBeenCalledWith({ businessType: "BOUCHERIE" });
   });
 
   it("ne permet de choisir la devise que parmi la liste fermée (FCFA, GNF)", async () => {
-    render(<GeneralSettingsForm displayName={null} currency="FCFA" />);
+    render(
+      <GeneralSettingsForm
+        displayName={null}
+        currency="FCFA"
+        businessType="ALIMENTATION_GENERALE"
+      />,
+    );
 
     await userEvent.click(screen.getByRole("combobox"));
     const options = screen.getAllByRole("option").map((option) => option.textContent);
@@ -57,7 +75,13 @@ describe("GeneralSettingsForm", () => {
   });
 
   it("soumet la devise nouvellement sélectionnée", async () => {
-    render(<GeneralSettingsForm displayName={null} currency="FCFA" />);
+    render(
+      <GeneralSettingsForm
+        displayName={null}
+        currency="FCFA"
+        businessType="ALIMENTATION_GENERALE"
+      />,
+    );
 
     await userEvent.click(screen.getByRole("combobox"));
     await userEvent.click(await screen.findByRole("option", { name: "Franc guinéen (GNF)" }));
@@ -73,9 +97,34 @@ describe("GeneralSettingsForm", () => {
     );
   });
 
+  it("soumet le type de commerce nouvellement sélectionné", async () => {
+    render(
+      <GeneralSettingsForm
+        displayName={null}
+        currency="FCFA"
+        businessType="ALIMENTATION_GENERALE"
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Boucherie" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: tenantSettingsLabels.saveButtonLabel }),
+    );
+
+    await vi.waitFor(() =>
+      expect(updateBusinessTypeActionMock).toHaveBeenCalledWith({ businessType: "BOUCHERIE" }),
+    );
+  });
+
   it("notifie le message générique en cas d'échec (jamais le message brut de l'action)", async () => {
     updateTenantSettingsActionMock.mockRejectedValue(new Error("Échec réseau"));
-    render(<GeneralSettingsForm displayName="Nom" currency="FCFA" />);
+    render(
+      <GeneralSettingsForm
+        displayName="Nom"
+        currency="FCFA"
+        businessType="ALIMENTATION_GENERALE"
+      />,
+    );
 
     await userEvent.click(
       screen.getByRole("button", { name: tenantSettingsLabels.saveButtonLabel }),

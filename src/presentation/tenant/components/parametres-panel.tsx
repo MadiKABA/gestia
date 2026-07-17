@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { TenantSettingsFull } from "@/application/tenant/tenant-settings.repository";
+import type { BusinessTypeCode } from "@/domain/tenant/business-type";
 import { GeneralSettingsForm } from "@/presentation/tenant/components/general-settings-form";
 import { RelanceSettingsForm } from "@/presentation/tenant/components/relance-settings-form";
 import { ReceiptTemplatesSettingsForm } from "@/presentation/tenant/components/receipt-templates-settings-form";
@@ -21,7 +22,13 @@ const TABS: { key: ParametresTabKey; label: string }[] = [
 /** Onglets classiques : un seul panneau monté à la fois, chaque section
  * garde son propre mécanisme de sauvegarde (granulaire, cf. les composants
  * de section) — changer d'onglet démonte le panneau précédent. */
-export function ParametresPanel({ initialSettings }: { initialSettings: TenantSettingsFull }) {
+export function ParametresPanel({
+  initialSettings,
+  initialBusinessType,
+}: {
+  initialSettings: TenantSettingsFull;
+  initialBusinessType: BusinessTypeCode;
+}) {
   const [activeTab, setActiveTab] = useState<ParametresTabKey>("general");
 
   return (
@@ -34,6 +41,7 @@ export function ParametresPanel({ initialSettings }: { initialSettings: TenantSe
         <GeneralSettingsForm
           displayName={initialSettings.displayName}
           currency={initialSettings.currency}
+          businessType={initialBusinessType}
         />
       ) : null}
 

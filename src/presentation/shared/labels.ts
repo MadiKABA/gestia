@@ -341,6 +341,7 @@ export const tenantSettingsLabels = {
   currencyField: "Devise",
   currencyHelperText:
     "Change uniquement l'affichage des montants — les montants déjà enregistrés ne sont pas convertis.",
+  businessTypeField: "Type de commerce",
 
   relanceSectionTitle: "Relances",
   reminderDaysField: "Délai de relance (jours)",

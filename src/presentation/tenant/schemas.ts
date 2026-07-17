@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { CURRENCY_CODES } from "@/config/currencies";
+import { BUSINESS_TYPE_CODES } from "@/domain/tenant/business-type";
 
 /**
  * `logoUrl` n'apparaît jamais ici : seul `uploadTenantLogoAction` (Cloudinary)
@@ -22,3 +23,11 @@ export const updateTenantSettingsSchema = z.object({
 });
 
 export type UpdateTenantSettingsInput = z.infer<typeof updateTenantSettingsSchema>;
+
+/** `businessType` vit sur `Tenant`, pas `TenantSettings` — schéma séparé,
+ * utilisé par `updateBusinessTypeAction`. */
+export const updateBusinessTypeSchema = z.object({
+  businessType: z.enum(BUSINESS_TYPE_CODES),
+});
+
+export type UpdateBusinessTypeInput = z.infer<typeof updateBusinessTypeSchema>;

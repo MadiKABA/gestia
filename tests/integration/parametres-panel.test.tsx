@@ -7,6 +7,7 @@ import type { TenantSettingsFull } from "@/application/tenant/tenant-settings.re
 
 vi.mock("@/presentation/tenant/actions", () => ({
   updateTenantSettingsAction: vi.fn().mockResolvedValue(undefined),
+  updateBusinessTypeAction: vi.fn().mockResolvedValue("ALIMENTATION_GENERALE"),
   uploadTenantLogoAction: vi.fn().mockResolvedValue({ logoUrl: null }),
 }));
 
@@ -27,7 +28,9 @@ beforeEach(() => {
 
 describe("ParametresPanel", () => {
   it("affiche l'onglet Général par défaut et masque les autres sections", () => {
-    render(<ParametresPanel initialSettings={SETTINGS} />);
+    render(
+      <ParametresPanel initialSettings={SETTINGS} initialBusinessType="ALIMENTATION_GENERALE" />,
+    );
 
     expect(screen.getByLabelText(tenantSettingsLabels.displayNameField)).toBeInTheDocument();
     expect(screen.queryByLabelText(tenantSettingsLabels.reminderDaysField)).not.toBeInTheDocument();
@@ -35,7 +38,9 @@ describe("ParametresPanel", () => {
   });
 
   it("démonte la section précédente en changeant d'onglet", async () => {
-    render(<ParametresPanel initialSettings={SETTINGS} />);
+    render(
+      <ParametresPanel initialSettings={SETTINGS} initialBusinessType="ALIMENTATION_GENERALE" />,
+    );
 
     await userEvent.click(
       screen.getByRole("tab", { name: tenantSettingsLabels.relanceSectionTitle }),
@@ -53,14 +58,18 @@ describe("ParametresPanel", () => {
   });
 
   it("la grille Général passe en 2 colonnes à partir de lg", () => {
-    const { container } = render(<ParametresPanel initialSettings={SETTINGS} />);
+    const { container } = render(
+      <ParametresPanel initialSettings={SETTINGS} initialBusinessType="ALIMENTATION_GENERALE" />,
+    );
 
     const grid = container.querySelector("form > div.space-y-4");
     expect(grid).toHaveClass("lg:grid-cols-2");
   });
 
   it("l'onglet Relances affiche à la fois la relance et les gabarits de reçu", async () => {
-    render(<ParametresPanel initialSettings={SETTINGS} />);
+    render(
+      <ParametresPanel initialSettings={SETTINGS} initialBusinessType="ALIMENTATION_GENERALE" />,
+    );
     await userEvent.click(
       screen.getByRole("tab", { name: tenantSettingsLabels.relanceSectionTitle }),
     );
@@ -74,7 +83,9 @@ describe("ParametresPanel", () => {
   });
 
   it("la grille Relances utilise une colonne étroite et une large à partir de lg", async () => {
-    const { container } = render(<ParametresPanel initialSettings={SETTINGS} />);
+    const { container } = render(
+      <ParametresPanel initialSettings={SETTINGS} initialBusinessType="ALIMENTATION_GENERALE" />,
+    );
     await userEvent.click(
       screen.getByRole("tab", { name: tenantSettingsLabels.relanceSectionTitle }),
     );
@@ -84,7 +95,9 @@ describe("ParametresPanel", () => {
   });
 
   it("la grille Apparence passe en 2 colonnes à partir de lg", async () => {
-    render(<ParametresPanel initialSettings={SETTINGS} />);
+    render(
+      <ParametresPanel initialSettings={SETTINGS} initialBusinessType="ALIMENTATION_GENERALE" />,
+    );
     await userEvent.click(
       screen.getByRole("tab", { name: tenantSettingsLabels.appearanceSectionTitle }),
     );
@@ -97,7 +110,9 @@ describe("ParametresPanel", () => {
   });
 
   it("le bouton Annuler n'est visible qu'à partir de lg, Enregistrer reste pleine largeur en mobile", () => {
-    render(<ParametresPanel initialSettings={SETTINGS} />);
+    render(
+      <ParametresPanel initialSettings={SETTINGS} initialBusinessType="ALIMENTATION_GENERALE" />,
+    );
 
     const cancelButton = screen.getByRole("button", { name: commonLabels.cancel });
     expect(cancelButton).toHaveClass("hidden", "lg:inline-flex");
@@ -107,7 +122,9 @@ describe("ParametresPanel", () => {
   });
 
   it("l'onglet Apparence n'a pas de bouton Enregistrer (sauvegarde instantanée)", async () => {
-    render(<ParametresPanel initialSettings={SETTINGS} />);
+    render(
+      <ParametresPanel initialSettings={SETTINGS} initialBusinessType="ALIMENTATION_GENERALE" />,
+    );
     await userEvent.click(
       screen.getByRole("tab", { name: tenantSettingsLabels.appearanceSectionTitle }),
     );

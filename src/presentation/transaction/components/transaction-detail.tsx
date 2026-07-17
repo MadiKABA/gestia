@@ -11,7 +11,10 @@ import {
 } from "@/presentation/transaction/offline-repository";
 import { PaymentModal } from "@/presentation/payment/components/payment-modal";
 import { PaymentHistory } from "@/presentation/payment/components/payment-history";
-import { seedPaymentCache } from "@/presentation/payment/offline-repository";
+import {
+  createPaymentOfflineRepository,
+  seedPaymentCache,
+} from "@/presentation/payment/offline-repository";
 import {
   WhatsappLink,
   resolveWhatsappNumber,
@@ -86,6 +89,34 @@ export function TransactionDetail({
   useEffect(() => {
     void seedPaymentCache(tenantId, initialPayments);
   }, [tenantId, initialPayments]);
+
+  // Auto-guérison au montage, même pattern que TransactionsList
+  // (transactions-list.tsx) : relit IndexedDB pour refléter tout de suite une
+  // mutation locale pas encore synchronisée (paiement, modification) plutôt
+  // que rester bloqué sur l'instantané serveur reçu à ce chargement — jusque
+  // là, seul un paiement effectué depuis cette page déclenchait cette lecture
+  // (voir onPaymentSuccess), jamais le montage initial.
+  useEffect(() => {
+    let cancelled = false;
+    const repository = createTransactionOfflineRepository(tenantId, userId);
+    void repository.getById(initialTransaction.id).then((cached) => {
+      if (!cancelled && cached) setTransaction(cached);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [tenantId, userId, initialTransaction.id]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const repository = createPaymentOfflineRepository(tenantId, userId);
+    void repository.list(initialTransaction.id).then((cached) => {
+      if (!cancelled && cached.length > 0) setPayments(cached);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [tenantId, userId, initialTransaction.id]);
 
   async function onPaymentSuccess(payment: Payment) {
     setPayments((current) => [...current, payment]);

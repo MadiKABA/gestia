@@ -22,6 +22,12 @@ import type { Payment } from "@/domain/payment/payment.entity";
  * (déjà couvert par transaction-offline-sync.test.ts/payment-offline-sync.test.ts).
  */
 const getByIdMock = vi.fn<(id: string) => Promise<Transaction | null>>();
+// Lu par l'effet d'auto-guérison au montage (transaction-detail.tsx) en plus
+// de onPaymentSuccess — liste vide par défaut pour ne jamais écraser
+// `initialPayments` (transaction-detail.tsx ignore un résultat vide, voir le
+// garde `cached.length > 0`), les tests d'historique post-paiement n'en ont
+// pas besoin puisqu'ils vérifient un update optimiste, pas un pull réseau.
+const paymentListMock = vi.fn<(transactionId: string) => Promise<Payment[]>>();
 
 vi.mock("@/presentation/transaction/offline-repository", () => ({
   createTransactionOfflineRepository: () => ({ getById: getByIdMock }),
@@ -29,6 +35,7 @@ vi.mock("@/presentation/transaction/offline-repository", () => ({
 }));
 
 vi.mock("@/presentation/payment/offline-repository", () => ({
+  createPaymentOfflineRepository: () => ({ list: paymentListMock }),
   seedPaymentCache: vi.fn().mockResolvedValue(undefined),
 }));
 
@@ -88,6 +95,13 @@ const secondPayment: Payment = {
 
 beforeEach(() => {
   getByIdMock.mockReset();
+  // Défaut réaliste de l'effet d'auto-guérison au montage : rien en cache
+  // local pour cette transaction (jamais encore visitée hors ligne) — les
+  // tests d'historique post-paiement reconfigurent explicitement ce mock
+  // avant `render()` quand ils ont besoin d'une autre valeur.
+  getByIdMock.mockResolvedValue(null);
+  paymentListMock.mockReset();
+  paymentListMock.mockResolvedValue([]);
   paymentModalOnSuccess = null;
 });
 

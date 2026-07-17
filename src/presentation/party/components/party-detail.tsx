@@ -32,7 +32,7 @@ const TYPE_LABELS: Record<PartyWithBalance["type"], string> = {
 const PAGE_SIZE = 10;
 
 export function PartyDetail({
-  party,
+  party: initialParty,
   transactions: initialTransactions,
   tenantId,
   userId,
@@ -46,6 +46,7 @@ export function PartyDetail({
   canDelete: boolean;
   currency: CurrencyCode;
 }) {
+  const [party, setParty] = useState(initialParty);
   const [transactions, setTransactions] = useState(initialTransactions);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const router = useRouter();
@@ -73,6 +74,31 @@ export function PartyDetail({
   useEffect(() => {
     void seedTransactionCache(tenantId, initialTransactions);
   }, [tenantId, initialTransactions]);
+
+  // Auto-guérison au montage, même pattern que TransactionsList/TransactionDetail :
+  // relit IndexedDB pour refléter tout de suite une mutation locale pas
+  // encore synchronisée (solde, opération créée depuis un autre écran)
+  // plutôt que rester bloqué sur l'instantané serveur reçu à ce chargement.
+  useEffect(() => {
+    let cancelled = false;
+    const repository = createPartyOfflineRepository(tenantId, userId);
+    void repository.getById(initialParty.id).then((cached) => {
+      if (!cancelled && cached) setParty(cached);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [tenantId, userId, initialParty.id]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void transactionRepository.list({ partyId: initialParty.id }).then((cached) => {
+      if (!cancelled && cached.length > 0) setTransactions(cached);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [transactionRepository, initialParty.id]);
 
   // Relit le cache local après création d'une opération depuis cette page —
   // évite un aller-retour serveur (router.refresh) juste pour afficher une

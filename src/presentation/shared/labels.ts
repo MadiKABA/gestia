@@ -523,6 +523,8 @@ export const productLabels = {
 
   scanTitle: "Scanner un code-barres",
   scanInstructions: "Visez le code-barres dans le cadre",
-  scanManualEntryLabel: "Saisir le code manuellement",
   scanCancelLabel: "Annuler",
+  scanRetryLabel: "Réessayer",
+  scanCameraError:
+    "Caméra indisponible — vérifiez les autorisations ou saisissez le code manuellement",
 };

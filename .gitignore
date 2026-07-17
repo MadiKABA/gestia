@@ -45,3 +45,8 @@ yarn-error.log*
 next-env.d.ts
 
 /src/generated/prisma
+
+# Copié depuis node_modules à l'installation (postinstall), voir
+# scripts/copy-zxing-wasm.mjs — jamais commité, resterait sinon désynchronisé
+# de la version réellement installée du package.
+/public/zxing_reader.wasm

@@ -13,6 +13,7 @@ import { BackLink } from "@/presentation/shared/components/back-link";
 import { ProductUnitSelector } from "@/presentation/product/components/product-unit-selector";
 import { CategorySelect } from "@/presentation/product/components/category-select";
 import { ProductPhotoInput } from "@/presentation/product/components/product-photo-input";
+import { BarcodeInput } from "@/presentation/product/components/barcode-input";
 import {
   productInputSchema,
   toProductInput,
@@ -300,7 +301,11 @@ export function ProductForm({
               control={control}
               name="barcode"
               render={({ field }) => (
-                <Input id="barcode" value={field.value ?? ""} onValueChange={field.onChange} />
+                <BarcodeInput
+                  id="barcode"
+                  value={field.value ?? ""}
+                  onValueChange={field.onChange}
+                />
               )}
             />
           </div>

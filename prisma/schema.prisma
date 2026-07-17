@@ -103,6 +103,38 @@ enum BusinessType {
   AUTRE
 }
 
+/**
+ * Unité de mesure d'un `Product` — n'a de sens que pour `ProductType.PRODUIT`
+ * (toujours `null` pour un `SERVICE`, cf. validation applicative dans
+ * `src/domain/product/product.entity.ts`). Cohérente avec
+ * `src/domain/product/product-unit.ts` (libellé + icône, source de vérité
+ * applicative).
+ */
+enum ProductUnit {
+  PIECE
+  KILOGRAMME
+  GRAMME
+  LITRE
+  MILLILITRE
+  SAC
+  CARTON
+  DOUZAINE
+  METRE
+  PAQUET
+  BOITE
+  BOUTEILLE
+  SACHET
+  ROULEAU
+  PAIRE
+  LOT
+  AUTRE
+}
+
+enum ProductType {
+  PRODUIT
+  SERVICE
+}
+
 // ---------------------------------------------------------------------------
 // Admin — comptes du backoffice SaaS (hors périmètre tenant, auth email+mdp)
 // ---------------------------------------------------------------------------
@@ -141,14 +173,16 @@ model Tenant {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  users         User[]
-  parties       Party[]
-  transactions  Transaction[]
-  payments      Payment[]
-  cashMovements CashMovement[]
-  settings      TenantSettings?
-  auditLogs     AuditLog[]
-  sequences     Sequence[]
+  users             User[]
+  parties           Party[]
+  transactions      Transaction[]
+  payments          Payment[]
+  cashMovements     CashMovement[]
+  settings          TenantSettings?
+  auditLogs         AuditLog[]
+  sequences         Sequence[]
+  productCategories ProductCategory[]
+  products          Product[]
 
   @@map("tenants")
 }
@@ -202,6 +236,7 @@ model User {
   createdTransactions  Transaction[]  @relation("TransactionCreator")
   createdPayments      Payment[]      @relation("PaymentCreator")
   createdCashMovements CashMovement[] @relation("CashMovementCreator")
+  createdProducts      Product[]      @relation("ProductCreator")
 
   @@index([tenantId])
   @@map("users")
@@ -477,4 +512,65 @@ model AuditLog {
   @@index([tenantId, entity, entityId])
   @@index([tenantId, createdAt])
   @@map("audit_logs")
+}
+
+// ---------------------------------------------------------------------------
+// ProductCategory / Product — catalogue produits (V1, cf. CLAUDE.md Scope V1 :
+// le champ trackStock/stockQuantity reste purement informatif, la
+// décrémentation automatique à la vente est un chantier séparé, hors V1).
+// ---------------------------------------------------------------------------
+
+model ProductCategory {
+  id       String @id @default(cuid())
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  name String
+
+  createdAt DateTime  @default(now())
+  deletedAt DateTime?
+
+  products Product[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+  @@map("product_categories")
+}
+
+model Product {
+  id       String @id @default(cuid())
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  name        String
+  description String?
+  type        ProductType
+  price       Decimal     @db.Decimal(14, 2)
+
+  /**
+   * `unit`/`stockQuantity` n'ont de sens que si `type = PRODUIT` — toujours
+   * `null` pour un `SERVICE` (cf. validate-product-input, appliqué en amont
+   * de la base, pas seulement ici).
+   */
+  unit          ProductUnit?
+  trackStock    Boolean      @default(false)
+  stockQuantity Decimal?     @db.Decimal(14, 2)
+
+  barcode  String?
+  photoUrl String?
+
+  categoryId String?
+  category   ProductCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  createdById String
+  createdBy   User   @relation("ProductCreator", fields: [createdById], references: [id])
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@unique([tenantId, barcode])
+  @@index([tenantId])
+  @@index([tenantId, categoryId])
+  @@map("products")
 }

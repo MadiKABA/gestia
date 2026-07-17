@@ -76,6 +76,9 @@ Tenant (boutique)
   ├── Party (clients/fournisseurs, type CLIENT|SUPPLIER|BOTH)
   │     └── Transaction (type CREANCE|DETTE, statut EN_COURS|PARTIELLE|REGLEE)
   │           └── Payment (règlement, method CASH|WAVE|ORANGE_MONEY|AUTRE)
+  ├── ProductCategory (catégories de produits, personnalisables par tenant)
+  ├── Product (catalogue produits/services, unité, code-barres, photo —
+  │     sans décrémentation automatique de stock, cf. Scope V1/Hors périmètre)
   ├── CashMovement (ENTREE|SORTIE — manuel ou généré par un Payment CASH)
   ├── TenantSettings (devise, relance, theming — 1-1 avec Tenant)
   └── AuditLog (toute mutation métier — jamais de suppression définitive)
@@ -113,17 +116,21 @@ recevoir, à payer, position nette, échéances à J/7j/30j avec code couleur
 rouge/orange/vert) · relance WhatsApp (template configurable, lien `wa.me`
 pré-rempli) · paramètres + theming tenant · AuditLog systématique · PWA
 offline complet avec queue de synchronisation et résolution de conflit
-"dernier écrit gagne" tracée en AuditLog.
+"dernier écrit gagne" tracée en AuditLog · catalogue produits (`Product`/
+`ProductCategory`, unités de mesure avec icônes, scan de code-barres caméra
+et lecteur USB, photo via Cloudinary) — champ `trackStock` purement
+informatif, la décrémentation automatique du stock à la vente reste hors
+périmètre V1 (cf. tableau ci-dessous).
 
 ## Hors périmètre (ne pas implémenter avant la version indiquée)
 
-| Version | Fonctionnalité                                                                                                                                                                          |
-| ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| V1.5    | Pièces jointes (photo, signature), export PDF, thèmes avancés/color picker libre                                                                                                        |
-| V2      | Facturation formelle, gestion de stock (Produit/Catégorie), POS/scan code-barres                                                                                                        |
-| V2      | Sync temps réel par WebSocket/SSE en remplacement du polling léger (30-60s) — complexité disproportionnée pour l'infra VPS actuelle, voir ARCHITECTURE.md "Synchronisation descendante" |
-| V2/V3   | Modèle Company distinct (NINEA, RCCM), auth **par mot de passe** (email + PIN existe dès V1, voir section Authentification)                                                             |
-| V3      | RBAC configurable, multi-boutique par tenant, plans d'abonnement SaaS, comptabilité SYSCOHADA, rapports avancés                                                                         |
+| Version | Fonctionnalité                                                                                                                                                                                                 |
+| ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| V1.5    | Pièces jointes (photo, signature), export PDF, thèmes avancés/color picker libre                                                                                                                               |
+| V2      | Facturation formelle, décrémentation automatique de stock à la vente, POS (caisse enregistreuse/checkout) — le catalogue produits lui-même (Product/ProductCategory, unités, code-barres) est V1, cf. Scope V1 |
+| V2      | Sync temps réel par WebSocket/SSE en remplacement du polling léger (30-60s) — complexité disproportionnée pour l'infra VPS actuelle, voir ARCHITECTURE.md "Synchronisation descendante"                        |
+| V2/V3   | Modèle Company distinct (NINEA, RCCM), auth **par mot de passe** (email + PIN existe dès V1, voir section Authentification)                                                                                    |
+| V3      | RBAC configurable, multi-boutique par tenant, plans d'abonnement SaaS, comptabilité SYSCOHADA, rapports avancés                                                                                                |
 
 ## Exigences non-fonctionnelles clés
 

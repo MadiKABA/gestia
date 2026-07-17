@@ -17,6 +17,7 @@ const config = {
         "party",
         "transaction",
         "payment",
+        "product",
         "cash",
         "tenant-settings",
         "layout",

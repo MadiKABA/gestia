@@ -65,20 +65,42 @@ enum OtpPurpose {
   PIN_RESET
 }
 
-/** Canal de délivrance de l'OTP — aussi le canal utilisé pour se connecter
- * (§4 : téléphone prioritaire, email un second identifiant possible). */
+/**
+ * Canal de délivrance de l'OTP — aussi le canal utilisé pour se connecter
+ * (§4 : téléphone prioritaire, email un second identifiant possible).
+ */
 enum OtpChannel {
   PHONE
   EMAIL
 }
 
-/** Devises supportées (`TenantSettings.currency`) — liste fermée, cohérente
+/**
+ * Devises supportées (`TenantSettings.currency`) — liste fermée, cohérente
  * avec `src/config/currencies.ts` (source de vérité applicative pour le
  * libellé affiché de chaque devise). Chaque tenant reste isolé sur la
- * sienne : ce n'est pas un système de conversion entre devises. */
+ * sienne : ce n'est pas un système de conversion entre devises.
+ */
 enum Currency {
   FCFA
   GNF
+}
+
+/**
+ * Type de commerce (`Tenant.businessType`) — liste fermée, cohérente avec
+ * `src/domain/tenant/business-type.ts` (source de vérité applicative pour le
+ * libellé, l'icône et la catégorie PRODUIT/SERVICE de chaque type).
+ */
+enum BusinessType {
+  ALIMENTATION_GENERALE
+  QUINCAILLERIE
+  BOUCHERIE
+  PRESSING
+  VETEMENT
+  TELEPHONE_ACCESSOIRES
+  ELECTROMENAGER
+  COSMETIQUE
+  SALON_COIFFURE
+  AUTRE
 }
 
 // ---------------------------------------------------------------------------
@@ -112,8 +134,9 @@ model Tenant {
   phone   String?
   address String?
 
-  status      TenantStatus @default(TRIAL)
-  trialEndsAt DateTime?
+  status       TenantStatus @default(TRIAL)
+  trialEndsAt  DateTime?
+  businessType BusinessType @default(ALIMENTATION_GENERALE)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -142,24 +165,28 @@ model User {
   name    String
   phone   String  @unique
   pinHash String
-  /** Identifiant de connexion secondaire optionnel (§4) — le téléphone reste
+  /**
+   * Identifiant de connexion secondaire optionnel (§4) — le téléphone reste
    * l'identifiant prioritaire, mis en avant dans l'UI. Unique quand renseigné
-   * (Postgres autorise plusieurs NULL sous une contrainte @unique). */
+   * (Postgres autorise plusieurs NULL sous une contrainte @unique).
+   */
   email   String? @unique
 
   role           UserRole
   failedAttempts Int       @default(0)
   lockedUntil    DateTime?
   active         Boolean   @default(true)
-  /** Posé une seule fois, quand un vendeur invité définit son PIN pour la
+  /**
+   * Posé une seule fois, quand un vendeur invité définit son PIN pour la
    * première fois (confirm-pin-reset.use-case.ts) — jamais réécrit ensuite,
    * y compris lors d'un reset PIN ultérieur. Permet de distinguer un vendeur
    * invité qui n'a pas encore terminé sa première connexion d'un vendeur
    * actif : le hash placeholder posé à l'invitation
    * (invite-vendeur.use-case.ts) n'est lui-même jamais relu, il ne peut pas
    * servir de signal fiable. Toujours `null` pour un patron (inscription
-   * directe, pas de flux d'invitation). */
-  firstLoginAt DateTime?
+   * directe, pas de flux d'invitation).
+   */
+  firstLoginAt   DateTime?
 
   createdAt DateTime @default(now())
 
@@ -206,18 +233,22 @@ model Session {
 
 model OtpCode {
   id         String     @id @default(cuid())
-  /** Téléphone (+221...) ou email selon `channel`. */
+  /**
+   * Téléphone (+221...) ou email selon `channel`.
+   */
   identifier String
   channel    OtpChannel
   codeHash   String
   purpose    OtpPurpose
   expiresAt  DateTime
   consumedAt DateTime?
-  /** Nombre d'essais de code échoués — incrémenté atomiquement à chaque
+  /**
+   * Nombre d'essais de code échoués — incrémenté atomiquement à chaque
    * vérification ratée (voir AuthRepository.incrementOtpAttempts), jamais
    * un read-then-write applicatif. Au-delà de MAX_OTP_ATTEMPTS (domain/auth/otp.ts),
    * l'OTP est invalidé (marqué consommé) : pas de déblocage automatique,
-   * l'utilisateur doit redemander un nouveau code. */
+   * l'utilisateur doit redemander un nouveau code.
+   */
   attempts   Int        @default(0)
 
   createdAt DateTime @default(now())
@@ -263,8 +294,10 @@ model Party {
   whatsappNumber String?
   type           PartyType
 
-  /** Case "entreprise" optionnelle (cahier des charges §7) : companyName est
-   * recommandé mais non bloquant quand isCompany est coché. */
+  /**
+   * Case "entreprise" optionnelle (cahier des charges §7) : companyName est
+   * recommandé mais non bloquant quand isCompany est coché.
+   */
   isCompany   Boolean @default(false)
   companyName String?
   contactName String?
@@ -405,9 +438,9 @@ model TenantSettings {
   tenantId String @id
   tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
-  currency         Currency @default(FCFA)
-  reminderDays     Int     @default(7)
-  whatsappTemplate String?
+  currency                       Currency @default(FCFA)
+  reminderDays                   Int      @default(7)
+  whatsappTemplate               String?
   whatsappReceiptPartialTemplate String?
   whatsappReceiptFinalTemplate   String?
 

@@ -462,3 +462,67 @@ export const notFoundLabels = {
   title: "Cette page n'existe pas",
   description: "L'adresse saisie ne correspond à aucune page de Gestia.",
 };
+
+export const productLabels = {
+  typeProduit: "Produit",
+  typeService: "Service",
+  filterAll: "Tous",
+
+  listTitle: "Produits",
+  newButtonLabel: "Nouveau produit",
+  newPageTitle: "Nouveau produit",
+  editPageTitle: "Modifier le produit",
+  createSubmitLabel: "Créer le produit",
+  editSubmitLabel: "Enregistrer les modifications",
+  editButtonLabel: "Modifier",
+  viewActionLabel: "Voir",
+
+  nameColumnLabel: "Nom",
+  categoryColumnLabel: "Catégorie",
+  priceColumnLabel: "Prix",
+  stockColumnLabel: "Stock",
+  actionsColumnLabel: "Actions",
+  totalCountLabel: "Total produits",
+
+  emptyStateList: "Aucun produit pour le moment.",
+  outOfStockBadgeLabel: "Rupture",
+
+  typeQuestion: "Produit ou service ?",
+  nameField: "Nom",
+  descriptionField: "Description (optionnel)",
+  priceField: (currency: string) => `Prix (${currency})`,
+  unitField: "Unité",
+  unitPlaceholder: "Choisir une unité",
+  trackStockLabel: "Suivre le stock",
+  trackStockDescription: "Affiche la quantité restante, purement informatif",
+  stockQuantityField: "Quantité en stock",
+  categoryField: "Catégorie",
+  categoryPlaceholder: "Choisir une catégorie",
+  categoryNoneLabel: "Aucune catégorie",
+  categoryCreateNewLabel: "Créer une nouvelle catégorie",
+  categoryNewNamePlaceholder: "Nom de la catégorie",
+  categoryAddButtonLabel: "Ajouter",
+  barcodeField: "Code-barres (optionnel)",
+  barcodeScanButtonLabel: "Scanner",
+  photoField: "Photo (optionnel)",
+  photoSelectButtonLabel: "Choisir une photo",
+  photoFormatError: "Format d'image non supporté (PNG, JPEG ou WEBP uniquement)",
+  photoTooLargeError: "La photo ne doit pas dépasser 3 Mo",
+
+  nameRequiredError: "Le nom du produit est obligatoire",
+  priceInvalidError: "Le prix doit être un nombre positif",
+
+  deleteConfirmTitle: (name: string) => `Supprimer ${name} ?`,
+  deleteConfirmDescription:
+    "Ce produit sera retiré de votre catalogue. Rien n'est perdu définitivement : il pourra être restauré si besoin.",
+
+  notFoundMessage: "Ce produit n'existe plus, il a peut-être déjà été supprimé.",
+
+  createdToastMessage: "Produit ajouté",
+  updatedToastMessage: "Produit modifié",
+
+  scanTitle: "Scanner un code-barres",
+  scanInstructions: "Visez le code-barres dans le cadre",
+  scanManualEntryLabel: "Saisir le code manuellement",
+  scanCancelLabel: "Annuler",
+};

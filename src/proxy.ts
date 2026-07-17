@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getSessionCookie } from "better-auth/cookies";
+import { AUTH_ROUTE_PREFIXES } from "@/domain/shared/auth-routes";
 
 /**
  * Vérification optimiste (présence du cookie de session uniquement, pas
@@ -8,7 +9,6 @@ import { getSessionCookie } from "better-auth/cookies";
  * ici). L'autorisation réelle (tenantId/role) est vérifiée dans chaque Server
  * Action/page via requireTenantContext() (infrastructure/auth/session.ts).
  */
-const AUTH_ROUTE_PREFIXES = ["/login", "/register", "/reset-pin", "/premiere-connexion"];
 // Égalité stricte (pas préfixe) : seul l'écran d'accueil lui-même est
 // public, pas question d'exempter accidentellement une sous-route par ce
 // biais. La landing détecte elle-même une session valide et redirige vers

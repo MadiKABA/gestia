@@ -1,10 +1,11 @@
 /// <reference lib="webworker" />
 import { defaultCache } from "@serwist/turbopack/worker";
-import { NetworkFirst, Serwist } from "serwist";
+import { NetworkFirst, NetworkOnly, Serwist } from "serwist";
 import type { PrecacheEntry, SerwistGlobalConfig } from "serwist";
 import { syncQueue, type SyncTransport } from "@/infrastructure/offline/sync-engine";
 import { listPendingTenantIds } from "@/infrastructure/offline/mutation-queue.store";
 import { BACKGROUND_SYNC_TAG } from "@/infrastructure/offline/platform";
+import { AUTH_ROUTE_PREFIXES } from "@/domain/shared/auth-routes";
 
 // SyncEvent/ServiceWorkerRegistration.sync : voir src/types/background-sync.d.ts.
 
@@ -48,6 +49,17 @@ declare const self: ServiceWorkerGlobalScope;
  * transitions client-side de Next.js (fetch RSC) ne passent pas par
  * `mode: "navigate"` et continuent d'utiliser les entrées RSC de
  * `defaultCache` normalement.
+ *
+ * Routes d'authentification (`AUTH_ROUTE_PREFIXES`) : exclues explicitement
+ * de TOUT cache (navigation comme RSC) via une route `NetworkOnly` placée en
+ * premier (premier match gagne). Une connexion réussie doit toujours passer
+ * par le réseau frais — jamais par une page mise en cache avant le dernier
+ * déploiement. Sans cette exclusion, `NetworkFirst` (route navigate
+ * ci-dessous, et les caches RSC de `defaultCache`) peut, lors d'un échec
+ * réseau transitoire (fréquent sur mobile), reservir une page `/login`
+ * périmée dont le bundle référence un Server Action dont l'identifiant
+ * (hashé par build) ne correspond plus au déploiement courant — d'où un
+ * échec de connexion en "Failed to fetch" au moment de la soumission.
  */
 const serwist = new Serwist({
   precacheEntries: self.__SW_MANIFEST,
@@ -55,6 +67,11 @@ const serwist = new Serwist({
   clientsClaim: true,
   navigationPreload: true,
   runtimeCaching: [
+    {
+      matcher: ({ url: { pathname } }) =>
+        AUTH_ROUTE_PREFIXES.some((prefix) => pathname.startsWith(prefix)),
+      handler: new NetworkOnly(),
+    },
     {
       matcher: ({ request }) => request.mode === "navigate",
       handler: new NetworkFirst({ cacheName: "pages" }),

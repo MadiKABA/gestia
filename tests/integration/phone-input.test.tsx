@@ -12,11 +12,16 @@ import { PhoneInput } from "@/presentation/shared/components/phone-input";
  * en base (whatsappNumber d'une ligne historique), un lien wa.me construit
  * dessus ne pointe vers aucun contact réel.
  */
-function Harness() {
+function Harness({ defaultCountryCode }: { defaultCountryCode?: "SN" | "GN" } = {}) {
   const [value, setValue] = useState("");
   return (
     <div>
-      <PhoneInput id="test-phone" value={value} onValueChange={setValue} />
+      <PhoneInput
+        id="test-phone"
+        value={value}
+        onValueChange={setValue}
+        defaultCountryCode={defaultCountryCode}
+      />
       <p data-testid="value">{value}</p>
     </div>
   );
@@ -49,5 +54,38 @@ describe("PhoneInput", () => {
     await userEvent.clear(input);
 
     expect(screen.getByTestId("value")).toHaveTextContent("");
+  });
+});
+
+describe("PhoneInput — defaultCountryCode (pré-sélection localisation)", () => {
+  it("pré-sélectionne l'indicatif détecté quand la valeur est encore vide", () => {
+    render(<Harness defaultCountryCode="GN" />);
+
+    expect(screen.getByLabelText("Indicatif pays")).toHaveTextContent("+224");
+  });
+
+  it("reste sur +221 par défaut sans indicatif détecté", () => {
+    render(<Harness />);
+
+    expect(screen.getByLabelText("Indicatif pays")).toHaveTextContent("+221");
+  });
+
+  it("compose le numéro avec l'indicatif détecté une fois des chiffres saisis", async () => {
+    render(<Harness defaultCountryCode="GN" />);
+
+    await userEvent.type(screen.getByPlaceholderText("77 123 45 67"), "621234567");
+
+    expect(screen.getByTestId("value")).toHaveTextContent("+224621234567");
+  });
+
+  it("l'utilisateur peut toujours changer l'indicatif pré-sélectionné manuellement", async () => {
+    render(<Harness defaultCountryCode="GN" />);
+
+    await userEvent.click(screen.getByLabelText("Indicatif pays"));
+    const options = await screen.findAllByRole("option", { name: /Sénégal/ });
+    await userEvent.click(options[options.length - 1]);
+    await userEvent.type(screen.getByPlaceholderText("77 123 45 67"), "771234567");
+
+    expect(screen.getByTestId("value")).toHaveTextContent("+221771234567");
   });
 });

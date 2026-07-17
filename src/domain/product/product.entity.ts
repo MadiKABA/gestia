@@ -2,24 +2,32 @@ import { ValidationError } from "@/domain/shared/errors";
 
 export type ProductType = "PRODUIT" | "SERVICE";
 
-export type ProductUnit =
-  | "PIECE"
-  | "KILOGRAMME"
-  | "GRAMME"
-  | "LITRE"
-  | "MILLILITRE"
-  | "SAC"
-  | "CARTON"
-  | "DOUZAINE"
-  | "METRE"
-  | "PAQUET"
-  | "BOITE"
-  | "BOUTEILLE"
-  | "SACHET"
-  | "ROULEAU"
-  | "PAIRE"
-  | "LOT"
-  | "AUTRE";
+/** Tuple (pas juste un type union) pour être directement utilisable par
+ * `z.enum(...)` (infrastructure/product/product-mutation.schema.ts) et par
+ * la config centralisée labels/icônes (domain/product/product-unit.ts) —
+ * même convention que `BUSINESS_TYPE_CODES` (domain/tenant/business-type.ts),
+ * une seule source pour la liste des codes. */
+export const PRODUCT_UNIT_CODES = [
+  "PIECE",
+  "KILOGRAMME",
+  "GRAMME",
+  "LITRE",
+  "MILLILITRE",
+  "SAC",
+  "CARTON",
+  "DOUZAINE",
+  "METRE",
+  "PAQUET",
+  "BOITE",
+  "BOUTEILLE",
+  "SACHET",
+  "ROULEAU",
+  "PAIRE",
+  "LOT",
+  "AUTRE",
+] as const;
+
+export type ProductUnit = (typeof PRODUCT_UNIT_CODES)[number];
 
 export type Product = {
   id: string;

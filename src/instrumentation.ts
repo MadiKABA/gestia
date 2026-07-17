@@ -22,5 +22,10 @@ export async function register() {
     const { registerCashMovementSync } =
       await import("@/infrastructure/cash-movement/register-cash-movement-sync");
     registerCashMovementSync();
+    const { registerProductSync } = await import("@/infrastructure/product/register-product-sync");
+    registerProductSync();
+    const { registerProductCategorySync } =
+      await import("@/infrastructure/product-category/register-product-category-sync");
+    registerProductCategorySync();
   }
 }

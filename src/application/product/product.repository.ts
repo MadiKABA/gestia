@@ -25,11 +25,12 @@ export type ResolvedProductInput = Omit<ProductInput, "photo"> & { photoUrl?: st
  */
 export interface ProductRepository {
   findById(id: string): Promise<Product | null>;
-  findByBarcode(barcode: string): Promise<Product | null>;
   findMany(query: ProductSearchQuery): Promise<Product[]>;
   /** `id` fourni par l'appelant (généré côté client hors ligne), même règle
-   * que PartyRepository.create. */
-  create(id: string, input: ResolvedProductInput): Promise<Product>;
+   * que PartyRepository.create. `createdById` séparé de `input` (même
+   * convention que TransactionRepository.create) : jamais fourni par le
+   * formulaire, toujours par le contexte serveur au moment de la mutation. */
+  create(id: string, input: ResolvedProductInput, createdById: string): Promise<Product>;
   update(id: string, input: ResolvedProductInput): Promise<Product>;
   /** Soft delete (`deletedAt`) — jamais de suppression définitive. */
   delete(id: string): Promise<Product>;

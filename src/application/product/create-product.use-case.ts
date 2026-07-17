@@ -20,7 +20,7 @@ export async function createProduct(
   }
   validateProductInput(input);
 
-  const product = await deps.repository.create(id, input);
+  const product = await deps.repository.create(id, input, context.userId);
 
   await deps.auditLogger.log(context, {
     action: "product.created",

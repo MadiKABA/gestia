@@ -2,6 +2,8 @@ import { registerPartyPullable } from "@/infrastructure/party/register-party-pul
 import { registerTransactionPullable } from "@/infrastructure/transaction/register-transaction-pullable";
 import { registerPaymentPullable } from "@/infrastructure/payment/register-payment-pullable";
 import { registerCashMovementPullable } from "@/infrastructure/cash-movement/register-cash-movement-pullable";
+import { registerProductPullable } from "@/infrastructure/product/register-product-pullable";
+import { registerProductCategoryPullable } from "@/infrastructure/product-category/register-product-category-pullable";
 
 /**
  * Orchestrateur client des entities à rafraîchir par pull — symétrique à
@@ -16,4 +18,6 @@ export function registerPullableEntities(): void {
   registerTransactionPullable();
   registerPaymentPullable();
   registerCashMovementPullable();
+  registerProductPullable();
+  registerProductCategoryPullable();
 }

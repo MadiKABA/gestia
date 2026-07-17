@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { getCountries, getCountryCallingCode, type CountryCode } from "libphonenumber-js/min";
 import { Input } from "@/presentation/shared/components/ui/input";
 import {
@@ -121,9 +122,17 @@ export function PhoneInput({
    * que `value` contient déjà un numéro : celui-ci fait toujours autorité. */
   defaultCountryCode?: CountryCode;
 }) {
-  const preselectedCountry =
-    AFRICAN_COUNTRIES.find((c) => c.code === defaultCountryCode) ?? DEFAULT_COUNTRY;
-  const { country, local } = splitPhone(value || preselectedCountry.dialCode);
+  // Tant que `value` est vide, le pays affiché ne peut pas se déduire de
+  // `value` (voir plus bas) : il faut un état local dédié, sinon choisir un
+  // pays dans le sélecteur sans encore taper de chiffre ne "colle" pas — le
+  // prochain chiffre retomberait sur `defaultCountryCode`/SN au lieu du pays
+  // qu'on vient de sélectionner.
+  const [emptyValueCountryCode, setEmptyValueCountryCode] = useState(
+    defaultCountryCode ?? DEFAULT_COUNTRY.code,
+  );
+  const fallbackCountry =
+    AFRICAN_COUNTRIES.find((c) => c.code === emptyValueCountryCode) ?? DEFAULT_COUNTRY;
+  const { country, local } = splitPhone(value || fallbackCountry.dialCode);
 
   // Tant qu'aucun chiffre local n'est saisi, la valeur exposée au parent
   // reste "" (jamais un indicatif seul, ex. "+221") — sinon le simple fait
@@ -132,6 +141,8 @@ export function PhoneInput({
   // tout en étant un numéro invalide (voir régression wa.me).
   function handleCountryChange(dialCode: string | null) {
     if (!dialCode) return;
+    const nextCountry = AFRICAN_COUNTRIES.find((c) => c.dialCode === dialCode);
+    if (nextCountry) setEmptyValueCountryCode(nextCountry.code);
     onValueChange(local ? `${dialCode}${local}` : "");
   }
 

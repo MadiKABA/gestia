@@ -3,6 +3,7 @@ import { validatePhoneFormat } from "@/domain/shared/phone";
 import { validateEmailFormat } from "@/domain/auth/email";
 import { validatePinFormat } from "@/domain/auth/pin-policy";
 import { OTP_LENGTH } from "@/domain/auth/otp";
+import { BUSINESS_TYPE_CODES, DEFAULT_BUSINESS_TYPE } from "@/domain/tenant/business-type";
 
 /** Bornes de validation des formulaires — s'appuient sur les règles domain
  * (phone/email/pin) pour ne jamais dupliquer le format attendu côté serveur. */
@@ -57,6 +58,7 @@ export const confirmRegistrationSchema = z.object({
   tenantName: z.string().trim().min(2, "Le nom de la boutique est requis"),
   patronName: z.string().trim().min(2, "Votre nom est requis"),
   email: emailField.optional(),
+  businessType: z.enum(BUSINESS_TYPE_CODES).default(DEFAULT_BUSINESS_TYPE),
 });
 export type ConfirmRegistrationInput = z.infer<typeof confirmRegistrationSchema>;
 

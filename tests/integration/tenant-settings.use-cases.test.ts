@@ -9,6 +9,7 @@ import { updateTenantSettings } from "@/application/tenant/update-tenant-setting
 import { getTenantSettingsForEdit } from "@/application/tenant/get-tenant-settings-for-edit.use-case";
 import { uploadTenantLogo } from "@/application/tenant/upload-tenant-logo.use-case";
 import { ForbiddenError, ValidationError } from "@/domain/shared/errors";
+import { DEFAULT_BUSINESS_TYPE } from "@/domain/tenant/business-type";
 
 /** En-tête PNG réel (magic bytes) — depuis la validation par contenu réel du
  * fichier (logo-file.ts), un buffer de texte arbitraire ne passe plus la
@@ -46,7 +47,14 @@ describe("use cases tenant-settings", () => {
     });
     const patron = await confirmRegistration(
       { repository: authRepository, hasher, auditLogger },
-      { phone, otp: otpCode, pin: "1234", tenantName: "Boutique Test", patronName: "Awa Ndiaye" },
+      {
+        phone,
+        otp: otpCode,
+        pin: "1234",
+        tenantName: "Boutique Test",
+        patronName: "Awa Ndiaye",
+        businessType: DEFAULT_BUSINESS_TYPE,
+      },
     );
     createdTenantIds.push(patron.tenantId);
     return patron;

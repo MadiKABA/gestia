@@ -13,6 +13,7 @@ import { reactivateVendeur } from "@/application/auth/reactivate-vendeur.use-cas
 import { updateVendeur } from "@/application/auth/update-vendeur.use-case";
 import { MAX_FAILED_ATTEMPTS } from "@/domain/auth/pin-policy";
 import { ForbiddenError, ValidationError } from "@/domain/shared/errors";
+import { DEFAULT_BUSINESS_TYPE } from "@/domain/tenant/business-type";
 
 /**
  * Tests d'intégration (couche application, contre un Postgres réel) : les
@@ -52,6 +53,7 @@ describe("use cases auth", () => {
         tenantName: "Boutique Test",
         patronName: "Awa Ndiaye",
         email,
+        businessType: DEFAULT_BUSINESS_TYPE,
       },
     );
     createdTenantIds.push(patron.tenantId);
@@ -90,7 +92,14 @@ describe("use cases auth", () => {
       await expect(
         confirmRegistration(
           { repository, hasher, auditLogger },
-          { phone, otp: "123456", pin: "1234", tenantName: "X", patronName: "Y" },
+          {
+            phone,
+            otp: "123456",
+            pin: "1234",
+            tenantName: "X",
+            patronName: "Y",
+            businessType: DEFAULT_BUSINESS_TYPE,
+          },
         ),
       ).rejects.toThrow(ValidationError);
     });
@@ -120,6 +129,7 @@ describe("use cases auth", () => {
             tenantName: "X",
             patronName: "Y",
             email,
+            businessType: DEFAULT_BUSINESS_TYPE,
           },
         ),
       ).rejects.toThrow(ValidationError);

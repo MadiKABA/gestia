@@ -6,9 +6,11 @@ import { Input } from "@/presentation/shared/components/ui/input";
 import { Label } from "@/presentation/shared/components/ui/label";
 import { OtpInput } from "@/presentation/shared/components/otp-input";
 import { PinInput } from "@/presentation/shared/components/pin-input";
+import { BusinessTypeSelector } from "@/presentation/shared/components/business-type-selector";
 import { commonLabels } from "@/presentation/shared/labels";
 import { OTP_LENGTH } from "@/domain/auth/otp";
 import { PIN_LENGTH } from "@/domain/auth/pin-policy";
+import { DEFAULT_BUSINESS_TYPE, type BusinessTypeCode } from "@/domain/tenant/business-type";
 
 export function CompleteRegistrationForm({
   initialPhone,
@@ -22,6 +24,7 @@ export function CompleteRegistrationForm({
     tenantName: string;
     patronName: string;
     email?: string;
+    businessType: BusinessTypeCode;
   }) => Promise<void>;
 }) {
   const [phone, setPhone] = useState(initialPhone);
@@ -31,6 +34,7 @@ export function CompleteRegistrationForm({
   const [tenantName, setTenantName] = useState("");
   const [email, setEmail] = useState("");
   const [pin, setPin] = useState("");
+  const [businessType, setBusinessType] = useState<BusinessTypeCode>(DEFAULT_BUSINESS_TYPE);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -45,6 +49,7 @@ export function CompleteRegistrationForm({
           tenantName,
           patronName,
           email: email.trim() ? email.trim() : undefined,
+          businessType,
         });
       } catch (err) {
         setError(err instanceof Error ? err.message : commonLabels.genericError);
@@ -112,6 +117,10 @@ export function CompleteRegistrationForm({
           value={email}
           onValueChange={setEmail}
         />
+      </div>
+      <div className="space-y-1.5">
+        <Label>Type de commerce</Label>
+        <BusinessTypeSelector value={businessType} onChange={setBusinessType} disabled={pending} />
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="pin">Choisissez un code PIN</Label>

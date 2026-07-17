@@ -1,4 +1,5 @@
 import type { OtpChannel, OtpPurpose } from "@/domain/auth/otp";
+import type { BusinessTypeCode } from "@/domain/tenant/business-type";
 
 export type OtpCode = {
   id: string;
@@ -38,6 +39,7 @@ export interface AuthRepository {
     phone: string;
     pinHash: string;
     email?: string;
+    businessType: BusinessTypeCode;
   }): Promise<AuthUser>;
   createVendeur(input: {
     tenantId: string;

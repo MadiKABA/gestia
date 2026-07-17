@@ -1,5 +1,6 @@
 import type { AuthRepository, AuthUser, OtpCode } from "@/application/auth/auth.repository";
 import type { OtpChannel, OtpPurpose } from "@/domain/auth/otp";
+import type { BusinessTypeCode } from "@/domain/tenant/business-type";
 import { prisma } from "@/infrastructure/prisma/client";
 
 /**
@@ -27,10 +28,12 @@ export class PrismaAuthRepository implements AuthRepository {
     phone: string;
     pinHash: string;
     email?: string;
+    businessType: BusinessTypeCode;
   }): Promise<AuthUser> {
     const tenant = await prisma.tenant.create({
       data: {
         name: input.tenantName,
+        businessType: input.businessType,
         settings: { create: {} },
         users: {
           create: {

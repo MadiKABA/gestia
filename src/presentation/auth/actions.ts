@@ -109,10 +109,11 @@ export async function requestRegistrationOtpFromIdentifierAction(input: {
 }
 
 export async function confirmRegistrationAction(input: ConfirmRegistrationInput) {
-  const { phone, otp, pin, tenantName, patronName, email } = confirmRegistrationSchema.parse(input);
+  const { phone, otp, pin, tenantName, patronName, email, businessType } =
+    confirmRegistrationSchema.parse(input);
   await confirmRegistration(
     { repository, hasher, auditLogger },
-    { phone, otp, pin, tenantName, patronName, email },
+    { phone, otp, pin, tenantName, patronName, email, businessType },
   );
 
   // Le patron vient de définir son PIN dans ce même formulaire : on le connecte

@@ -3,6 +3,7 @@ import { validateEmailFormat } from "@/domain/auth/email";
 import { validatePinFormat } from "@/domain/auth/pin-policy";
 import { isOtpAttemptsExceeded, isOtpExpired } from "@/domain/auth/otp";
 import { ValidationError } from "@/domain/shared/errors";
+import type { BusinessTypeCode } from "@/domain/tenant/business-type";
 import type { AuthRepository } from "@/application/auth/auth.repository";
 import type { Hasher } from "@/application/auth/hasher";
 import type { AuditLogger } from "@/application/shared/audit-logger";
@@ -22,6 +23,7 @@ export async function confirmRegistration(
     tenantName: string;
     patronName: string;
     email?: string;
+    businessType: BusinessTypeCode;
   },
 ) {
   validatePhoneFormat(input.phone);
@@ -60,6 +62,7 @@ export async function confirmRegistration(
     phone: input.phone,
     pinHash: await deps.hasher.hash(input.pin),
     email: input.email,
+    businessType: input.businessType,
   });
 
   await deps.auditLogger.log(

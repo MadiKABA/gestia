@@ -1,8 +1,15 @@
+import { headers } from "next/headers";
+import Link from "next/link";
 import { AuthLayout } from "@/presentation/auth/components/auth-layout";
 import { RequestOtpForm } from "@/presentation/auth/components/request-otp-form";
 import { requestRegistrationOtpFromIdentifierAction } from "@/presentation/auth/actions";
+import { resolveCountryFromAcceptLanguage } from "@/domain/shared/locale-country";
 
-export default function RegisterPage() {
+export default async function RegisterPage() {
+  const defaultCountryCode = resolveCountryFromAcceptLanguage(
+    (await headers()).get("accept-language"),
+  );
+
   return (
     <AuthLayout
       heading="Créer votre compte"
@@ -10,9 +17,9 @@ export default function RegisterPage() {
       footer={
         <>
           Déjà un compte ?{" "}
-          <a href="/login" className="text-primary font-medium hover:underline">
+          <Link href="/login" className="text-primary font-medium hover:underline">
             Se connecter
-          </a>
+          </Link>
         </>
       }
     >
@@ -20,6 +27,7 @@ export default function RegisterPage() {
         action={requestRegistrationOtpFromIdentifierAction}
         nextPathBase="/register/complete"
         submitLabel="Recevoir le code"
+        defaultCountryCode={defaultCountryCode}
       />
     </AuthLayout>
   );

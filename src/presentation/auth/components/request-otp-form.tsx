@@ -8,6 +8,7 @@ import { Label } from "@/presentation/shared/components/ui/label";
 import { PhoneInput } from "@/presentation/shared/components/phone-input";
 import { IdentifierToggle } from "@/presentation/auth/components/identifier-toggle";
 import type { RequestOtpResult } from "@/presentation/auth/actions";
+import type { LocaleCountryCode } from "@/domain/shared/locale-country";
 
 type Channel = "PHONE" | "EMAIL";
 
@@ -21,6 +22,7 @@ export function RequestOtpForm({
   submitLabel,
   allowEmail = false,
   initialIdentifier = "",
+  defaultCountryCode,
 }: {
   action: (input: { channel: Channel; identifier: string }) => Promise<RequestOtpResult>;
   nextPathBase: string;
@@ -31,6 +33,9 @@ export function RequestOtpForm({
    * app/(auth)/reset-pin/page.tsx) — évite au vendeur de ressaisir son
    * numéro qu'il vient déjà de fournir une fois. */
   initialIdentifier?: string;
+  /** Indicatif pré-sélectionné (détection Accept-Language, voir
+   * app/(auth)/register/page.tsx) — transmis tel quel à `PhoneInput`. */
+  defaultCountryCode?: LocaleCountryCode;
 }) {
   const router = useRouter();
   const [channel, setChannel] = useState<Channel>("PHONE");
@@ -75,6 +80,7 @@ export function RequestOtpForm({
             onValueChange={setIdentifier}
             required
             autoFocus={!initialIdentifier}
+            defaultCountryCode={defaultCountryCode}
           />
         ) : (
           <Input

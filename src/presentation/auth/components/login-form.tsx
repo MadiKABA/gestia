@@ -9,13 +9,18 @@ import { PinInput } from "@/presentation/shared/components/pin-input";
 import { IdentifierToggle } from "@/presentation/auth/components/identifier-toggle";
 import { commonLabels } from "@/presentation/shared/labels";
 import { PIN_LENGTH } from "@/domain/auth/pin-policy";
+import type { LocaleCountryCode } from "@/domain/shared/locale-country";
 
 type Channel = "PHONE" | "EMAIL";
 
 export function LoginForm({
   action,
+  defaultCountryCode,
 }: {
   action: (input: { channel: Channel; identifier: string; pin: string }) => Promise<void>;
+  /** Indicatif pré-sélectionné (détection Accept-Language, voir
+   * app/(auth)/login/page.tsx) — transmis tel quel à `PhoneInput`. */
+  defaultCountryCode?: LocaleCountryCode;
 }) {
   const [channel, setChannel] = useState<Channel>("PHONE");
   const [identifier, setIdentifier] = useState("");
@@ -60,6 +65,7 @@ export function LoginForm({
             onValueChange={setIdentifier}
             required
             autoFocus
+            defaultCountryCode={defaultCountryCode}
           />
         ) : (
           <Input

@@ -1,6 +1,8 @@
+import { headers } from "next/headers";
 import { AuthLayout } from "@/presentation/auth/components/auth-layout";
 import { RequestOtpForm } from "@/presentation/auth/components/request-otp-form";
 import { requestPinResetAction } from "@/presentation/auth/actions";
+import { resolveCountryFromAcceptLanguage } from "@/domain/shared/locale-country";
 
 export default async function ResetPinPage({
   searchParams,
@@ -11,6 +13,9 @@ export default async function ResetPinPage({
   // expiré (voir le lien "Code expiré ?" de cette page) — évite au vendeur
   // de ressaisir un numéro déjà fourni une fois.
   const { phone } = await searchParams;
+  const defaultCountryCode = resolveCountryFromAcceptLanguage(
+    (await headers()).get("accept-language"),
+  );
 
   return (
     <AuthLayout
@@ -23,6 +28,7 @@ export default async function ResetPinPage({
         submitLabel="Recevoir le code"
         allowEmail
         initialIdentifier={phone ?? ""}
+        defaultCountryCode={defaultCountryCode}
       />
     </AuthLayout>
   );

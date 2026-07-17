@@ -107,6 +107,7 @@ export function PhoneInput({
   required,
   autoFocus,
   className,
+  defaultCountryCode,
 }: {
   id?: string;
   value: string;
@@ -114,8 +115,15 @@ export function PhoneInput({
   required?: boolean;
   autoFocus?: boolean;
   className?: string;
+  /** Indicatif pré-sélectionné quand `value` est encore vide (ex. détection
+   * de localisation à l'inscription/connexion) — reste modifiable par
+   * l'utilisateur via le sélecteur, jamais une contrainte. Sans effet dès
+   * que `value` contient déjà un numéro : celui-ci fait toujours autorité. */
+  defaultCountryCode?: CountryCode;
 }) {
-  const { country, local } = splitPhone(value || DEFAULT_COUNTRY.dialCode);
+  const preselectedCountry =
+    AFRICAN_COUNTRIES.find((c) => c.code === defaultCountryCode) ?? DEFAULT_COUNTRY;
+  const { country, local } = splitPhone(value || preselectedCountry.dialCode);
 
   // Tant qu'aucun chiffre local n'est saisi, la valeur exposée au parent
   // reste "" (jamais un indicatif seul, ex. "+221") — sinon le simple fait

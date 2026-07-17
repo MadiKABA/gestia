@@ -486,6 +486,7 @@ export const productLabels = {
 
   emptyStateList: "Aucun produit pour le moment.",
   outOfStockBadgeLabel: "Rupture",
+  showMoreLabel: "Voir plus",
 
   typeQuestion: "Produit ou service ?",
   nameField: "Nom",

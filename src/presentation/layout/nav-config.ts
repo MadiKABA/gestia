@@ -3,6 +3,7 @@ import {
   ClipboardList,
   Home,
   MessageCircle,
+  Package,
   PlusCircle,
   Receipt,
   Settings,
@@ -14,7 +15,12 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import type { TenantContext } from "@/domain/shared/tenant-context";
-import { cashMovementLabels, partyLabels, transactionLabels } from "@/presentation/shared/labels";
+import {
+  cashMovementLabels,
+  partyLabels,
+  productLabels,
+  transactionLabels,
+} from "@/presentation/shared/labels";
 
 export type NavRole = TenantContext["role"];
 
@@ -60,6 +66,13 @@ export const SIDEBAR_NAV_ITEMS: SidebarNavItem[] = [
     href: "/transactions",
     icon: Receipt,
     roles: ["PATRON"],
+  },
+  {
+    key: "produits",
+    label: productLabels.listTitle,
+    href: "/produits",
+    icon: Package,
+    roles: ["PATRON", "VENDEUR"],
   },
   { key: "caisse", label: "Caisse", href: "/caisse", icon: Wallet, roles: ["PATRON"] },
   {

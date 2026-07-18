@@ -28,10 +28,15 @@ const nextConfig: NextConfig = {
     // (payload d'hydratation RSC) sur `/register` — les bloquer casse le
     // rendu. Un passage à des nonces par requête (proxy.ts + layout)
     // supprimerait ce besoin mais reste un chantier séparé, plus large que
-    // l'ajout de ces headers.
+    // l'ajout de ces headers. `wasm-unsafe-eval` : Chrome (Android inclus)
+    // bloque toute compilation WebAssembly sans cette directive, y compris
+    // via `instantiateStreaming` — nécessaire au décodeur ZXing-WASM du
+    // scan de code-barres (barcode-scanner-modal.tsx), sans quoi chaque
+    // `detect()` échoue silencieusement (promesse rejetée, avalée par le
+    // `.catch` de retry frame-par-frame) et rien n'est jamais détecté.
     const csp = [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline'",
+      "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'",
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob: https://res.cloudinary.com",
       "font-src 'self' data:",

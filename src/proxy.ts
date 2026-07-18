@@ -37,6 +37,17 @@ export function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!api|_next/static|_next/image|favicon.ico|manifest.json|serwist|icons|offline.html).*)",
+    // `zxing_reader.wasm` (décodeur du scanner, copié dans public/ par
+    // scripts/copy-zxing-wasm.mjs) et `sounds` (bip de confirmation du scan,
+    // beep.ts) doivent rester servables sans session : le Service Worker les
+    // précache (self.__SW_MANIFEST, sw.ts) potentiellement AVANT toute
+    // connexion, et le fetch de locateFile côté client peut survenir en
+    // parallèle du chargement de session. Sans cette exclusion, une requête
+    // non authentifiée reçoit une redirection 307 vers /login à la place du
+    // binaire — silencieusement mis en cache par le Service Worker sous la
+    // clé `/zxing_reader.wasm`, ce qui fait échouer toute compilation
+    // WebAssembly ensuite (mauvais octets magiques), pour tout code-barres
+    // quel qu'il soit, jusqu'à la prochaine mise à jour du précache.
+    "/((?!api|_next/static|_next/image|favicon.ico|manifest.json|serwist|icons|offline.html|zxing_reader.wasm|sounds).*)",
   ],
 };

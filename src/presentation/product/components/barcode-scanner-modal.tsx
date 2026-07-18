@@ -5,6 +5,7 @@ import { RotateCw } from "lucide-react";
 import { ResponsivePanel } from "@/presentation/shared/components/responsive-panel";
 import { Button } from "@/presentation/shared/components/ui/button";
 import { ensureZXingModulePrepared } from "@/presentation/product/barcode/zxing-setup";
+import { playSuccessBeep } from "@/presentation/product/barcode/beep";
 import { productLabels } from "@/presentation/shared/labels";
 import { cn } from "@/lib/utils";
 
@@ -15,29 +16,9 @@ const DETECT_INTERVAL_MS = 300;
  * scanner automatiquement, l'utilisateur garde la main (voir spec point 6). */
 const NO_READ_TIMEOUT_MS = 8000;
 
-/** Bip de confirmation généré via Web Audio API — pas de fichier audio à
- * charger/précacher, jamais bloquant si indisponible (permissions/plateforme). */
-function playBeep(): void {
-  try {
-    const AudioContextClass =
-      window.AudioContext ??
-      (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-    if (!AudioContextClass) return;
-    const context = new AudioContextClass();
-    const oscillator = context.createOscillator();
-    const gain = context.createGain();
-    oscillator.type = "sine";
-    oscillator.frequency.value = 880;
-    gain.gain.value = 0.2;
-    oscillator.connect(gain);
-    gain.connect(context.destination);
-    oscillator.start();
-    oscillator.stop(context.currentTime + 0.15);
-    oscillator.onended = () => void context.close();
-  } catch {
-    // Son de confirmation optionnel, jamais bloquant.
-  }
-}
+/** Préfixe grep-able pour isoler ces logs dans la console distante (chrome://inspect
+ * sur Android) — retiré une fois le diagnostic du scan conclu. */
+const LOG_PREFIX = "[barcode-scan]";
 
 /**
  * Scan caméra (Android + iOS) via `barcode-detector` (ZXing-WASM,
@@ -113,11 +94,12 @@ function ScannerSession({
     }
 
     function onSuccess(value: string) {
+      console.warn(`${LOG_PREFIX} code détecté :`, value);
       cancelled = true;
       if (intervalId) clearInterval(intervalId);
       if (noReadTimeoutId) clearTimeout(noReadTimeoutId);
       setState("success");
-      playBeep();
+      playSuccessBeep();
       // Flash vert bref avant fermeture — laisse le temps du retour visuel,
       // voir spec point 6 ("ferme le scanner et remplit le champ").
       setTimeout(() => {
@@ -128,10 +110,13 @@ function ScannerSession({
 
     async function start() {
       try {
+        console.warn(`${LOG_PREFIX} import de la bibliothèque de détection…`);
         const { BarcodeDetector } = await import("barcode-detector/ponyfill");
         if (cancelled) return;
         const detector = new BarcodeDetector();
+        console.warn(`${LOG_PREFIX} BarcodeDetector construit`);
 
+        console.warn(`${LOG_PREFIX} demande d'accès caméra (getUserMedia)…`);
         const stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: "environment" },
           audio: false,
@@ -141,30 +126,64 @@ function ScannerSession({
           return;
         }
         streamRef.current = stream;
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          await videoRef.current.play();
+        const [track] = stream.getVideoTracks();
+        console.warn(`${LOG_PREFIX} flux caméra obtenu`, track?.getSettings());
+
+        if (!videoRef.current) return;
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+        console.warn(
+          `${LOG_PREFIX} vidéo en lecture — readyState=${videoRef.current.readyState}` +
+            ` dimensions=${videoRef.current.videoWidth}x${videoRef.current.videoHeight}`,
+        );
+
+        // Amorce explicite du module WASM AVANT la première frame — sépare
+        // clairement, dans les logs, un échec de chargement (jamais aucune
+        // frame annoncée "analysée" ensuite) d'un échec de détection pure
+        // (frames analysées, mais aucun code trouvé) : deux causes très
+        // différentes que le diagnostic précédent n'avait pas distinguées.
+        try {
+          const detected = await detector.detect(videoRef.current);
+          console.warn(`${LOG_PREFIX} amorçage du décodeur OK (${detected.length} résultat(s))`);
+        } catch (warmupError) {
+          console.error(
+            `${LOG_PREFIX} amorçage du décodeur EN ÉCHEC — voir l'erreur ci-dessus`,
+            warmupError,
+          );
         }
 
+        let frameCount = 0;
         intervalId = setInterval(() => {
           if (!videoRef.current || cancelled) return;
+          frameCount += 1;
+          const currentFrame = frameCount;
           detector
             .detect(videoRef.current)
             .then((barcodes) => {
+              console.warn(
+                `${LOG_PREFIX} frame #${currentFrame} analysée — ${barcodes.length} code(s)`,
+              );
               if (!cancelled && barcodes.length > 0) {
                 onSuccess(barcodes[0]!.rawValue);
               }
             })
-            .catch(() => {
+            .catch((detectError) => {
               // Erreur de décodage ponctuelle (frame illisible) — retente à
-              // la prochaine frame, jamais fatal.
+              // la prochaine frame, jamais fatal, mais toujours journalisée
+              // (contrairement à avant : plus jamais avalée en silence) pour
+              // distinguer un vrai échec récurrent d'un bruit de frame isolé.
+              console.error(`${LOG_PREFIX} frame #${currentFrame} en erreur`, detectError);
             });
         }, DETECT_INTERVAL_MS);
 
         noReadTimeoutId = setTimeout(() => {
+          console.warn(
+            `${LOG_PREFIX} timeout sans lecture après ${frameCount} frame(s) analysée(s)`,
+          );
           if (!cancelled) setState("error");
         }, NO_READ_TIMEOUT_MS);
       } catch (err) {
+        console.error(`${LOG_PREFIX} échec avant le démarrage du scan`, err);
         if (!cancelled) {
           setErrorMessage(err instanceof Error ? err.message : productLabels.scanCameraError);
           setState("error");

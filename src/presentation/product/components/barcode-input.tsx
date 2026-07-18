@@ -5,6 +5,7 @@ import { ScanBarcode } from "lucide-react";
 import { Input } from "@/presentation/shared/components/ui/input";
 import { Button } from "@/presentation/shared/components/ui/button";
 import { BarcodeScannerModal } from "@/presentation/product/components/barcode-scanner-modal";
+import { unlockBeepAudio } from "@/presentation/product/barcode/beep";
 import { productLabels } from "@/presentation/shared/labels";
 
 /**
@@ -41,7 +42,16 @@ export function BarcodeInput({
             }
           }}
         />
-        <Button type="button" variant="outline" onClick={() => setScannerOpen(true)}>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => {
+            // Geste utilisateur direct requis pour débloquer l'audio mobile
+            // avant la détection — voir beep.ts.
+            unlockBeepAudio();
+            setScannerOpen(true);
+          }}
+        >
           <ScanBarcode className="size-4" aria-hidden="true" />
           {productLabels.barcodeScanButtonLabel}
         </Button>

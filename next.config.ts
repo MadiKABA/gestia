@@ -76,6 +76,17 @@ const nextConfig: NextConfig = {
         source: "/manifest.json",
         headers: [{ key: "Content-Type", value: "application/manifest+json" }],
       },
+      {
+        // `WebAssembly.instantiateStreaming` (utilisé par le décodeur
+        // ZXing-WASM du scanner, voir zxing-wasm/dist/es/reader/index.js)
+        // exige explicitement `application/wasm` sur la réponse — sans ce
+        // header, certains environnements (proxy/CDN, config serveur) le
+        // servent en `application/octet-stream`, ce qui échoue et retombe
+        // sur `WebAssembly.instantiate(arrayBuffer)` (plus lent, chargement
+        // complet du binaire avant compilation au lieu d'un flux).
+        source: "/zxing_reader.wasm",
+        headers: [{ key: "Content-Type", value: "application/wasm" }],
+      },
     ];
   },
 };

@@ -1,4 +1,5 @@
 import type { ProductCategorySearchQuery } from "@/application/product-category/product-category.repository";
+import type { OfflineFirstRepository } from "@/application/offline/offline-first-repository";
 import {
   validateProductCategoryInput,
   type ProductCategory,
@@ -30,12 +31,17 @@ export type ProductCategoryOfflineDeps = {
 
 /**
  * Repository "online-first, repli offline" du module ProductCategory — même
- * pattern que ProductOfflineRepository. Un P2002 sur `[tenantId, name]`
- * (deux appareils créent/renomment vers la même catégorie hors ligne)
- * remonte comme `ValidationError` — conflit fonctionnel assumé, jamais
- * résolu automatiquement (voir product-category-mutation-handler.ts).
+ * pattern que ProductOfflineRepository, même contrat `OfflineFirstRepository`
+ * que les autres entités. Un P2002 sur `[tenantId, name]` (deux appareils
+ * créent/renomment vers la même catégorie hors ligne) remonte comme
+ * `ValidationError` — conflit fonctionnel assumé, jamais résolu
+ * automatiquement (voir product-category-mutation-handler.ts).
  */
-export class ProductCategoryOfflineRepository {
+export class ProductCategoryOfflineRepository implements OfflineFirstRepository<
+  ProductCategory,
+  ProductCategoryInput,
+  ProductCategorySearchQuery
+> {
   constructor(private readonly deps: ProductCategoryOfflineDeps) {}
 
   async create(input: ProductCategoryInput): Promise<ProductCategory> {

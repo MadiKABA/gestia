@@ -17,19 +17,23 @@ const nextConfig: NextConfig = {
   // Headers de réponse uniquement — ne touche pas au routage/aux redirections
   // (ça reste le rôle de src/proxy.ts, dont le matcher n'est pas concerné ici).
   async headers() {
-    // `img-src` autorise Cloudinary (logo boutique, voir remotePatterns
-    // ci-dessus) ; `connect-src` reste à 'self' (aucun fetch externe dans
-    // l'app, vérifié). `script-src`/`style-src` gardent 'unsafe-inline' :
-    // vérifié à la main (Playwright + build de prod) que Next.js émet des
-    // scripts inline non noncés (payload d'hydratation RSC) sur `/register`
-    // — les bloquer casse le rendu. Un passage à des nonces par requête
-    // (proxy.ts + layout) supprimerait ce besoin mais reste un chantier
-    // séparé, plus large que l'ajout de ces headers.
+    // `img-src` autorise Cloudinary (logo boutique et photo produit, voir
+    // remotePatterns ci-dessus) et `blob:` (aperçu local immédiat via
+    // `URL.createObjectURL` avant upload — product-photo-input.tsx,
+    // logo-input côté paramètres — jamais un appel réseau, uniquement une
+    // référence en mémoire au fichier sélectionné) ; `connect-src` reste à
+    // 'self' (aucun fetch externe dans l'app, vérifié). `script-src`/
+    // `style-src` gardent 'unsafe-inline' : vérifié à la main (Playwright +
+    // build de prod) que Next.js émet des scripts inline non noncés
+    // (payload d'hydratation RSC) sur `/register` — les bloquer casse le
+    // rendu. Un passage à des nonces par requête (proxy.ts + layout)
+    // supprimerait ce besoin mais reste un chantier séparé, plus large que
+    // l'ajout de ces headers.
     const csp = [
       "default-src 'self'",
       "script-src 'self' 'unsafe-inline'",
       "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' data: https://res.cloudinary.com",
+      "img-src 'self' data: blob: https://res.cloudinary.com",
       "font-src 'self' data:",
       "connect-src 'self'",
       "worker-src 'self'",

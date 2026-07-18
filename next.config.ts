@@ -48,7 +48,11 @@ const nextConfig: NextConfig = {
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           {
             key: "Permissions-Policy",
-            value: "camera=(), microphone=(), geolocation=()",
+            // `camera=(self)` : scan de code-barres caméra (barcode-scanner-modal.tsx,
+            // cahier des charges §Scope V1) — un `camera=()` bloque totalement
+            // `getUserMedia`, y compris pour l'origine elle-même, indépendamment
+            // de la permission navigateur accordée par l'utilisateur.
+            value: "camera=(self), microphone=(), geolocation=()",
           },
           {
             key: "Strict-Transport-Security",

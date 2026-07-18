@@ -510,6 +510,8 @@ export const productLabels = {
   photoSelectButtonLabel: "Choisir une photo",
   photoFormatError: "Format d'image non supporté (PNG, JPEG ou WEBP uniquement)",
   photoTooLargeError: "La photo ne doit pas dépasser 3 Mo",
+  photoOfflineMessage:
+    "Photo disponible une fois connecté — le produit peut être créé sans, ajoutez-la ensuite en le modifiant",
 
   nameRequiredError: "Le nom du produit est obligatoire",
   sellingPriceInvalidError: "Le prix de vente doit être un nombre positif",

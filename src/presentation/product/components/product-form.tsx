@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { WifiOff } from "lucide-react";
 import { Button } from "@/presentation/shared/components/ui/button";
 import { Input } from "@/presentation/shared/components/ui/input";
 import { Label } from "@/presentation/shared/components/ui/label";
@@ -14,6 +15,7 @@ import { ProductUnitSelector } from "@/presentation/product/components/product-u
 import { CategorySelect } from "@/presentation/product/components/category-select";
 import { ProductPhotoInput } from "@/presentation/product/components/product-photo-input";
 import { BarcodeInput } from "@/presentation/product/components/barcode-input";
+import { useNetworkStatus } from "@/presentation/shared/hooks/use-network-status";
 import {
   productInputSchema,
   toProductInput,
@@ -63,11 +65,22 @@ export function ProductForm({
   submitLabel: string;
 }) {
   const router = useRouter();
+  const { online } = useNetworkStatus(tenantId);
   const [pending, startTransition] = useTransition();
   // Séparé de react-hook-form : la photo n'est jamais un champ Zod du
   // formulaire (voir toProductInput), seulement combinée aux autres valeurs
   // à la soumission — `undefined` = aucun changement, `null` = suppression.
   const [photo, setPhoto] = useState<ProductPhoto | null | undefined>(undefined);
+
+  // Aucun upload différé/en attente en arrière-plan (abandonné au profit
+  // d'un blocage explicite, cf. CLAUDE.md) : une sélection faite en ligne
+  // n'est jamais transportée dans la mutation si la connexion tombe avant la
+  // soumission — la photo s'ajoute alors via une modification ultérieure,
+  // une fois reconnecté.
+  useEffect(() => {
+    if (!online) setPhoto(undefined);
+  }, [online]);
+
   const {
     control,
     register,
@@ -335,11 +348,18 @@ export function ProductForm({
 
           <div className="space-y-1.5">
             <Label>{productLabels.photoField}</Label>
-            <ProductPhotoInput
-              value={photo}
-              onChange={setPhoto}
-              existingPhotoUrl={existingPhotoUrl}
-            />
+            {online ? (
+              <ProductPhotoInput
+                value={photo}
+                onChange={setPhoto}
+                existingPhotoUrl={existingPhotoUrl}
+              />
+            ) : (
+              <div className="border-border bg-muted text-muted-foreground flex items-center gap-2 rounded-lg border p-3 text-sm">
+                <WifiOff className="size-4 shrink-0" aria-hidden="true" />
+                {productLabels.photoOfflineMessage}
+              </div>
+            )}
           </div>
         </div>
       </div>

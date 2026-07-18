@@ -9,12 +9,27 @@ import type { Product } from "@/domain/product/product.entity";
  * `createProductOfflineRepository`/`seedProductCache` mockés — même choix
  * que transactions-list.test.tsx : ce test vérifie le rendu de ProductsList
  * (miniature/placeholder, pagination "Voir plus"), pas le moteur offline.
+ * `useNetworkStatus` mocké de la même façon que
+ * product-form-offline-photo.test.tsx : ProductsList l'appelle désormais
+ * (syncVersion, voir network-status-store.ts) et l'implémentation réelle
+ * touche IndexedDB, absent de jsdom ici.
  */
 const listMock = vi.fn<() => Promise<Product[]>>();
 
 vi.mock("@/presentation/product/offline-repository", () => ({
   createProductOfflineRepository: () => ({ list: listMock, delete: vi.fn() }),
   seedProductCache: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock("@/presentation/shared/hooks/use-network-status", () => ({
+  useNetworkStatus: () => ({
+    online: true,
+    syncState: "idle",
+    pendingCount: 0,
+    failedCount: 0,
+    syncVersion: 0,
+    triggerSync: vi.fn(),
+  }),
 }));
 
 function makeProduct(overrides: Partial<Product>): Product {

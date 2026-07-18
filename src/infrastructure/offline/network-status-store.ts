@@ -24,6 +24,15 @@ export type NetworkStatusSnapshot = {
    * listPendingMutations), résolues via /synchronisation
    * (sync-failures-panel.tsx), pas par la boucle de retry. */
   failedCount: number;
+  /** Incrémenté à chaque cycle de pull terminé (succès ou échec partiel —
+   * une entity peut avoir appliqué des pages avant qu'une autre échoue, voir
+   * pull-engine.ts). Seul signal exposé aux listes montées (ProductsList
+   * etc.) pour savoir qu'IndexedDB a pu changer sous leurs pieds : ces
+   * listes lisent le cache local une fois au montage, sans quoi un pull
+   * réussi en arrière-plan ne se reflèterait jamais dans un onglet déjà
+   * ouvert. Comparer la valeur (pas juste écouter le changement de
+   * `syncState`, qui ne bouge pas toujours entre deux cycles idle->idle). */
+  syncVersion: number;
 };
 
 const SERVER_SNAPSHOT: NetworkStatusSnapshot = {
@@ -31,6 +40,7 @@ const SERVER_SNAPSHOT: NetworkStatusSnapshot = {
   syncState: "idle",
   pendingCount: 0,
   failedCount: 0,
+  syncVersion: 0,
 };
 const PERIODIC_SYNC_INTERVAL_MS = 30_000;
 
@@ -196,6 +206,11 @@ export class NetworkStatusStore {
           pullFailed = true;
         }
       }
+
+      // Un pull a été tenté (qu'il ait réussi ou échoué en cours de route) :
+      // IndexedDB a pu changer, les listes montées doivent le savoir pour se
+      // relire — voir NetworkStatusSnapshot.syncVersion ci-dessus.
+      this.publish({ syncVersion: this.snapshot.syncVersion + 1 });
 
       if (pushResult.failed || pullFailed) {
         this.publish({ syncState: "error" });

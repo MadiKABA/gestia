@@ -18,6 +18,11 @@ export type NetworkStatus = {
   /** Mutations en échec définitif — voir network-status-store.ts et
    * presentation/offline/components/sync-failures-panel.tsx. */
   failedCount: number;
+  /** Incrémenté à chaque cycle de pull terminé — voir
+   * network-status-store.ts:NetworkStatusSnapshot.syncVersion. À utiliser en
+   * dépendance d'effet par les listes offline-first (ProductsList etc.) pour
+   * se relire après un pull réussi en arrière-plan. */
+  syncVersion: number;
   /** Déclenche une synchronisation immédiate (ex: bouton "Synchroniser maintenant"). */
   triggerSync: () => void;
 };

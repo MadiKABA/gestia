@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from "@/presentation/shared/components/ui/select";
 import { ConfirmDialog } from "@/presentation/shared/components/confirm-dialog";
+import { useNetworkStatus } from "@/presentation/shared/hooks/use-network-status";
 import {
   createProductOfflineRepository,
   seedProductCache,
@@ -78,6 +79,7 @@ export function ProductsList({
     () => createProductOfflineRepository(tenantId, userId),
     [tenantId, userId],
   );
+  const { syncVersion } = useNetworkStatus(tenantId);
   const categoryById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
 
   const [prevInitialProducts, setPrevInitialProducts] = useState(initialProducts);
@@ -90,6 +92,10 @@ export function ProductsList({
     void seedProductCache(tenantId, initialProducts);
   }, [tenantId, initialProducts]);
 
+  // Se relit aussi à chaque `syncVersion` (cycle de pull terminé en
+  // arrière-plan) — sans quoi un produit créé sur un autre appareil
+  // n'apparaît jamais dans un onglet déjà ouvert (voir
+  // use-network-status.ts:NetworkStatus.syncVersion).
   useEffect(() => {
     void repository
       .list({
@@ -100,7 +106,7 @@ export function ProductsList({
         setProducts(results);
         setVisibleCount(PAGE_SIZE);
       });
-  }, [type, categoryId, repository]);
+  }, [type, categoryId, repository, syncVersion]);
 
   async function refresh() {
     const results = await repository.list({

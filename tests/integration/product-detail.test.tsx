@@ -20,6 +20,20 @@ vi.mock("@/presentation/product/offline-repository", () => ({
   seedProductCache: vi.fn().mockResolvedValue(undefined),
 }));
 
+// ProductDetail se relit désormais à chaque syncVersion (voir
+// products-list.test.tsx pour le même choix) — l'implémentation réelle
+// touche IndexedDB, absent de jsdom ici.
+vi.mock("@/presentation/shared/hooks/use-network-status", () => ({
+  useNetworkStatus: () => ({
+    online: true,
+    syncState: "idle",
+    pendingCount: 0,
+    failedCount: 0,
+    syncVersion: 0,
+    triggerSync: vi.fn(),
+  }),
+}));
+
 const pushMock = vi.fn();
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: pushMock }),

@@ -13,6 +13,7 @@ import {
   createProductOfflineRepository,
   seedProductCache,
 } from "@/presentation/product/offline-repository";
+import { useNetworkStatus } from "@/presentation/shared/hooks/use-network-status";
 import { productLabels, commonLabels } from "@/presentation/shared/labels";
 import { formatAmount } from "@/presentation/shared/format-amount";
 import { toastError, toastSuccess } from "@/presentation/shared/toast";
@@ -44,6 +45,7 @@ export function ProductDetail({
   const router = useRouter();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleting, startDelete] = useTransition();
+  const { syncVersion } = useNetworkStatus(tenantId);
 
   // Amorce le cache local avec les données serveur fraîches (SSR) — pour
   // qu'une prochaine visite hors ligne de ce produit le retrouve déjà là.
@@ -52,10 +54,12 @@ export function ProductDetail({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tenantId, product.id]);
 
-  // Auto-guérison au montage, même pattern que PartyDetail : relit
-  // IndexedDB pour refléter tout de suite une mutation locale pas encore
-  // synchronisée plutôt que rester bloqué sur l'instantané serveur reçu à
-  // ce chargement.
+  // Auto-guérison au montage ET à chaque cycle de pull terminé (syncVersion,
+  // voir products-list.tsx/use-network-status.ts) : relit IndexedDB pour
+  // refléter une mutation locale pas encore synchronisée, mais aussi une
+  // modification faite ailleurs (autre appareil/onglet) pendant que cette
+  // page détail reste ouverte — sans quoi elle restait bloquée indéfiniment
+  // sur l'instantané serveur reçu au premier chargement.
   useEffect(() => {
     let cancelled = false;
     const repository = createProductOfflineRepository(tenantId, userId);
@@ -65,7 +69,7 @@ export function ProductDetail({
     return () => {
       cancelled = true;
     };
-  }, [tenantId, userId, initialProduct.id]);
+  }, [tenantId, userId, initialProduct.id, syncVersion]);
 
   function onDelete() {
     startDelete(async () => {

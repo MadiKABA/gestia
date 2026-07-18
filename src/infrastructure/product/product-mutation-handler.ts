@@ -12,6 +12,7 @@ import { createProduct } from "@/application/product/create-product.use-case";
 import { updateProduct } from "@/application/product/update-product.use-case";
 import { deleteProduct } from "@/application/product/delete-product.use-case";
 import { PrismaProductRepository } from "@/infrastructure/product/product.repository";
+import { PrismaProductCategoryRepository } from "@/infrastructure/product-category/product-category.repository";
 import { PrismaAuditLogger } from "@/infrastructure/audit-log/audit-log.repository";
 import { CloudinaryProductPhotoUploader } from "@/infrastructure/external/cloudinary-client";
 import { PrismaClientKnownRequestError } from "@/generated/prisma/internal/prismaNamespace";
@@ -69,11 +70,12 @@ function toResolvedInput(
 export const productMutationHandler: MutationHandler<ProductInput> = {
   async create(context, clientGeneratedId, payload): Promise<MutationHandlerResult> {
     const repository = new PrismaProductRepository(context.tenantId);
+    const categoryRepository = new PrismaProductCategoryRepository(context.tenantId);
     const photoUrl = await resolvePhoto(payload.photo, context.tenantId, clientGeneratedId);
     try {
       const product = await createProduct(
         context,
-        { repository, auditLogger },
+        { repository, categoryRepository, auditLogger },
         clientGeneratedId,
         toResolvedInput(payload, photoUrl),
       );
@@ -98,13 +100,14 @@ export const productMutationHandler: MutationHandler<ProductInput> = {
 
   async update(context, id, payload, clientKnownUpdatedAt): Promise<MutationHandlerResult> {
     const repository = new PrismaProductRepository(context.tenantId);
+    const categoryRepository = new PrismaProductCategoryRepository(context.tenantId);
     const conflict = await detectProductConflict(repository, id, clientKnownUpdatedAt);
     const photoUrl = await resolvePhoto(payload.photo, context.tenantId, id);
 
     try {
       const updated = await updateProduct(
         context,
-        { repository, auditLogger },
+        { repository, categoryRepository, auditLogger },
         id,
         toResolvedInput(payload, photoUrl),
       );

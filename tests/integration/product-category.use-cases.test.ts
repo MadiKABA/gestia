@@ -117,12 +117,17 @@ describe("use cases product-category", () => {
       createId(),
       { name: "Épicerie salée" },
     );
-    await createProduct(patronContext, { repository: productRepository, auditLogger }, createId(), {
-      name: "Sac de riz 50kg",
-      type: "PRODUIT",
-      sellingPrice: 15000,
-      categoryId: category.id,
-    });
+    await createProduct(
+      patronContext,
+      { repository: productRepository, categoryRepository, auditLogger },
+      createId(),
+      {
+        name: "Sac de riz 50kg",
+        type: "PRODUIT",
+        sellingPrice: 15000,
+        categoryId: category.id,
+      },
+    );
 
     await expect(
       deleteProductCategory(
@@ -182,7 +187,7 @@ describe("use cases product-category", () => {
     );
     const product = await createProduct(
       patronContext,
-      { repository: productRepository, auditLogger },
+      { repository: productRepository, categoryRepository, auditLogger },
       createId(),
       { name: "Sucre 1kg", type: "PRODUIT", sellingPrice: 500, categoryId: category.id },
     );

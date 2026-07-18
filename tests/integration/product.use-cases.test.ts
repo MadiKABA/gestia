@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createId } from "@paralleldrive/cuid2";
 import { prisma } from "@/infrastructure/prisma/client";
 import { PrismaProductRepository } from "@/infrastructure/product/product.repository";
+import { PrismaProductCategoryRepository } from "@/infrastructure/product-category/product-category.repository";
 import { PrismaAuditLogger } from "@/infrastructure/audit-log/audit-log.repository";
 import { createProduct } from "@/application/product/create-product.use-case";
 import { updateProduct } from "@/application/product/update-product.use-case";
@@ -18,6 +19,7 @@ import type { TenantContext } from "@/domain/shared/tenant-context";
 describe("use cases product", () => {
   const tenantId = "test-tenant-product-usecases";
   const repository = new PrismaProductRepository(tenantId);
+  const categoryRepository = new PrismaProductCategoryRepository(tenantId);
   const auditLogger = new PrismaAuditLogger();
 
   const patronContext: TenantContext = { tenantId, userId: "", role: "PATRON" };
@@ -44,12 +46,17 @@ describe("use cases product", () => {
   });
 
   it("createProduct écrit une entrée AuditLog", async () => {
-    const product = await createProduct(patronContext, { repository, auditLogger }, createId(), {
-      name: "Sac de riz 50kg",
-      type: "PRODUIT",
-      sellingPrice: 15000,
-      unit: "SAC",
-    });
+    const product = await createProduct(
+      patronContext,
+      { repository, categoryRepository, auditLogger },
+      createId(),
+      {
+        name: "Sac de riz 50kg",
+        type: "PRODUIT",
+        sellingPrice: 15000,
+        unit: "SAC",
+      },
+    );
 
     const log = await prisma.auditLog.findFirst({
       where: { tenantId, entity: "Product", entityId: product.id, action: "product.created" },
@@ -59,7 +66,7 @@ describe("use cases product", () => {
 
   it("createProduct refuse un VENDEUR", async () => {
     await expect(
-      createProduct(vendeurContext, { repository, auditLogger }, createId(), {
+      createProduct(vendeurContext, { repository, categoryRepository, auditLogger }, createId(), {
         name: "Sac de riz 50kg",
         type: "PRODUIT",
         sellingPrice: 15000,
@@ -68,14 +75,19 @@ describe("use cases product", () => {
   });
 
   it("updateProduct refuse un VENDEUR", async () => {
-    const product = await createProduct(patronContext, { repository, auditLogger }, createId(), {
-      name: "Sac de riz 50kg",
-      type: "PRODUIT",
-      sellingPrice: 15000,
-    });
+    const product = await createProduct(
+      patronContext,
+      { repository, categoryRepository, auditLogger },
+      createId(),
+      {
+        name: "Sac de riz 50kg",
+        type: "PRODUIT",
+        sellingPrice: 15000,
+      },
+    );
 
     await expect(
-      updateProduct(vendeurContext, { repository, auditLogger }, product.id, {
+      updateProduct(vendeurContext, { repository, categoryRepository, auditLogger }, product.id, {
         name: "Sac de riz 50kg (modifié)",
         type: "PRODUIT",
         sellingPrice: 16000,
@@ -84,17 +96,27 @@ describe("use cases product", () => {
   });
 
   it("updateProduct (PATRON) modifie le produit et écrit une entrée AuditLog", async () => {
-    const product = await createProduct(patronContext, { repository, auditLogger }, createId(), {
-      name: "Sac de riz 50kg",
-      type: "PRODUIT",
-      sellingPrice: 15000,
-    });
+    const product = await createProduct(
+      patronContext,
+      { repository, categoryRepository, auditLogger },
+      createId(),
+      {
+        name: "Sac de riz 50kg",
+        type: "PRODUIT",
+        sellingPrice: 15000,
+      },
+    );
 
-    const updated = await updateProduct(patronContext, { repository, auditLogger }, product.id, {
-      name: "Sac de riz 50kg (promo)",
-      type: "PRODUIT",
-      sellingPrice: 13000,
-    });
+    const updated = await updateProduct(
+      patronContext,
+      { repository, categoryRepository, auditLogger },
+      product.id,
+      {
+        name: "Sac de riz 50kg (promo)",
+        type: "PRODUIT",
+        sellingPrice: 13000,
+      },
+    );
     expect(updated.sellingPrice).toBe(13000);
 
     const log = await prisma.auditLog.findFirst({
@@ -104,11 +126,16 @@ describe("use cases product", () => {
   });
 
   it("deleteProduct refuse un VENDEUR", async () => {
-    const product = await createProduct(patronContext, { repository, auditLogger }, createId(), {
-      name: "Sac de riz 50kg",
-      type: "PRODUIT",
-      sellingPrice: 15000,
-    });
+    const product = await createProduct(
+      patronContext,
+      { repository, categoryRepository, auditLogger },
+      createId(),
+      {
+        name: "Sac de riz 50kg",
+        type: "PRODUIT",
+        sellingPrice: 15000,
+      },
+    );
 
     await expect(
       deleteProduct(vendeurContext, { repository, auditLogger }, product.id),
@@ -116,11 +143,16 @@ describe("use cases product", () => {
   });
 
   it("deleteProduct (PATRON) fait un soft delete et écrit une entrée AuditLog", async () => {
-    const product = await createProduct(patronContext, { repository, auditLogger }, createId(), {
-      name: "Sac de riz 50kg",
-      type: "PRODUIT",
-      sellingPrice: 15000,
-    });
+    const product = await createProduct(
+      patronContext,
+      { repository, categoryRepository, auditLogger },
+      createId(),
+      {
+        name: "Sac de riz 50kg",
+        type: "PRODUIT",
+        sellingPrice: 15000,
+      },
+    );
 
     await deleteProduct(patronContext, { repository, auditLogger }, product.id);
 
@@ -136,11 +168,16 @@ describe("use cases product", () => {
   });
 
   it("deleteProduct rejette un produit déjà supprimé", async () => {
-    const product = await createProduct(patronContext, { repository, auditLogger }, createId(), {
-      name: "Sac de riz 50kg",
-      type: "PRODUIT",
-      sellingPrice: 15000,
-    });
+    const product = await createProduct(
+      patronContext,
+      { repository, categoryRepository, auditLogger },
+      createId(),
+      {
+        name: "Sac de riz 50kg",
+        type: "PRODUIT",
+        sellingPrice: 15000,
+      },
+    );
     await deleteProduct(patronContext, { repository, auditLogger }, product.id);
 
     await expect(

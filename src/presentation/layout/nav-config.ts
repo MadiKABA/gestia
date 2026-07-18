@@ -8,6 +8,7 @@ import {
   Receipt,
   Settings,
   ShoppingCart,
+  Tags,
   UserCircle,
   UserCog,
   Users,
@@ -18,6 +19,7 @@ import type { TenantContext } from "@/domain/shared/tenant-context";
 import {
   cashMovementLabels,
   partyLabels,
+  productCategoryLabels,
   productLabels,
   transactionLabels,
 } from "@/presentation/shared/labels";
@@ -73,6 +75,13 @@ export const SIDEBAR_NAV_ITEMS: SidebarNavItem[] = [
     href: "/produits",
     icon: Package,
     roles: ["PATRON", "VENDEUR"],
+  },
+  {
+    key: "categories",
+    label: productCategoryLabels.listTitle,
+    href: "/categories",
+    icon: Tags,
+    roles: ["PATRON"],
   },
   { key: "caisse", label: "Caisse", href: "/caisse", icon: Wallet, roles: ["PATRON"] },
   {

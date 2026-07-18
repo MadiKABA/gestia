@@ -63,7 +63,16 @@ declare const self: ServiceWorkerGlobalScope;
  */
 const serwist = new Serwist({
   precacheEntries: self.__SW_MANIFEST,
-  skipWaiting: true,
+  // Pas de skipWaiting automatique : un nouveau service worker installé
+  // reste en attente ("waiting") plutôt que de prendre le contrôle
+  // instantanément — une bascule silencieuse en plein milieu d'une saisie
+  // (formulaire, scan) pourrait interrompre l'utilisateur ou faire cohabiter
+  // un JS neuf avec un service worker encore ancien le temps du rechargement.
+  // Serwist ajoute alors automatiquement un listener `message` qui appelle
+  // `self.skipWaiting()` sur réception de `{ type: "SKIP_WAITING" }` (voir
+  // node_modules/serwist/src/Serwist.ts) — déclenché uniquement quand
+  // l'utilisateur confirme depuis la bannière "Nouvelle version disponible"
+  // (pwa-provider.tsx, PwaUpdateBanner), jamais automatiquement.
   clientsClaim: true,
   navigationPreload: true,
   runtimeCaching: [

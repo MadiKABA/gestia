@@ -391,6 +391,9 @@ export const pwaLabels = {
   iosTitle: "Installer Gestia",
   iosInstructions: "Appuyez sur Partager, puis « Sur l'écran d'accueil ».",
   dismissAria: "Plus tard",
+  updateAvailableTitle: "Nouvelle version disponible",
+  updateButton: "Mettre à jour",
+  updateApplying: "Mise à jour…",
 };
 
 export const storageLabels = {

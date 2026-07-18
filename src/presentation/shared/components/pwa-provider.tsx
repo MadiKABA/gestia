@@ -2,6 +2,7 @@
 
 import { useEffect, type ReactNode } from "react";
 import { SerwistProvider, useSerwist } from "@serwist/turbopack/react";
+import { PwaUpdateBanner } from "@/presentation/shared/components/pwa-update-banner";
 
 /**
  * Chrome ne revérifie une mise à jour du Service Worker qu'à l'occasion
@@ -45,6 +46,7 @@ export function PwaProvider({ children }: { children: ReactNode }) {
   return (
     <SerwistProvider swUrl="/serwist/sw.js" disable={process.env.NODE_ENV === "development"}>
       <SwUpdateOnResume />
+      <PwaUpdateBanner />
       {children}
     </SerwistProvider>
   );

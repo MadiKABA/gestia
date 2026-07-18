@@ -256,7 +256,7 @@ export function ProductsList({
               ) : null}
             </Link>
             <span className="text-foreground shrink-0 text-sm font-medium tabular-nums">
-              {formatAmount(product.price, currency)}
+              {formatAmount(product.sellingPrice, currency)}
             </span>
           </li>
         ))}
@@ -294,7 +294,7 @@ export function ProductsList({
                   {categoryById.get(product.categoryId ?? "")?.name ?? "—"}
                 </td>
                 <td className="px-3 py-2 whitespace-nowrap tabular-nums">
-                  {formatAmount(product.price, currency)}
+                  {formatAmount(product.sellingPrice, currency)}
                 </td>
                 <td className="px-3 py-2 whitespace-nowrap">
                   {product.trackStock ? (

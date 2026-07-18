@@ -528,6 +528,7 @@ model ProductCategory {
   name String
 
   createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
   products Product[]
@@ -545,7 +546,14 @@ model Product {
   name        String
   description String?
   type        ProductType
-  price       Decimal     @db.Decimal(14, 2)
+
+  /**
+   * `purchasePrice` reste purement informatif (pas de calcul de marge dans
+   * ce chantier) ; `sellingPrice` est le seul prix utilisé partout où le
+   * produit est sélectionné pour une vente.
+   */
+  purchasePrice Decimal? @db.Decimal(14, 2)
+  sellingPrice  Decimal  @db.Decimal(14, 2)
 
   /**
    * `unit`/`stockQuantity` n'ont de sens que si `type = PRODUIT` — toujours

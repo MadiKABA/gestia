@@ -31,7 +31,8 @@ const DEFAULT_VALUES: ProductFormInput = {
   name: "",
   description: "",
   type: "PRODUIT",
-  price: 0,
+  purchasePrice: null,
+  sellingPrice: 0,
   unit: null,
   trackStock: false,
   stockQuantity: null,
@@ -193,24 +194,46 @@ export function ProductForm({
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="price">{productLabels.priceField(currency)}</Label>
+            <Label htmlFor="purchasePrice">{productLabels.purchasePriceField(currency)}</Label>
             <Controller
               control={control}
-              name="price"
+              name="purchasePrice"
               render={({ field }) => (
                 <Input
-                  id="price"
+                  id="purchasePrice"
+                  type="number"
+                  inputMode="decimal"
+                  min={0}
+                  value={field.value == null ? "" : String(field.value)}
+                  onValueChange={(value) => field.onChange(value === "" ? null : Number(value))}
+                  aria-invalid={!!errors.purchasePrice}
+                />
+              )}
+            />
+            {errors.purchasePrice ? (
+              <p className="text-destructive text-sm">{errors.purchasePrice.message}</p>
+            ) : null}
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="sellingPrice">{productLabels.sellingPriceField(currency)}</Label>
+            <Controller
+              control={control}
+              name="sellingPrice"
+              render={({ field }) => (
+                <Input
+                  id="sellingPrice"
                   type="number"
                   inputMode="decimal"
                   min={0}
                   value={field.value === 0 ? "" : String(field.value)}
                   onValueChange={(value) => field.onChange(value === "" ? 0 : Number(value))}
-                  aria-invalid={!!errors.price}
+                  aria-invalid={!!errors.sellingPrice}
                 />
               )}
             />
-            {errors.price ? (
-              <p className="text-destructive text-sm">{errors.price.message}</p>
+            {errors.sellingPrice ? (
+              <p className="text-destructive text-sm">{errors.sellingPrice.message}</p>
             ) : null}
           </div>
         </div>

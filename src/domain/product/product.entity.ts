@@ -35,7 +35,10 @@ export type Product = {
   name: string;
   description: string | null;
   type: ProductType;
-  price: number;
+  /** Purement informatif — pas de calcul de marge (cf. validateProductInput). */
+  purchasePrice: number | null;
+  /** Seul prix utilisé partout où le produit est sélectionné pour une vente. */
+  sellingPrice: number;
   unit: ProductUnit | null;
   trackStock: boolean;
   stockQuantity: number | null;
@@ -60,7 +63,8 @@ export type ProductInput = {
   name: string;
   description?: string | null;
   type: ProductType;
-  price: number;
+  purchasePrice?: number | null;
+  sellingPrice: number;
   unit?: ProductUnit | null;
   trackStock?: boolean;
   stockQuantity?: number | null;
@@ -80,8 +84,14 @@ export function validateProductInput(input: ProductInput): void {
   if (!input.name.trim()) {
     throw new ValidationError("Le nom du produit est obligatoire");
   }
-  if (!Number.isFinite(input.price) || input.price < 0) {
-    throw new ValidationError("Le prix doit être un nombre positif");
+  if (!Number.isFinite(input.sellingPrice) || input.sellingPrice < 0) {
+    throw new ValidationError("Le prix de vente doit être un nombre positif");
+  }
+  if (
+    input.purchasePrice != null &&
+    (!Number.isFinite(input.purchasePrice) || input.purchasePrice < 0)
+  ) {
+    throw new ValidationError("Le prix d'achat doit être un nombre positif");
   }
 
   if (input.type === "SERVICE") {

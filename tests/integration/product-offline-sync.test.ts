@@ -82,7 +82,7 @@ describe("Product offline-first : bout en bout", () => {
     const created = await repository.create({
       name: "Sac de riz 50kg",
       type: "PRODUIT",
-      price: 15000,
+      sellingPrice: 15000,
       unit: "SAC",
     });
 
@@ -115,7 +115,7 @@ describe("Product offline-first : bout en bout", () => {
     const created = await repository.create({
       name: "Sac de riz 25kg",
       type: "PRODUIT",
-      price: 8000,
+      sellingPrice: 8000,
       photo: { mimeType: "image/png", base64 },
     });
 
@@ -136,25 +136,27 @@ describe("Product offline-first : bout en bout", () => {
     const created = await repository.create({
       name: "Service de test",
       type: "SERVICE",
-      price: 3000,
+      sellingPrice: 3000,
     });
     await syncQueue({ tenantId, syncTransport });
 
     await repository.update(created.id, {
       name: "Service de test (modifié)",
       type: "SERVICE",
-      price: 3500,
+      sellingPrice: 3500,
     });
 
     // Toujours l'ancien prix côté serveur avant synchronisation.
     expect(
-      (await prisma.product.findUniqueOrThrow({ where: { id: created.id } })).price.toNumber(),
+      (
+        await prisma.product.findUniqueOrThrow({ where: { id: created.id } })
+      ).sellingPrice.toNumber(),
     ).toBe(3000);
 
     await syncQueue({ tenantId, syncTransport });
 
     const inDb = await prisma.product.findUniqueOrThrow({ where: { id: created.id } });
-    expect(inDb.price.toNumber()).toBe(3500);
+    expect(inDb.sellingPrice.toNumber()).toBe(3500);
 
     const log = await prisma.auditLog.findFirst({
       where: { tenantId, entity: "Product", entityId: created.id, action: "product.updated" },

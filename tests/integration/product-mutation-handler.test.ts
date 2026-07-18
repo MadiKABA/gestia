@@ -63,7 +63,7 @@ describe("productMutationHandler", () => {
     const result = await productMutationHandler.create(context, id, {
       name: "Sac de riz 50kg",
       type: "PRODUIT",
-      price: 15000,
+      sellingPrice: 15000,
     });
 
     expect(uploadMock).not.toHaveBeenCalled();
@@ -81,7 +81,7 @@ describe("productMutationHandler", () => {
     await productMutationHandler.create(context, id, {
       name: "Sac de riz 50kg",
       type: "PRODUIT",
-      price: 15000,
+      sellingPrice: 15000,
       photo: { mimeType: "image/png", base64 },
     });
 
@@ -101,7 +101,7 @@ describe("productMutationHandler", () => {
     await productMutationHandler.create(context, id, {
       name: "Sac de riz 50kg",
       type: "PRODUIT",
-      price: 15000,
+      sellingPrice: 15000,
       photo: { mimeType: "image/png", base64: PNG_BASE64 },
     });
     uploadMock.mockClear();
@@ -110,7 +110,7 @@ describe("productMutationHandler", () => {
     await productMutationHandler.update(
       context,
       id,
-      { name: "Sac de riz 50kg", type: "PRODUIT", price: 15000, photo: null },
+      { name: "Sac de riz 50kg", type: "PRODUIT", sellingPrice: 15000, photo: null },
       before.updatedAt.toISOString(),
     );
 
@@ -124,7 +124,7 @@ describe("productMutationHandler", () => {
     await productMutationHandler.create(context, createId(), {
       name: "Produit A",
       type: "PRODUIT",
-      price: 1000,
+      sellingPrice: 1000,
       barcode,
     });
 
@@ -132,7 +132,7 @@ describe("productMutationHandler", () => {
       productMutationHandler.create(context, createId(), {
         name: "Produit B",
         type: "PRODUIT",
-        price: 2000,
+        sellingPrice: 2000,
         barcode,
       }),
     ).rejects.toThrow(ValidationError);
@@ -143,14 +143,14 @@ describe("productMutationHandler", () => {
     await productMutationHandler.create(context, createId(), {
       name: "Produit A",
       type: "PRODUIT",
-      price: 1000,
+      sellingPrice: 1000,
       barcode,
     });
     const otherId = createId();
     await productMutationHandler.create(context, otherId, {
       name: "Produit B",
       type: "PRODUIT",
-      price: 2000,
+      sellingPrice: 2000,
     });
     const other = await prisma.product.findUniqueOrThrow({ where: { id: otherId } });
 
@@ -158,7 +158,7 @@ describe("productMutationHandler", () => {
       productMutationHandler.update(
         context,
         otherId,
-        { name: "Produit B", type: "PRODUIT", price: 2000, barcode },
+        { name: "Produit B", type: "PRODUIT", sellingPrice: 2000, barcode },
         other.updatedAt.toISOString(),
       ),
     ).rejects.toThrow(ValidationError);
@@ -166,7 +166,7 @@ describe("productMutationHandler", () => {
 
   it("create rejoué avec le même clientGeneratedId (retry-safe) renvoie un succès sans dupliquer", async () => {
     const id = createId();
-    const payload = { name: "Produit rejoué", type: "PRODUIT" as const, price: 1000 };
+    const payload = { name: "Produit rejoué", type: "PRODUIT" as const, sellingPrice: 1000 };
 
     const first = await productMutationHandler.create(context, id, payload);
     const second = await productMutationHandler.create(context, id, payload);

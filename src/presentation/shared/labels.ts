@@ -491,7 +491,8 @@ export const productLabels = {
   typeQuestion: "Produit ou service ?",
   nameField: "Nom",
   descriptionField: "Description (optionnel)",
-  priceField: (currency: string) => `Prix (${currency})`,
+  purchasePriceField: (currency: string) => `Prix d'achat (${currency}, optionnel)`,
+  sellingPriceField: (currency: string) => `Prix de vente (${currency})`,
   unitField: "Unité",
   unitPlaceholder: "Choisir une unité",
   trackStockLabel: "Suivre le stock",
@@ -511,7 +512,8 @@ export const productLabels = {
   photoTooLargeError: "La photo ne doit pas dépasser 3 Mo",
 
   nameRequiredError: "Le nom du produit est obligatoire",
-  priceInvalidError: "Le prix doit être un nombre positif",
+  sellingPriceInvalidError: "Le prix de vente doit être un nombre positif",
+  purchasePriceInvalidError: "Le prix d'achat doit être un nombre positif",
 
   deleteConfirmTitle: (name: string) => `Supprimer ${name} ?`,
   deleteConfirmDescription:

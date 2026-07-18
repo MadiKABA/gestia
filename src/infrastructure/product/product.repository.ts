@@ -139,4 +139,25 @@ export class PrismaProductRepository extends TenantScopedRepository implements P
     });
     return toDomainProduct(row);
   }
+
+  async hasActiveProductsInCategory(categoryId: string): Promise<boolean> {
+    const count = await this.prisma.product.count({
+      where: this.scoped({ categoryId, deletedAt: null }),
+    });
+    return count > 0;
+  }
+
+  async countActiveByCategoryIds(categoryIds: string[]): Promise<Map<string, number>> {
+    if (categoryIds.length === 0) return new Map();
+    const groups = await this.prisma.product.groupBy({
+      by: ["categoryId"],
+      where: this.scoped({ categoryId: { in: categoryIds }, deletedAt: null }),
+      _count: true,
+    });
+    return new Map(
+      groups
+        .filter((group): group is typeof group & { categoryId: string } => group.categoryId != null)
+        .map((group) => [group.categoryId, group._count]),
+    );
+  }
 }

@@ -15,6 +15,7 @@ export function toDomainProductCategory(row: ProductCategoryRow): ProductCategor
     tenantId: row.tenantId,
     name: row.name,
     createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
   };
 }
 
@@ -40,7 +41,9 @@ export class PrismaProductCategoryRepository
     return rows.map(toDomainProductCategory);
   }
 
-  /** Réservé au PullHandler — même règle que les autres modules. */
+  /** Réservé au PullHandler — même pattern que
+   * PrismaProductRepository.findChangedSince (curseur stable sur
+   * `updatedAt`, inclut les lignes soft-deleted). */
   async findChangedSince(
     since: Date,
     queryStartedAt: Date,
@@ -49,21 +52,17 @@ export class PrismaProductCategoryRepository
   ) {
     return this.prisma.productCategory.findMany({
       where: this.scoped({
-        // ProductCategory n'a pas de colonne `updatedAt` (jamais modifiée
-        // après création, cf. schema.prisma) : le pull générique s'appuie
-        // donc sur `createdAt` comme borne de changement, seul horodatage
-        // disponible.
-        createdAt: { gt: since, lte: queryStartedAt },
+        updatedAt: { gt: since, lte: queryStartedAt },
         ...(cursor
           ? {
               OR: [
-                { createdAt: { gt: cursor.updatedAt } },
-                { createdAt: cursor.updatedAt, id: { gt: cursor.id } },
+                { updatedAt: { gt: cursor.updatedAt } },
+                { updatedAt: cursor.updatedAt, id: { gt: cursor.id } },
               ],
             }
           : {}),
       }),
-      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+      orderBy: [{ updatedAt: "asc" }, { id: "asc" }],
       take,
     });
   }
@@ -71,6 +70,22 @@ export class PrismaProductCategoryRepository
   async create(id: string, input: ProductCategoryInput): Promise<ProductCategory> {
     const row = await this.prisma.productCategory.create({
       data: { id, tenantId: this.tenantId, name: input.name },
+    });
+    return toDomainProductCategory(row);
+  }
+
+  async update(id: string, input: ProductCategoryInput): Promise<ProductCategory> {
+    const row = await this.prisma.productCategory.update({
+      where: this.scoped({ id }),
+      data: { name: input.name },
+    });
+    return toDomainProductCategory(row);
+  }
+
+  async delete(id: string): Promise<ProductCategory> {
+    const row = await this.prisma.productCategory.update({
+      where: this.scoped({ id }),
+      data: { deletedAt: new Date() },
     });
     return toDomainProductCategory(row);
   }

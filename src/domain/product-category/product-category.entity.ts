@@ -5,6 +5,7 @@ export type ProductCategory = {
   tenantId: string;
   name: string;
   createdAt: Date;
+  updatedAt: Date;
 };
 
 export type ProductCategoryInput = {

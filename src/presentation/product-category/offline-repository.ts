@@ -28,7 +28,7 @@ export async function seedProductCategoryCache(
 ): Promise<void> {
   await Promise.all(
     categories.map((category) =>
-      setCachedEntity(tenantId, ENTITY, category.id, category, category.createdAt.toISOString()),
+      setCachedEntity(tenantId, ENTITY, category.id, category, category.updatedAt.toISOString()),
     ),
   );
 }

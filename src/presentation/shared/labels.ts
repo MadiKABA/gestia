@@ -531,3 +531,35 @@ export const productLabels = {
   scanCameraError:
     "Caméra indisponible — vérifiez les autorisations ou saisissez le code manuellement",
 };
+
+export const productCategoryLabels = {
+  listTitle: "Catégories",
+  listDescription: "Organisez votre catalogue produits par catégorie.",
+  newButtonLabel: "Nouvelle catégorie",
+
+  nameColumnLabel: "Nom",
+  productCountColumnLabel: "Produits",
+  actionsColumnLabel: "Actions",
+  totalCountLabel: "Total catégories",
+
+  emptyStateList: "Aucune catégorie pour le moment.",
+  showMoreLabel: "Voir plus",
+
+  nameField: "Nom",
+
+  newModalTitle: "Nouvelle catégorie",
+  editModalTitle: "Modifier la catégorie",
+  createSubmitLabel: "Créer la catégorie",
+  editSubmitLabel: "Enregistrer",
+  editButtonLabel: "Modifier",
+
+  deleteConfirmTitle: (name: string) => `Supprimer ${name} ?`,
+  deleteConfirmDescription:
+    "Cette catégorie sera retirée de votre catalogue. Rien n'est perdu définitivement : elle pourra être restaurée si besoin.",
+  deleteBlockedMessage:
+    "Cette catégorie contient encore des produits, retire-les d'abord ou change leur catégorie",
+
+  createdToastMessage: "Catégorie ajoutée",
+  updatedToastMessage: "Catégorie modifiée",
+  deletedToastMessage: "Catégorie supprimée",
+};

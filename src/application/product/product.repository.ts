@@ -34,4 +34,10 @@ export interface ProductRepository {
   update(id: string, input: ResolvedProductInput): Promise<Product>;
   /** Soft delete (`deletedAt`) — jamais de suppression définitive. */
   delete(id: string): Promise<Product>;
+  /** Réservé à `deleteProductCategory` (garde de suppression bloquante) —
+   * même forme que `hasOpenTransactionsForParty`. */
+  hasActiveProductsInCategory(categoryId: string): Promise<boolean>;
+  /** Nombre de produits/services actifs par catégorie, en une seule requête
+   * — utilisé par la liste des catégories pour l'affichage du compteur. */
+  countActiveByCategoryIds(categoryIds: string[]): Promise<Map<string, number>>;
 }

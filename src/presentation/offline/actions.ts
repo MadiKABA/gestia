@@ -13,6 +13,8 @@ import { registerPartySync } from "@/infrastructure/party/register-party-sync";
 import { registerTransactionSync } from "@/infrastructure/transaction/register-transaction-sync";
 import { registerPaymentSync } from "@/infrastructure/payment/register-payment-sync";
 import { registerCashMovementSync } from "@/infrastructure/cash-movement/register-cash-movement-sync";
+import { registerProductSync } from "@/infrastructure/product/register-product-sync";
+import { registerProductCategorySync } from "@/infrastructure/product-category/register-product-category-sync";
 import { checkRateLimit, SYNC_RATE_LIMIT } from "@/infrastructure/shared/rate-limiter";
 import { pullChangesInputSchema, queuedMutationInputSchema } from "@/presentation/offline/schemas";
 import { DependencyNotFoundError, ForbiddenError, ValidationError } from "@/domain/shared/errors";
@@ -33,6 +35,8 @@ registerPartySync();
 registerTransactionSync();
 registerPaymentSync();
 registerCashMovementSync();
+registerProductSync();
+registerProductCategorySync();
 
 function checkSyncRateLimit(
   context: TenantContext,

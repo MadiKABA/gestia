@@ -12,6 +12,7 @@ import { generateClientId } from "@/infrastructure/offline/id-generator";
 import {
   getCachedEntity,
   listCachedEntities,
+  removeCachedEntity,
   setCachedEntity,
 } from "@/infrastructure/offline/local-cache.store";
 import { enqueueMutation } from "@/infrastructure/offline/mutation-queue.store";
@@ -28,14 +29,11 @@ export type ProductCategoryOfflineDeps = {
 };
 
 /**
- * Repository "online-first, repli offline" du module ProductCategory —
- * volontairement plus restreint que `OfflineFirstRepository<T,...>` : ni
- * `update` ni `delete`, aucun parcours de cette version ne modifie ou ne
- * supprime une catégorie (création à la volée + sélection uniquement, cf.
- * CLAUDE.md Scope V1). Un P2002 sur `[tenantId, name]` (deux appareils créent
- * la même catégorie hors ligne) remonte comme `ValidationError` — conflit
- * fonctionnel assumé, jamais résolu automatiquement (voir
- * product-category-mutation-handler.ts).
+ * Repository "online-first, repli offline" du module ProductCategory — même
+ * pattern que ProductOfflineRepository. Un P2002 sur `[tenantId, name]`
+ * (deux appareils créent/renomment vers la même catégorie hors ligne)
+ * remonte comme `ValidationError` — conflit fonctionnel assumé, jamais
+ * résolu automatiquement (voir product-category-mutation-handler.ts).
  */
 export class ProductCategoryOfflineRepository {
   constructor(private readonly deps: ProductCategoryOfflineDeps) {}
@@ -50,6 +48,7 @@ export class ProductCategoryOfflineRepository {
       tenantId: this.deps.tenantId,
       name: input.name,
       createdAt: now,
+      updatedAt: now,
     };
 
     if (isOnline() && this.deps.syncTransport) {
@@ -88,6 +87,100 @@ export class ProductCategoryOfflineRepository {
     this.deps.onOfflineFallback?.();
 
     return category;
+  }
+
+  async update(id: string, input: ProductCategoryInput): Promise<ProductCategory> {
+    validateProductCategoryInput(input);
+
+    const cached = await getCachedEntity<ProductCategory>(this.deps.tenantId, ENTITY, id);
+    const now = new Date();
+    const updated: ProductCategory = {
+      id,
+      tenantId: this.deps.tenantId,
+      name: input.name,
+      createdAt: cached?.data.createdAt ?? now,
+      updatedAt: now,
+    };
+    const knownServerUpdatedAt = cached?.updatedAt ?? now.toISOString();
+
+    if (isOnline() && this.deps.syncTransport) {
+      const mutation: QueuedMutation = {
+        id: generateClientId(),
+        tenantId: this.deps.tenantId,
+        entity: ENTITY,
+        action: "update",
+        payload: input,
+        clientGeneratedId: id,
+        clientKnownUpdatedAt: knownServerUpdatedAt,
+        createdAt: now.toISOString(),
+        createdById: this.deps.userId,
+      };
+      const result = await attemptOnlineMutation(this.deps.syncTransport, mutation);
+      if (result.status === "validation_error") {
+        throw new ValidationError(result.message);
+      }
+      if (result.status === "success") {
+        const confirmed = { ...updated, updatedAt: new Date(result.updatedAt) };
+        await setCachedEntity(this.deps.tenantId, ENTITY, id, confirmed, result.updatedAt);
+        this.deps.onSyncNeeded?.();
+        return confirmed;
+      }
+    }
+
+    await setCachedEntity(this.deps.tenantId, ENTITY, id, updated, knownServerUpdatedAt);
+    await enqueueMutation({
+      id: generateClientId(),
+      tenantId: this.deps.tenantId,
+      entity: ENTITY,
+      action: "update",
+      payload: input,
+      clientGeneratedId: id,
+      createdById: this.deps.userId,
+    });
+    this.deps.onSyncNeeded?.();
+    this.deps.onOfflineFallback?.();
+
+    return updated;
+  }
+
+  async delete(id: string): Promise<void> {
+    const cached = await getCachedEntity<ProductCategory>(this.deps.tenantId, ENTITY, id);
+
+    if (isOnline() && this.deps.syncTransport) {
+      const mutation: QueuedMutation = {
+        id: generateClientId(),
+        tenantId: this.deps.tenantId,
+        entity: ENTITY,
+        action: "delete",
+        payload: {},
+        clientGeneratedId: id,
+        clientKnownUpdatedAt: cached?.updatedAt,
+        createdAt: new Date().toISOString(),
+        createdById: this.deps.userId,
+      };
+      const result = await attemptOnlineMutation(this.deps.syncTransport, mutation);
+      if (result.status === "validation_error") {
+        throw new ValidationError(result.message);
+      }
+      if (result.status === "success") {
+        await removeCachedEntity(this.deps.tenantId, ENTITY, id);
+        this.deps.onSyncNeeded?.();
+        return;
+      }
+    }
+
+    await removeCachedEntity(this.deps.tenantId, ENTITY, id);
+    await enqueueMutation({
+      id: generateClientId(),
+      tenantId: this.deps.tenantId,
+      entity: ENTITY,
+      action: "delete",
+      payload: {},
+      clientGeneratedId: id,
+      createdById: this.deps.userId,
+      clientKnownUpdatedAt: cached?.updatedAt,
+    });
+    this.deps.onSyncNeeded?.();
   }
 
   async getById(id: string): Promise<ProductCategory | null> {

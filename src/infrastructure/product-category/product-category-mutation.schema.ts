@@ -5,10 +5,9 @@ import {
 } from "@/domain/product-category/product-category.entity";
 import { ValidationError } from "@/domain/shared/errors";
 
-/** Schéma du payload de mutation ProductCategory — seule l'action `create`
- * est réellement utilisée (pas d'update/delete pour cette entity, voir
- * product-category-mutation-handler.ts), même schéma pour les trois par
- * contrainte du moteur générique (un seul schéma par entity). */
+/** Schéma du payload de mutation ProductCategory, partagé par `create` et
+ * `update` (même forme `{ name }` pour les deux) — `delete` ne passe jamais
+ * par ce schéma (cf. sync-mutation.use-case.ts, payload `{}` non validé). */
 export const productCategorySyncPayloadSchema = z
   .object({
     name: z.string().trim().min(1).max(200),

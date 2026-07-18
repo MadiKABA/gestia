@@ -36,10 +36,7 @@ export const productCategoryPullHandler: PullHandler<ProductCategory> = {
 
     const records: PulledRecord<ProductCategory>[] = page.map((row) => ({
       id: row.id,
-      // Pas de colonne `updatedAt` sur ProductCategory (jamais modifiée
-      // après création) : `createdAt` sert de substitut, seul horodatage
-      // disponible — voir PrismaProductCategoryRepository.findChangedSince.
-      updatedAt: row.createdAt.toISOString(),
+      updatedAt: row.updatedAt.toISOString(),
       deletedAt: row.deletedAt?.toISOString() ?? null,
       data: toDomainProductCategory(row),
     }));
@@ -49,7 +46,7 @@ export const productCategoryPullHandler: PullHandler<ProductCategory> = {
       records,
       nextPageCursor:
         hasMore && last
-          ? encodeCursor({ updatedAt: last.createdAt.toISOString(), id: last.id })
+          ? encodeCursor({ updatedAt: last.updatedAt.toISOString(), id: last.id })
           : undefined,
     };
   },

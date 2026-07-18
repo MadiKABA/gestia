@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { ProductsList } from "@/presentation/product/components/products-list";
+import { productLabels } from "@/presentation/shared/labels";
 import type { Product } from "@/domain/product/product.entity";
 
 /**
@@ -83,5 +85,25 @@ describe("ProductsList — image produit desktop et mobile", () => {
     // (ProductThumbnail), présent deux fois pour la même raison.
     const placeholders = document.querySelectorAll("div.bg-muted.rounded-lg.size-10");
     expect(placeholders).toHaveLength(2);
+  });
+});
+
+describe("ProductsList — pagination", () => {
+  it("n'affiche que les 20 premiers produits puis révèle le reste au clic sur Voir plus", async () => {
+    const products = Array.from({ length: 25 }, (_, i) =>
+      makeProduct({ id: `product-${i}`, name: `Produit ${String(i).padStart(2, "0")}` }),
+    );
+    listMock.mockResolvedValue(products);
+    renderList(products);
+
+    await screen.findByText(productLabels.showMoreLabel);
+
+    const table = screen.getByRole("table");
+    expect(within(table).getAllByRole("row")).toHaveLength(21); // en-tête + 20 lignes
+
+    await userEvent.click(screen.getByText(productLabels.showMoreLabel));
+
+    expect(within(screen.getByRole("table")).getAllByRole("row")).toHaveLength(26); // en-tête + 25 lignes
+    expect(screen.queryByText(productLabels.showMoreLabel)).not.toBeInTheDocument();
   });
 });

@@ -246,7 +246,7 @@ export function ProductsList({
             className="bg-card border-border flex items-center gap-3 rounded-lg border p-3 shadow-xs"
           >
             <ProductThumbnail product={product} />
-            <Link href={`/produits/${product.id}/modifier`} className="min-w-0 flex-1">
+            <Link href={`/produits/${product.id}`} className="min-w-0 flex-1">
               <p className="text-foreground truncate text-sm font-medium">{product.name}</p>
               <p className="text-muted-foreground truncate text-sm">
                 {categoryById.get(product.categoryId ?? "")?.name ?? "—"}
@@ -313,7 +313,7 @@ export function ProductsList({
                       variant="ghost"
                       size="icon-sm"
                       aria-label={productLabels.viewActionLabel}
-                      render={<Link href={`/produits/${product.id}/modifier`} />}
+                      render={<Link href={`/produits/${product.id}`} />}
                       nativeButton={false}
                     >
                       <Eye aria-hidden />

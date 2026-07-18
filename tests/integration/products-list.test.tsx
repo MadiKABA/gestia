@@ -88,6 +88,34 @@ describe("ProductsList — image produit desktop et mobile", () => {
   });
 });
 
+describe("ProductsList — navigation détail vs modification", () => {
+  it("pointe la carte mobile et le bouton « Voir » desktop vers la page détail, jamais directement vers la modification", async () => {
+    const product = makeProduct({ id: "product-42" });
+    listMock.mockResolvedValue([product]);
+    renderList([product]);
+
+    // Les deux vues (mobile <ul>, desktop <table>) sont toutes deux présentes
+    // dans le DOM en test (voir le test de miniature ci-dessus) — le nom
+    // apparaît donc deux fois, seule la première (carte mobile) est un lien.
+    const occurrences = await screen.findAllByText(product.name);
+
+    // Carte mobile : le lien enveloppant nom/catégorie mène au détail.
+    const mobileLink = occurrences[0].closest("a");
+    expect(mobileLink).toHaveAttribute("href", "/produits/product-42");
+
+    // Desktop : bouton "Voir" (icône œil) mène au détail, distinct du
+    // bouton "Modifier" (icône crayon) qui reste sur /modifier.
+    expect(screen.getByRole("button", { name: productLabels.viewActionLabel })).toHaveAttribute(
+      "href",
+      "/produits/product-42",
+    );
+    expect(screen.getByRole("button", { name: productLabels.editButtonLabel })).toHaveAttribute(
+      "href",
+      "/produits/product-42/modifier",
+    );
+  });
+});
+
 describe("ProductsList — pagination", () => {
   it("n'affiche que les 20 premiers produits puis révèle le reste au clic sur Voir plus", async () => {
     const products = Array.from({ length: 25 }, (_, i) =>
